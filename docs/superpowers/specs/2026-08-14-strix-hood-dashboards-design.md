@@ -20,7 +20,8 @@ Dashboard companion untuk Strix Hood — tempat user mengontrol agent onchain-ny
 | Source | Data | Detail |
 |--------|------|--------|
 | CoinGecko free API | Harga live BTC/ETH/SOL + $STRX proxy | `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd` + `markets?ids=...&sparkline=true` untuk sparkline. CORS-friendly, bisa fetch langsung dari browser. Rate limit dihormati (cache 30-60s). |
-| Public RPC (optional) | Wallet balance | Kalau user connect wallet; default kosong/skip. |
+| Injected wallet provider | Connect wallet REAL | EVM: `window.ethereum` (MetaMask/Rabby/Coinbase) → `eth_requestAccounts()`, balance via public RPC `https://cloudflare-eth.com` (eth_getBalance). Solana: `window.solana` / `window.phantom.solana` → `connect()`, balance via `https://api.mainnet-beta.solana.com` (getBalance). Zero API key. Listen `accountsChanged`/`disconnect`. |
+| Public RPC (optional) | Wallet balance | Dari injected provider di atas; default kosong/skip kalau wallet tidak terpasang. |
 | Simulasi live | Metrik protocol: agent aktif, volume, fee, execution time, success rate, activity feed | Engine simulasi kecil: angka bergerak sendiri tiap detik (random walk ter-constrain), konsisten antar view. |
 
 ## 4. Design Language
@@ -57,7 +58,7 @@ Sidebar: Overview · Agents · Portfolio · Transactions · Policy · Settings
    - Toggle kategori allowed/blocked, snap animation
    - Progress bar gradient hijau
 6. **Settings**
-   - Connect wallet (optional, public RPC), preferensi UI (preloader/cursor/particles on/off — konsisten dengan tweaks landing)
+   - Connect wallet REAL: EVM (MetaMask/Rabby via `window.ethereum`, `eth_requestAccounts`) + Solana (Phantom via `window.solana`/`window.phantom.solana`, `connect()`). Tampilkan address terpotong (mono), chain, balance real dari public RPC (cloudflare-eth.com / api.mainnet-beta.solana.com). Tombol Disconnect. Handle `accountsChanged` + `disconnect` event. State "no wallet detected" → hint install MetaMask/Phantom. Preferensi UI (preloader/cursor/particles on/off — konsisten dengan tweaks landing).
 
 ## 6. admin.dc.html — Protocol
 
@@ -87,7 +88,7 @@ Sidebar: Overview · Registry · Treasury · Security · Tokenomics
 ## 8. Out of Scope (v1)
 
 - Backend real, smart contract, onchain deploy protocol
-- Auth/login sungguhan
+- Auth/login sungguhan (wallet connect = identitas, bukan auth server)
 - Persistence (semua state in-memory)
 
 ## 9. Quality Gate
