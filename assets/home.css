@@ -262,11 +262,17 @@ body{background:transparent}
 }
 .agent__port canvas{position:absolute;inset:0;width:100%;height:100%}
 .agent__badge{
-  position:absolute;top:9px;left:9px;z-index:2;
+  position:absolute;top:9px;left:9px;z-index:2;max-width:calc(100% - 18px);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--neon);
   padding:3px 8px;border-radius:100px;background:rgba(10,10,15,.75);border:1px solid var(--glass);
 }
-.agent__rep{position:absolute;top:9px;right:9px;z-index:2}
+.agent__rep{position:absolute;bottom:9px;right:9px;z-index:2;background:rgba(10,10,15,.8);border-color:var(--glass-2)}
+.agent__port::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(10,10,15,.62) 0%,rgba(10,10,15,0) 34%,rgba(10,10,15,0) 58%,rgba(10,10,15,.7) 100%);
+}
+.agent__port picture{position:absolute;inset:0;display:block}
 .agent h3{font-size:16px}
 .agent__role{font-family:var(--mono);font-size:11px;color:var(--neon);letter-spacing:.08em}
 .agent p{font-size:13px;color:var(--gray);line-height:1.5}

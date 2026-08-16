@@ -1232,19 +1232,19 @@
      ------------------------------------------------------------
      The letterforms are not drawn in code: assets/wordmark-geo.json
      carries the supplied artwork as flattened contours (SVG space,
-     y down), and every one of them is extruded with a shallow
-     chamfer. The word IS the artwork — milled out of near-white
-     metal, rimmed in neon, with the one neon diamond over the I.
+     y down) and each one is extruded with a shallow chamfer. The
+     word IS the artwork — milled out of near-white metal, rimmed in
+     neon, with the one neon diamond over the I.
 
      A "solid" glyph arrives as a union of overlapping convex pieces
-     (bars and stems). Each piece is extruded on its own — no boolean
-     geometry anywhere — and one detail makes the union read as one
-     letter rather than as a stack of plates: the chamfer is cut
-     entirely *outside* the supplied outline, and every piece also gets
-     a flat cover cap on that outline, parked as one plane just in
-     front of the whole letter. A chamfer that runs inside a sibling's
-     outline therefore disappears behind that sibling's cover, and what
-     is left catching the neon is the outside edge of the union —
+     (bars and stems). Every piece is extruded on its own — no boolean
+     geometry anywhere — and one detail makes the union read as a
+     single letter instead of a stack of plates. ExtrudeGeometry with
+     bevelOffset:0 puts the flat cap exactly on the supplied outline
+     and grows the chamfer *outward* from it, so a chamfer that lands
+     inside a sibling can be hidden by a flat cover cap cut on that
+     sibling's own outline and floated a hair in front of the letter.
+     What survives is the chamfer around the outside of the union —
      exactly the edge the drawing has.
      ============================================================ */
 
@@ -1274,7 +1274,7 @@
     return [x / ring.length, y / ring.length];
   }
 
-  /* One glyph -> THREE.Shape per outer ring, every hole parented to the
+  /* One glyph -> a THREE.Shape per outer ring, every hole parented to the
      ring that contains it (so H's three bars and O's counter both work). */
   function glyphShapes(THREE, gl, ox, oy, k) {
     var outer = gl.outer, holes = gl.holes || [], shapes = [], i, j;
@@ -1282,6 +1282,7 @@
       shapes.push(ringInto(new THREE.Shape(), outer[i], ox, oy, k));
     }
     for (j = 0; j < holes.length; j++) {
+      if (!holes[j] || holes[j].length < 3) continue;
       var c = ringMid(holes[j]), target = 0;
       for (i = 0; i < outer.length; i++) {
         if (ringHas(outer[i], c[0], c[1])) { target = i; break; }
@@ -1307,54 +1308,75 @@
     '}'
   ].join('\n');
 
-  /* Near-white machined metal. uEdge is 0 on the flat caps and 1 on the
-     extruded skirt; inside the skirt the object-space normal separates the
-     chamfer (|nz| ~ 0.7) from the straight wall (nz == 0), so only the
-     chamfer takes the neon. That is the whole trick: white faces, neon
-     edges — not glowing green letters. */
+  /* Near-white machined metal.
+
+     uEdge is 0 on the flat caps and 1 on the extruded skirt; inside the
+     skirt the object-space normal separates the chamfer (|nz| ~ 0.4-0.9)
+     from the straight wall (nz == 0), so only the chamfer takes the neon.
+
+     The chamfer is white metal as well — what makes it read neon is a
+     coloured light raking it, and that light only reaches part of the
+     perimeter at a time. So the rim is a glint that runs round the letter
+     as it turns, not a green keyline traced round every glyph. Faces stay
+     #F5F5F7. That is the difference between "machined white metal with a
+     neon rim" and "glowing green letters". */
   var WORD_FRAG = [
-    'uniform vec3 uAccent; uniform vec3 uBase; uniform vec3 uCool;',
-    'uniform float uEdge; uniform float uTone; uniform float uSweep;',
-    'uniform float uSpan; uniform float uKick;',
+    'uniform vec3 uAccent; uniform vec3 uBase;',
+    'uniform float uEdge; uniform float uNeon; uniform float uTone; uniform float uDepth;',
+    'uniform float uSweep; uniform float uSpan; uniform float uKick;',
     'varying vec3 vN; varying vec3 vV; varying vec3 vP; varying vec3 vNL; varying float vX;',
     'float lobe(vec3 r, vec3 d, float p){ return pow(max(dot(r, normalize(d)), 0.0), p); }',
     'void main(){',
     '  vec3 n = normalize(vN); vec3 v = normalize(vV);',
     '  float ndv = clamp(dot(n, v), 0.0, 1.0);',
     '  vec3 r = reflect(-v, n);',
-    '  float fres = pow(1.0 - ndv, 3.0);',
-    '  float bev  = uEdge * smoothstep(0.10, 0.45, abs(vNL.z));',
+    '  float fres = pow(1.0 - ndv, 4.0);',
+    '  float bev  = uEdge * smoothstep(0.12, 0.50, abs(vNL.z));',
     '  float wall = uEdge * (1.0 - bev);',
-    /* stand-in for an environment: a tight white key high on the left, a broad
-       soft box, a neon bounce from the lower right and a faint sky gradient */
-    '  float key  = lobe(r, vec3(-0.42, 0.72, 0.55), 46.0);',
-    '  float soft = lobe(r, vec3(-0.30, 0.60, 0.74),  2.2);',
-    '  float bnc  = lobe(r, vec3( 0.72,-0.48, 0.50),  2.6);',
-    '  float sky  = 0.5 + 0.5 * r.y;',
-    '  float lam  = max(dot(n, normalize(vec3(-0.35, 0.62, 0.70))), 0.0);',
-    '  vec3 col = uBase * (0.34 + 0.30 * sky + 0.46 * lam);',
-    '  col += vec3(1.0) * key * 0.55;',
-    '  col += uBase * soft * 0.20;',
-    '  col += uCool * bnc * 0.06;',
-    '  col += uAccent * bnc * 0.06;',
-    '  col += uAccent * fres * 0.10;',
-    /* brushed-metal grain, and the walls sit in their own shade so the
-       extrusion reads as thickness rather than as a fatter letter */
-    '  col *= 0.990 + 0.010 * sin(vP.y * 110.0);',
-    '  col *= mix(1.0, 0.55, wall);',
-    '  vec3 neon = uAccent * (0.95 + 0.85 * fres) + vec3(1.0, 1.0, 0.90) * key * 1.30;',
-    '  col = mix(col, neon, bev * 0.88);',
-    /* specular sweep travelling left -> right along the word */
+    /* stand-in for a studio: one hard white key high on the left, a broad
+       soft box near the camera, a dim floor bounce */
+    '  float key  = lobe(r, vec3(-0.40, 0.74, 0.54), 110.0);',
+    '  float key2 = lobe(r, vec3(-0.40, 0.74, 0.54),  11.0);',
+    '  float soft = lobe(r, vec3(-0.20, 0.40, 0.90),   2.6);',
+    '  float bnc  = lobe(r, vec3( 0.66,-0.60, 0.45),   3.2);',
+    '  float lam  = max(dot(n, normalize(vec3(-0.34, 0.60, 0.72))), 0.0);',
+    /* --- the flat faces: near-white, lightly polished ------------------ */
+    '  vec3 col = uBase * (0.50 + 0.40 * lam);',
+    '  col += uBase * soft * 0.24;',
+    '  col += vec3(1.0) * key * 0.40 + vec3(1.0) * key2 * 0.07;',
+    '  col += uBase * bnc * 0.08;',
+    '  col += vec3(1.0) * fres * 0.05;',
+    /* fine milling grain — low enough to read as surface, not as stripes */
+    '  col *= 0.995 + 0.005 * sin(vP.y * 240.0);',
+    /* The straight walls sit in their own shade so the extrusion reads as
+       thickness rather than as a fatter letter, and they carry the neon back
+       from the chamfer: at hero size the chamfer itself is barely a pixel
+       wide, and this is what actually makes the colour read as a rim rather
+       than as a tint on an antialiased edge. vP.z runs 0 at the front face to
+       -uDepth at the back. */
+    '  float back = clamp(-vP.z / max(uDepth, 0.001), 0.0, 1.0);',
+    '  col *= mix(1.0, 0.40, wall);',
+    '  col += uAccent * wall * (0.05 + 0.42 * (1.0 - back) * (1.0 - back)) * uNeon;',
+    /* --- the chamfer: white metal under a neon rake -------------------- */
+    '  float g = lobe(r, vec3(-0.62, 0.44, 0.65), 3.5)',
+    '          + lobe(r, vec3( 0.60,-0.52, 0.61), 2.8) * 0.85;',
+    '  vec3 rim = uBase * (0.10 + 0.16 * lam)',
+    '           + uAccent * (0.62 + 1.95 * clamp(g, 0.0, 1.2)) * uNeon',
+    '           + vec3(1.0, 1.0, 0.94) * key * 0.85;',
+    '  col = mix(col, rim, bev);',
+    /* --- specular sweep travelling left -> right along the word --------- */
     '  float s = 1.0 - clamp(abs(vX - uSweep) / uSpan, 0.0, 1.0);',
-    '  s = s * s * s * s;',
-    '  col += mix(vec3(1.0, 1.0, 0.96), uAccent * 1.25, bev) * s * (0.10 + bev * 0.55);',
-    '  col += uAccent * uKick * (0.05 + bev * 0.45);',
+    '  s = s * s * s;',
+    '  col += mix(vec3(1.0, 1.0, 0.97), uAccent, bev * 0.75) * s * (0.09 + bev * 0.55);',
+    '  col += uAccent * uKick * (0.04 + bev * 0.40);',
     '  gl_FragColor = vec4(col * uTone, 1.0);',
     '  #include <colorspace_fragment>',
     '}'
   ].join('\n');
 
-  /* The accent diamond is the one lit object in the frame. */
+  /* The accent diamond is the one lit object in the frame: its body stays on
+     the brand colour and only a tight glint goes white, so it reads as
+     #CCFF00 rather than as a yellow blob. */
   var ACCENT_FRAG = [
     'uniform vec3 uAccent; uniform float uKick;',
     'varying vec3 vN; varying vec3 vV; varying vec3 vP; varying vec3 vNL; varying float vX;',
@@ -1364,11 +1386,9 @@
     '  float ndv = clamp(dot(n, v), 0.0, 1.0);',
     '  vec3 r = reflect(-v, n);',
     '  float fres = pow(1.0 - ndv, 2.4);',
-    '  float key = lobe(r, vec3(-0.40, 0.75, 0.50), 40.0);',
-    /* the body stays on the brand colour; only a tight glint goes white, so
-       the diamond reads as CCFF00 rather than as a yellow blob */
-    '  vec3 col = uAccent * (0.88 + 0.35 * fres + 0.16 * abs(vNL.z));',
-    '  col += vec3(1.0, 1.0, 0.86) * key * 0.75;',
+    '  float key = lobe(r, vec3(-0.40, 0.75, 0.50), 44.0);',
+    '  vec3 col = uAccent * (0.94 + 0.30 * fres + 0.14 * abs(vNL.z));',
+    '  col += vec3(1.0, 1.0, 0.88) * key * 0.70;',
     '  col += uAccent * uKick * 0.55;',
     '  gl_FragColor = vec4(col, 1.0);',
     '  #include <colorspace_fragment>',
@@ -1376,8 +1396,8 @@
   ].join('\n');
 
   function buildWordmark(THREE, canvas, opts) {
-    /* Artwork first. If it cannot be fetched the caller gets null and the
-       page keeps its own headline — nothing is built, nothing throws. */
+    /* Artwork first. If it cannot be fetched the caller gets null, the page
+       keeps its own headline — nothing is built and nothing throws. */
     return loadWordmarkGeo().then(function (geo) {
       if (!geo) return null;
       var handle = null;
@@ -1388,9 +1408,9 @@
 
   function wordmarkScene(THREE, canvas, opts, geo) {
     /* A long lens on purpose: at hero proportions the word is ~9 cap heights
-       wide, and a wide angle throws the near end of it several per cent
-       larger than the far end — which reads as a mistake, not as depth. */
-    var stage = createStage(THREE, canvas, opts, { fov: 13, dist: 12, near: 0.8, far: 160 });
+       wide, and a wide angle throws the near end several per cent larger than
+       the far end — which reads as a mistake, not as depth. */
+    var stage = createStage(THREE, canvas, opts, { fov: 10, dist: 16, near: 0.8, far: 200 });
     if (!stage) return null;
 
     var scene = stage.scene, camera = stage.camera, S = stage.state;
@@ -1408,58 +1428,94 @@
        material, so setAccent/pulse touch a single place ---- */
     var uAccent = { value: new THREE.Color(NEON) };
     var uBase = { value: new THREE.Color(0xF5F5F7) };
-    var uCool = { value: new THREE.Color(TEAL) };
     var uSweep = { value: -999 };
     var uSpan = { value: 0.9 };
     var uKick = { value: 0 };
     var uWordInv = { value: new THREE.Matrix4() };
 
-    function metalMat(edge, tone) {
-      return stage.track(new THREE.ShaderMaterial({
+    function metalMat(edge, neon, tone, depth, cover) {
+      var m = new THREE.ShaderMaterial({
         uniforms: {
-          uAccent: uAccent, uBase: uBase, uCool: uCool, uSweep: uSweep,
-          uSpan: uSpan, uKick: uKick, uWordInv: uWordInv,
-          uEdge: { value: edge }, uTone: { value: tone }
+          uAccent: uAccent, uBase: uBase, uSweep: uSweep, uSpan: uSpan,
+          uKick: uKick, uWordInv: uWordInv, uEdge: { value: edge },
+          uNeon: { value: neon }, uTone: { value: tone },
+          uDepth: { value: depth }
         },
         vertexShader: WORD_VERT, fragmentShader: WORD_FRAG
-      }));
+      });
+      /* A backstop for the cover caps. COVER already lifts them clear in
+         world units, but how much depth-buffer room that buys depends on the
+         precision the browser hands out; polygonOffset states the same nudge
+         in whatever precision the device actually has. */
+      if (cover) {
+        m.polygonOffset = true;
+        m.polygonOffsetFactor = -2;
+        m.polygonOffsetUnits = -16;
+      }
+      return stage.track(m);
     }
     /* ExtrudeGeometry group 0 = the two flat caps, group 1 = chamfer + walls.
-       "HOOD" runs a softer edge so the monoline stays white and reads lighter
-       than the heavy "STRIX" instead of turning into a neon outline. */
+       "HOOD" runs a brighter face and a much cooler rim so the monoline stays
+       white and reads lighter than the heavy "STRIX" — the contrast between
+       the two halves is the point of the drawing. */
     var MAT = {
-      solid: [metalMat(0.0, 1.03), metalMat(1.0, 1.03)],
-      outline: [metalMat(0.0, 1.10), metalMat(0.62, 1.10)]
+      solid: [metalMat(0.0, 1.00, 1.00, 0.200), metalMat(1.0, 1.00, 1.00, 0.200)],
+      outline: [metalMat(0.0, 0.50, 1.13, 0.105), metalMat(1.0, 0.50, 1.13, 0.105)]
     };
+    var COVERMAT = {
+      solid: metalMat(0.0, 1.00, 1.00, 0.200, true),
+      outline: metalMat(0.0, 0.50, 1.13, 0.105, true)
+    };
+    /* The skirt is pushed the other way, and by *slope*: an interior wall
+       seen almost edge-on has an enormous depth gradient, so half a pixel of
+       multisample extrapolation is worth far more z than any fixed offset.
+       polygonOffsetFactor scales with exactly that gradient, which is what
+       keeps such a wall from stabbing through the cap in front of it. */
+    MAT.solid[1].polygonOffset = MAT.outline[1].polygonOffset = true;
+    MAT.solid[1].polygonOffsetFactor = MAT.outline[1].polygonOffsetFactor = 2.5;
+    MAT.solid[1].polygonOffsetUnits = MAT.outline[1].polygonOffsetUnits = 4;
     var accentMat = stage.track(new THREE.ShaderMaterial({
       uniforms: { uAccent: uAccent, uKick: uKick, uWordInv: uWordInv },
       vertexShader: WORD_VERT, fragmentShader: ACCENT_FRAG
     }));
+    var accentCoverMat = stage.track(new THREE.ShaderMaterial({
+      uniforms: { uAccent: uAccent, uKick: uKick, uWordInv: uWordInv },
+      vertexShader: WORD_VERT, fragmentShader: ACCENT_FRAG,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -16
+    }));
 
-    /* Stand-ins for a bloom pass: one broad card behind the lettering and a
-       tight one on the diamond, which has to be the brightest thing here. */
+    /* Stand-in for a bloom pass: a single soft card *behind* the lettering.
+       depthTest stays on and it sits well back, so it lifts the background
+       around the word and never tints the letters themselves. */
     var glowTex = stage.track(glowTexture(THREE));
     var glowMat = stage.track(new THREE.SpriteMaterial({
-      map: glowTex, color: NEON, transparent: true, opacity: 0.10,
-      depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending
+      map: glowTex, color: NEON, transparent: true, opacity: 0.06,
+      depthWrite: false, depthTest: true, blending: THREE.AdditiveBlending
     }));
     var glow = new THREE.Sprite(glowMat);
-    glow.position.z = -0.55;
-    glow.renderOrder = -1;
+    glow.position.z = -1.4;
     root.add(glow);
 
-    var SOLID = { depth: 0.215, bevel: 0.014 };
-    var THIN = { depth: 0.150, bevel: 0.009 };
+    var SOLID = { depth: 0.200, bevel: 0.0090 };
+    var THIN = { depth: 0.105, bevel: 0.0050 };
+    var GEM = { depth: 0.075, bevel: 0.0075 };
 
-    /* bevelOffset = 0 keeps the whole chamfer outside the supplied outline,
-       so a piece's flat face reaches its outline exactly and the chamfer is
-       the only thing that grows the silhouette — 0.014 * 170 = 2.4 artwork
-       units on a 44-unit stem, ~1px at hero size. That is also what makes
+    /* bevelOffset:0 keeps the whole chamfer outside the supplied outline, so
+       a piece's flat face reaches its outline exactly and the chamfer is the
+       only thing that grows the silhouette — 0.009 * 170 = 1.5 artwork units
+       on a 44-unit stem, about a pixel at hero size. It is also what makes
        the cover caps below work: they are cut on the same outline, so they
-       stop precisely where their own chamfer starts. */
+       stop precisely where their own chamfer starts.
+
+       The chamfer is also wider than it is deep. Partly that is the look — a
+       crisp machined arris rather than a rounded-over edge — and partly it is
+       what lets the cover caps sit close: a multisampled edge resolves its
+       depth from the pixel centre, so a chamfer that drops steeply can
+       extrapolate half a pixel's worth of z straight through a cover floating
+       in front of it and reappear as a hairline. */
     function extrudeCfg(d) {
       return {
-        depth: d.depth, bevelEnabled: true, bevelThickness: d.bevel,
+        depth: d.depth, bevelEnabled: true, bevelThickness: d.bevel * 0.55,
         bevelSize: d.bevel, bevelOffset: 0, bevelSegments: 2,
         curveSegments: 4, steps: 1
       };
@@ -1468,28 +1524,42 @@
     /* ---- build the glyphs ---------------------------------------------- */
     var letters = [];
 
-    /* SEAM steps the pieces of one letter apart so no two chamfers ever land
-       on the same plane; COVER then floats the cover caps clear of the lot.
-       0.0014 * 170 = 0.24 artwork units — an eighth of a pixel at hero. */
-    var SEAM = 0.0009, COVER = 0.0100;
+    /* SEAM steps the pieces of one letter apart so no two chamfers land on
+       the same plane; COVER then floats the cover caps clear of the lot. Both
+       stay small — 0.011 of a cap height is under half a pixel of parallax at
+       the far end of a hero — because a cover floating well in front of the
+       letter shears off its own outline and starts eating the neon rim. */
+    var SEAM = 0.0006, COVER = 0.0110;
 
     /* One piece: the extrusion itself, plus (for a letter built out of more
        than one) a flat cap on the artwork outline sitting on the letter's
-       cover plane. Anything the cap overlaps is a chamfer buried inside a
-       sibling — the seam that would otherwise cut the letter into plates. */
+       cover plane. Anything a cap overlaps is a chamfer buried inside a
+       sibling — the seam that would otherwise cut the letter into plates.
+
+       Every piece is pushed back so its *front* face lands on z = 0. The word
+       therefore extrudes away from the plane the camera was fitted to, and
+       the face the viewer reads sits at exactly the scale the flat artwork
+       would have had; centring the solid on z = 0 instead throws the whole
+       word ~1% large. */
     function addPiece(group, shape, cfg, mats, capMat, i, n) {
+      var front = -(cfg.depth + cfg.bevelThickness);
       var g = stage.track(new THREE.ExtrudeGeometry(shape, cfg));
-      g.translate(0, 0, -cfg.depth / 2 + (i - (n - 1) / 2) * SEAM);
-      if (!global.__DBGNOEXT || n < 2) group.add(new THREE.Mesh(g, global.__DBGEXT ? [new THREE.MeshBasicMaterial({color:0x0000FF}), new THREE.MeshBasicMaterial({color:0xFF0000})] : mats));
+      g.translate(0, 0, front + (i - (n - 1) / 2) * SEAM);
+      group.add(new THREE.Mesh(g, mats));
       if (n < 2) return;
       var c = stage.track(new THREE.ShapeGeometry(shape, cfg.curveSegments));
-      c.translate(0, 0, cfg.depth / 2 + cfg.bevelThickness + (n - 1) / 2 * SEAM + COVER);
-      group.add(new THREE.Mesh(c, global.__DBGCOVER ? new THREE.MeshBasicMaterial({color:0xFF00FF}) : capMat));
+      /* Every cover of one glyph lands on exactly the same plane. Stepping
+         them apart instead — even by a thousandth — makes each shared edge a
+         depth discontinuity, and multisampling then resolves that edge from
+         samples the near cover owns and the far cover is depth-rejected on:
+         a one-pixel hairline tracing every internal piece boundary. */
+      c.translate(0, 0, (n - 1) / 2 * SEAM + COVER);
+      group.add(new THREE.Mesh(c, capMat));
     }
 
     function addGlyph(gl, isAccent) {
       var outline = gl.style === 'outline';
-      var d = (outline || isAccent) ? THIN : SOLID;
+      var d = isAccent ? GEM : (outline ? THIN : SOLID);
       var cfg = extrudeCfg(d);
       var box = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 }, i, j, r;
       for (i = 0; i < gl.outer.length; i++) {
@@ -1504,7 +1574,8 @@
       var ox = (box.x0 + box.x1) / 2, oy = (box.y0 + box.y1) / 2;
       var shapes = glyphShapes(THREE, gl, ox, oy, K);
       var mats = isAccent ? accentMat : (outline ? MAT.outline : MAT.solid);
-      var capMat = isAccent ? accentMat : mats[0];
+      var capMat = isAccent ? accentCoverMat
+        : (outline ? COVERMAT.outline : COVERMAT.solid);
       var group = new THREE.Group();
       for (i = 0; i < shapes.length; i++) {
         addPiece(group, shapes[i], cfg, mats, capMat, i, shapes.length);
@@ -1519,7 +1590,7 @@
         halfH: (box.y1 - box.y0) / 2 * K,
         spin: !!isAccent,
         ord: isAccent ? 3 : n,
-        delay: (isAccent ? 3.4 : n) * 0.075,
+        delay: (isAccent ? 3.4 : n) * 0.078,
         phase: n * 0.83 + (n % 3) * 0.4,
         hx: 0, hy: 0,
         fx: (n % 2 ? 1 : -1) * (0.25 + (n % 3) * 0.14),
@@ -1542,9 +1613,8 @@
         depthWrite: false, depthTest: true, blending: THREE.AdditiveBlending
       }));
       var halo = new THREE.Sprite(haloMat);
-      halo.scale.set(0.85, 0.85, 1);
-      halo.position.z = -0.04;
-      halo.renderOrder = 2;
+      halo.scale.set(0.8, 0.8, 1);
+      halo.position.z = -0.03;
       accentObj.add(halo);
       accentObj.userData.halo = haloMat;
     }
@@ -1577,13 +1647,22 @@
          artwork's own box rather than on the baseline-to-cap band */
       word.position.y = -(top + bot) / 2;
       uSpan.value = Math.max(0.42, boxW * 0.075);
-      glow.scale.set(boxW * 0.98, fitH * (two ? 2.4 : 4.4), 1);
+      glow.scale.set(boxW * 1.05, fitH * (two ? 2.6 : 4.6), 1);
     }
 
     function fitCamera(w, h) {
       var aspect = (w > 0 && h > 0) ? w / h : 1.6;
       var halfV = Math.tan(camera.fov * Math.PI / 360);
       baseDist = Math.max(fitH * PADY / halfV, fitW * PADX / (halfV * aspect));
+      /* The clip planes are pinned to the fitted distance instead of to fixed
+         numbers. The word is a stack of near-coplanar caps a few thousandths
+         apart, so it wants every bit of depth precision it can get, and the
+         fitted distance swings by an order of magnitude between a wide hero
+         and a narrow column. The far plane still clears the entrance, which
+         starts the letters at 0.72 of the distance behind the word. */
+      camera.near = Math.max(0.2, baseDist * 0.34);
+      camera.far = baseDist * 3.4 + 24;
+      camera.updateProjectionMatrix();
     }
 
     layout(false);
@@ -1598,15 +1677,15 @@
 
     /* ---- animation state ------------------------------------------------ */
     var ordMid = (geo.glyphs.length - 1) / 2;
-    var DUR = 1.0, STAGGER = 0.075;
+    var DUR = 1.0, STAGGER = 0.078;
     var FULL = DUR + STAGGER * letters.length;
     var eT = stage.reduced ? FULL : 0;
     var playing = false, started = false;
     var progress = 0, progressT = 0, kick = 0;
     var rotX = 0, rotY = 0;
 
-    /* t = 1.7 puts the static (reduced-motion / paused) frame on a slight
-       yaw with the sweep across the left third, instead of dead flat-on. */
+    /* t = 1.7 puts the static (reduced-motion) frame on a hair of yaw with
+       the sweep across the left third, instead of dead flat-on. */
     var STATIC_T = 1.7;
 
     function frame(dt, t) {
@@ -1614,17 +1693,17 @@
       kick = Math.max(0, kick - dt * 2.2);
       if (playing) { eT += dt; if (eT >= FULL) { eT = FULL; playing = false; } }
 
-      /* whole word leans toward the cursor, over a slow yaw that never stops —
-         without it a long lens would flatten the extrusion out of existence */
-      rotY = damp(rotY, clamp(S.px, -1, 1) * 0.18, 0.05, dt);
-      rotX = damp(rotX, clamp(-S.py, -1, 1) * 0.11, 0.05, dt);
-      /* the idle yaw stays small on purpose: the word is nine cap heights
-         wide, so every degree of it scales the near end against the far one
+      /* The whole word leans toward the cursor over a slow drift that never
+         stops — without it a long lens flattens the extrusion out of
+         existence. Both stay small: the word is nine cap heights wide, so
+         every extra degree of yaw scales the near end against the far one
          and the letters stop matching the drawing. */
+      rotY = damp(rotY, clamp(S.px, -1, 1) * 0.15, 0.05, dt);
+      rotX = damp(rotX, clamp(-S.py, -1, 1) * 0.10, 0.05, dt);
       root.rotation.set(
-        rotX + Math.sin(t * 0.23) * 0.038 - progress * 0.26,
-        rotY + Math.sin(t * 0.29) * 0.105 + progress * 0.55,
-        Math.sin(t * 0.17) * 0.010 + progress * 0.05
+        rotX + Math.sin(t * 0.23) * 0.020 - progress * 0.26,
+        rotY + Math.sin(t * 0.29) * 0.042 + progress * 0.55,
+        Math.sin(t * 0.17) * 0.006 + progress * 0.05
       );
       root.position.y = -progress * 0.30;
 
@@ -1640,24 +1719,28 @@
         var sep = (L.ord - ordMid) * progress * 0.62;
         L.obj.position.set(
           L.hx + k * L.fx,
-          L.hy + Math.sin(t * 0.85 + L.phase) * 0.024 * e,
+          L.hy + Math.sin(t * 0.85 + L.phase) * 0.020 * e,
           k * -baseDist * 0.72 + sep
         );
         if (L.spin) {
-          /* the diamond keeps turning on its own axis, entrance or not; the
-             phase is tied to STATIC_T so the still frame catches it face on */
+          /* The diamond keeps turning on its own axis, entrance or not, and
+             the phase is tied to STATIC_T so the still frame catches it face
+             on. The turn is not linear: subtracting sin(2th) makes it dwell
+             where it reads as a diamond and whip through the edge-on quarter,
+             which a constant spin parks it in for a third of every cycle. */
+          var th = (t - STATIC_T) * 0.95;
           L.obj.rotation.set(
             k * L.rx + Math.sin((t - STATIC_T) * 0.63) * 0.26,
-            k * L.ry + (t - STATIC_T) * 1.15,
+            k * L.ry + th - Math.sin(th * 2) * 0.45,
             k * L.rz
           );
         } else {
-          /* two or three degrees each, no more: past that the baseline reads
-             as wobbly rather than as alive */
+          /* a degree or two each, no more: past that the baseline reads as
+             wobbly rather than as alive */
           L.obj.rotation.set(
-            k * L.rx + Math.sin(t * 0.72 + L.phase * 1.7) * 0.030 * e,
-            k * L.ry + Math.sin(t * 0.61 + L.phase) * 0.042 * e,
-            k * L.rz + Math.sin(t * 0.53 + L.phase * 1.3) * 0.016 * e
+            k * L.rx + Math.sin(t * 0.72 + L.phase * 1.7) * 0.022 * e,
+            k * L.ry + Math.sin(t * 0.61 + L.phase) * 0.030 * e,
+            k * L.rz + Math.sin(t * 0.53 + L.phase * 1.3) * 0.010 * e
           );
         }
         L.obj.scale.setScalar((0.58 + 0.42 * e) * (1 + kick * 0.09));
@@ -1668,12 +1751,12 @@
       uSweep.value = -boxW / 2 - 1.4 + (t * 0.20 % 1) * travel;
       uKick.value = kick;
       var lit = clamp(eT / FULL, 0, 1);
-      glowMat.opacity = (0.09 + Math.sin(t * 0.9) * 0.02 + kick * 0.22) * lit;
+      glowMat.opacity = (0.055 + Math.sin(t * 0.9) * 0.012 + kick * 0.16) * lit;
       if (accentObj) {
         /* enough halo to make the diamond the liveliest thing in the frame,
            not so much that its own colour blows out to yellow */
         accentObj.userData.halo.opacity =
-          (0.24 + Math.sin(t * 1.7) * 0.06 + kick * 0.45) * lit;
+          (0.26 + Math.sin(t * 1.7) * 0.06 + kick * 0.45) * lit;
       }
 
       word.updateWorldMatrix(true, false);
@@ -1695,16 +1778,21 @@
       stage.start();
     }
 
-    /* Hidden until the entrance is armed. A canvas that is still below the
-       fold never runs a frame, so without this it would sit on whatever the
-       first paint happened to catch — letters frozen halfway through the
-       fly-in, which looks broken rather than pending. */
-    word.visible = false;
-    glow.visible = false;
-    stage.onVisible(function () { if (!started) { started = true; play(); } });
-
-    still();
-    stage.start();
+    if (stage.reduced) {
+      /* Reduced motion: the finished word, one frame, no loop, ever. */
+      started = true;
+      still();
+    } else {
+      /* Hidden until the entrance is armed. A canvas still below the fold
+         never runs a frame, so without this it would sit on whatever the
+         first paint happened to catch — letters frozen halfway through the
+         fly-in, which looks broken rather than pending. */
+      word.visible = false;
+      glow.visible = false;
+      stage.onVisible(function () { if (!started) play(); });
+      still();
+      stage.start();
+    }
 
     var handle = {
       dispose: function () { stage.dispose(); },

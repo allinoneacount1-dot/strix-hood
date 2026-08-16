@@ -86,6 +86,23 @@
      Copied verbatim from home.js so marketplace cards render
      identically to the landing-page roster.
      ============================================================ */
+  /* Supplied artwork, colour-graded to Robin Neon. Agents whose `art` key is
+     not here fall back to the procedural portrait renderer below. */
+  var ART = { analyst: 1, executor: 1, payment: 1, guardian: 1, research: 1 };
+
+  function artHTML(art, kind, alt) {
+    return '<picture><source type="image/webp" srcset="assets/agents/' + art + '-' + kind + '.webp">' +
+      '<img src="assets/agents/' + art + '-' + kind + '.jpg" alt="' + esc(alt) + '" loading="lazy" decoding="async" ' +
+      'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></picture>';
+  }
+
+  function artNode(art, kind, alt) {
+    var d = document.createElement('div');
+    d.style.cssText = 'position:absolute;inset:0';
+    d.innerHTML = artHTML(art, kind, alt);
+    return d;
+  }
+
   function portrait(canvas, seed, art) {
     var ctx = canvas.getContext('2d');
     var dpr = Math.min(global.devicePixelRatio || 1, 2);
@@ -430,7 +447,8 @@
     var body = el('div', {});
     body.innerHTML =
       '<div style="position:relative;aspect-ratio:16/8;border-radius:14px;overflow:hidden;border:1px solid var(--glass);background:#07070B;margin-bottom:20px">' +
-      '<canvas id="am-port" style="position:absolute;inset:0;width:100%;height:100%"></canvas></div>' +
+      (ART[a.art] ? artHTML(a.art, 'portrait', a.name + ' — ' + a.role)
+        : '<canvas id="am-port" style="position:absolute;inset:0;width:100%;height:100%"></canvas>') + '</div>' +
       '<p class="sx-lead" style="font-size:15.5px">' + esc(a.p) + '</p>' +
       '<p class="sx-body" style="margin-top:14px">' + esc(a.detail) + '</p>' +
       '<div class="sx-row" style="margin-top:16px;gap:7px">' +
@@ -456,7 +474,7 @@
       eyebrow: a.role, title: a.name, wide: true, body: body,
       onOpen: function (m) {
         var c = S.$('#am-port', m.el);
-        requestAnimationFrame(function () { portrait(c, portraitSeed(a.name), a.art); });
+        if (c) requestAnimationFrame(function () { portrait(c, portraitSeed(a.name), a.art); });
       },
       actions: [
         { label: 'Ask about this agent', variant: 'ghost', onClick: function () { if (S.chatbot) S.chatbot.ask('tell me about ' + a.name); } },
@@ -749,7 +767,8 @@
       var node = el('article', { class: 'sx-card sx-card--hover mk-a', 'data-id': a.id }, [
         el('span', { class: 'sx-card__sheen' }),
         el('div', { class: 'mk-a__port' }, [
-          el('canvas', { 'aria-hidden': 'true' }),
+          ART[a.art] ? artNode(a.art, 'card', a.name + ' — ' + a.role)
+            : el('canvas', { 'aria-hidden': 'true' }),
           el('span', { class: 'mk-a__badge', text: a.role.toUpperCase() }),
           el('span', { class: 'mk-a__rep sx-status sx-status--live' }, [el('i'), document.createTextNode(a.rep + '/1000')])
         ]),
@@ -801,7 +820,9 @@
           ' · sorted by ' + esc(sort ? sort.options[sort.selectedIndex].textContent : 'reputation');
       }
       requestAnimationFrame(function () {
-        $$('.mk-a__port canvas', grid).forEach(function (c, i) {
+        $$('.mk-a__port canvas', grid).forEach(function (c) {
+          var i = $$('.mk-a__port', grid).indexOf(c.parentNode);
+          if (i < 0) return;
           if (list[i]) portrait(c, portraitSeed(list[i].name), list[i].art);
         });
       });
