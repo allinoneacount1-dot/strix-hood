@@ -1,0 +1,338 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Brand Kit — logo, palette, type and rules | Strix Hood</title>
+<meta name="description" content="The Strix Hood brand kit: logo variants with copy-SVG and download, the full colour palette with copy-to-clipboard hex, typography specimens, clear-space and misuse rules, and the anti-slop principles the system is built on.">
+<link rel="canonical" href="https://strix-hood.vercel.app/brand.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:title" content="Brand Kit — logo, palette, type and rules | Strix Hood"><meta property="og:description" content="Logo variants, the full palette with copyable hex, type specimens, clear space, misuse rules and the anti-slop principles behind the system.">
+<meta property="og:image" content="https://strix-hood.vercel.app/assets/og.png">
+<meta property="og:url" content="https://strix-hood.vercel.app/brand.html"><meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@strixhood">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/strix.css">
+<link rel="stylesheet" href="assets/page.css">
+<link rel="stylesheet" href="assets/chatbot.css">
+</head><body data-page="brand">
+<canvas id="sx-ambient" aria-hidden="true"></canvas>
+<div id="sx-nav-host"></div>
+<main id="main">
+
+<!-- ══ HERO ══════════════════════════════════════════════════ -->
+<section class="ph">
+  <div class="sx-shell ph__grid">
+    <div>
+      <span class="sx-eyebrow" data-reveal="0"><span class="sx-glyph sx-glyph--dot"></span>Brand kit · v1.4 · updated 2026-08-11</span>
+      <h1 data-reveal="50">Use it correctly, or use the <em>monochrome one</em>.</h1>
+      <p class="sx-lead ph__lead" data-reveal="110">
+        Everything here is generated from the live design system — the swatches are the same custom properties the
+        site runs on, and the SVGs are the ones the header renders. Copy or download anything. No permission form,
+        no asset request queue.
+      </p>
+      <div class="ph__actions" data-reveal="160">
+        <a class="sx-btn sx-btn--primary" href="#logo">Logo files</a>
+        <a class="sx-btn sx-btn--ghost" href="#palette">Palette</a>
+        <button class="sx-btn sx-btn--quiet" type="button" id="br-kit">Download brand notes</button>
+      </div>
+      <div class="ph__meta" data-reveal="200">
+        <span>marks <b>4 variants</b></span>
+        <span>palette <b>11 tokens</b></span>
+        <span>type <b>2 families</b></span>
+        <span>licence <b>trademark, used as supplied</b></span>
+      </div>
+    </div>
+
+    <div data-reveal="120" style="display:grid;place-items:center">
+      <div class="br-clear__demo" style="width:100%;max-width:320px">
+        <span class="br-clear__box" aria-hidden="true"></span>
+        <span data-mark aria-hidden="true"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ LOGO ══════════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--rule" id="logo">
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">The mark</span>
+      <h2>A hood, a beak-line and a core — in that order of importance</h2>
+      <p class="sx-lead">The silhouette is the recognisable part. If a reproduction can only carry one element, it is
+        the outline; the internal detail may be dropped below 20px, and the monochrome variant already does.</p>
+    </div>
+
+    <div class="br-logos" id="br-logos" data-reveal="50"></div>
+
+    <div class="pg-note" data-reveal="90">
+      <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--ring"></span></span>
+      <div><b>Source files</b>
+        <p>The primary mark also lives at <a class="sx-mono" href="assets/mark.svg" download style="color:var(--neon-2)">assets/mark.svg</a>
+          and the rounded app icon at <a class="sx-mono" href="favicon.svg" download style="color:var(--neon-2)">favicon.svg</a>.
+          Both are plain SVG with no external references — the gradients are inline, so a copy-paste into a deck works.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CLEAR SPACE ═══════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark">
+  <span class="sx-index" aria-hidden="true">02</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Construction</span>
+      <h2>Clear space, minimum size, and where the mark may sit</h2>
+    </div>
+
+    <div class="br-clear" data-reveal="50">
+      <div class="br-clear__demo">
+        <span class="br-clear__box" aria-hidden="true"></span>
+        <span data-mark aria-hidden="true"></span>
+      </div>
+      <div>
+        <ul class="pg-ul" style="margin-top:0">
+          <li><strong>Clear space is x on every side</strong>, where x equals half the mark’s height. Nothing —
+            type, rules, other logos, image edges — enters that box.</li>
+          <li><strong>Minimum size: 20px digital, 8mm print</strong> for the full mark. Below that, use the
+            monochrome variant, which drops the internal detail.</li>
+          <li><strong>Lockup minimum width is 120px.</strong> Under that the wordmark stops being legible before
+            the mark does, so use the mark alone.</li>
+          <li><strong>Optical centring, not mathematical.</strong> The mark’s visual centre sits about 4% above its
+            bounding-box centre because of the shoulder flare. Our own header accounts for this.</li>
+          <li><strong>Backgrounds</strong>: void black, any surface darker than <span class="sx-mono">#1A1A22</span>,
+            or plasma white. Nothing in between — mid-greys kill the gradient edge.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="sx-h3" data-reveal="80" style="font-size:19px;margin:clamp(30px,4vw,48px) 0 16px">Do, and do not</h3>
+    <div class="br-dos" data-reveal="100">
+      <div class="br-do br-do--yes">
+        <div class="br-do__stage"><span data-mark aria-hidden="true"></span></div>
+        <p class="br-do__cap"><i aria-hidden="true"></i>Full-colour mark on void black. This is the default and it should
+          be most of what you use.</p>
+      </div>
+      <div class="br-do br-do--yes">
+        <div class="br-do__stage" style="background:#F5F5F7"><span data-mark aria-hidden="true"></span></div>
+        <p class="br-do__cap"><i aria-hidden="true"></i>On plasma white, using the light variant. The gradient edge is
+          unchanged; only the hood fill inverts.</p>
+      </div>
+      <div class="br-do br-do--no br-do--squish">
+        <div class="br-do__stage"><span data-mark aria-hidden="true"></span></div>
+        <p class="br-do__cap"><i aria-hidden="true"></i>Do not stretch. Scale uniformly or not at all — the hood
+          geometry is the identity.</p>
+      </div>
+      <div class="br-do br-do--no br-do--rot">
+        <div class="br-do__stage"><span data-mark aria-hidden="true"></span></div>
+        <p class="br-do__cap"><i aria-hidden="true"></i>Do not rotate. The mark is always upright, including in
+          loading states and animations.</p>
+      </div>
+      <div class="br-do br-do--no br-do--tint">
+        <div class="br-do__stage"><span data-mark aria-hidden="true"></span></div>
+        <p class="br-do__cap"><i aria-hidden="true"></i>Do not recolour outside the palette. If a single colour is
+          needed, use the monochrome variant.</p>
+      </div>
+      <div class="br-do br-do--no br-do--busy">
+        <div class="br-do__stage"><span data-mark aria-hidden="true"></span></div>
+        <p class="br-do__cap"><i aria-hidden="true"></i>Do not place it on a busy field. Use a solid panel, or the
+          monochrome variant knocked out.</p>
+      </div>
+    </div>
+
+    <p class="sx-body" data-reveal="120" style="margin-top:20px;font-size:12.5px;max-width:74ch">
+      Also: no drop shadows, no outer glow, no bevel, no gradient overlay on top of the existing gradient, and never
+      rebuild the lockup by setting the wordmark next to the mark yourself — the spacing is optical and the supplied
+      file already has it.
+    </p>
+  </div>
+</section>
+
+<!-- ══ PALETTE ═══════════════════════════════════════════════ -->
+<section class="pg-sec" id="palette">
+  <span class="sx-index" aria-hidden="true">03</span>
+  <div class="sx-shell">
+    <div class="pg-head pg-head--row" data-reveal="0">
+      <div>
+        <span class="sx-eyebrow">Colour</span>
+        <h2>Eleven tokens, and the job each one has</h2>
+        <p class="sx-lead">Select a swatch to copy its hex. These are read from the same custom properties the site
+          renders with, so what you copy is what is live.</p>
+      </div>
+      <button class="sx-btn sx-btn--ghost sx-btn--sm" type="button" id="br-tokens">Copy all as CSS</button>
+    </div>
+
+    <div class="br-pal" id="br-palette" data-reveal="50"></div>
+
+    <div class="pg-grid pg-grid--2" data-reveal="90" style="margin-top:26px;align-items:start">
+      <div class="sx-card">
+        <h3 class="sx-h3" style="font-size:18px">Usage rules</h3>
+        <ul class="pg-ul">
+          <li>Robin Neon is for one thing per view: the primary action. If two things are neon, neither is primary.</li>
+          <li>Neon Light replaces Robin Neon for text under 16px — the pure neon vibrates at small sizes on black.</li>
+          <li>Teal is a second series, never a second brand colour. It terminates gradients and separates data series.</li>
+          <li>Crimson means a loss or a block, never decoration. Amber means waiting for a human.</li>
+          <li>No surface is flat. Every panel is a gradient, a noise field or both — the palette assumes depth.</li>
+        </ul>
+      </div>
+      <div class="sx-card">
+        <h3 class="sx-h3" style="font-size:18px">Contrast</h3>
+        <div class="br-spec__row"><span>Plasma White on Void Black</span><b>17.4 : 1 · AAA</b></div>
+        <div class="br-spec__row"><span>Neural Gray on Void Black</span><b>7.2 : 1 · AAA</b></div>
+        <div class="br-spec__row"><span>Neon Light on Void Black</span><b>14.8 : 1 · AAA</b></div>
+        <div class="br-spec__row"><span>Gray Dim on Void Black</span><b>3.6 : 1 · large text only</b></div>
+        <div class="br-spec__row"><span>Void Black on Robin Neon</span><b>16.1 : 1 · AAA</b></div>
+        <p class="sx-body" style="margin-top:14px;font-size:12.5px">Gray Dim fails AA for body copy and is restricted to
+          metadata, timestamps and axis labels at 12px or above — never for anything a reader must parse.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TYPOGRAPHY ════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark">
+  <span class="sx-index" aria-hidden="true">04</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Type</span>
+      <h2>Two families, no exceptions</h2>
+      <p class="sx-lead">Space Grotesk carries everything a human reads as language. JetBrains Mono carries everything
+        a machine produced: numbers, hashes, addresses, latencies, code.</p>
+    </div>
+
+    <div class="br-type" data-reveal="50">
+      <div class="br-spec">
+        <span class="sx-eyebrow" style="margin-bottom:16px">Space Grotesk</span>
+        <p class="br-spec__glyphs">Aa Gg Rr 0123<br>Intent settled</p>
+        <div style="margin-top:22px">
+          <div class="br-spec__row"><span>Display · hero headline</span><b>clamp(42, 6.2vw, 92) / 700 / −0.035em</b></div>
+          <div class="br-spec__row"><span>H1 · page title</span><b>clamp(34, 5.1vw, 68) / 700 / −0.032em</b></div>
+          <div class="br-spec__row"><span>H2 · section</span><b>clamp(25, 2.7vw, 40) / 600 / −0.018em</b></div>
+          <div class="br-spec__row"><span>H3 · card</span><b>clamp(20, 2vw, 29) / 500 / 0</b></div>
+          <div class="br-spec__row"><span>Lead</span><b>clamp(16, 1.4vw, 20) / 400 / 1.62</b></div>
+          <div class="br-spec__row"><span>Body</span><b>15 / 400 / 1.62</b></div>
+          <div class="br-spec__row"><span>Label · uppercase</span><b>12 / 600 / +0.07em</b></div>
+        </div>
+        <p class="sx-body" style="margin-top:16px;font-size:12.5px">Headings use <span class="sx-mono">text-wrap: balance</span>
+          so a title never leaves one orphaned word. Body copy is never centred.</p>
+      </div>
+
+      <div class="br-spec">
+        <span class="sx-eyebrow" style="margin-bottom:16px">JetBrains Mono</span>
+        <p class="br-spec__glyphs br-spec__glyphs--mono">0x71C7…9A2f<br>128,904 · 340ms</p>
+        <div style="margin-top:22px">
+          <div class="br-spec__row"><span>Stat value</span><b>clamp(21, 2.3vw, 29) / 400 / tabular</b></div>
+          <div class="br-spec__row"><span>Table numerics</span><b>13.5 / 400 / tabular · right-aligned</b></div>
+          <div class="br-spec__row"><span>Code</span><b>12.5 / 400 / 1.72</b></div>
+          <div class="br-spec__row"><span>Eyebrow · pill</span><b>11 / 600 / +0.14em / uppercase</b></div>
+          <div class="br-spec__row"><span>Metadata</span><b>11 / 400 / +0.06em</b></div>
+        </div>
+        <p class="sx-body" style="margin-top:16px;font-size:12.5px">
+          <span class="sx-mono">font-variant-numeric: tabular-nums</span> is always on. A price that shifts horizontally
+          while it updates is a bug, not a style choice.</p>
+      </div>
+    </div>
+
+    <div class="pg-code" data-reveal="80">
+      <div class="pg-code__bar"><span>font loading</span>
+        <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" data-copy-target="br-font-code" data-copy-label="Font link copied">Copy</button>
+      </div>
+      <pre id="br-font-code"><code>&lt;link rel="preconnect" href="https://fonts.googleapis.com"&gt;
+&lt;link rel="preconnect" href="https://fonts.gstatic.com" crossorigin&gt;
+&lt;link rel="stylesheet" href="https://fonts.googleapis.com/css2?
+  family=Space+Grotesk:wght@400;500;600;700
+  &amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap"&gt;</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PRINCIPLES ════════════════════════════════════════════ -->
+<section class="pg-sec">
+  <span class="sx-index" aria-hidden="true">05</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Design principles</span>
+      <h2>The anti-slop rules, stated as constraints</h2>
+      <p class="sx-lead">Every one of these is enforced in review, and most of them are visible in the stylesheet as a
+        thing we deliberately did not do.</p>
+    </div>
+
+    <div class="pg-grid pg-grid--2" data-reveal="50" style="align-items:start;gap:clamp(20px,3vw,44px)">
+      <ol class="pg-ol" style="margin-top:0">
+        <li><b>No stock imagery, ever.</b> Every visual on this site is generated at runtime — canvas portraits,
+          procedural avatars, hand-built SVG, WebGL. There is not one photograph.</li>
+        <li><b>No flat surfaces.</b> Every panel is a gradient, a noise field or both. Flat fills read as unfinished
+          against this palette.</li>
+        <li><b>No centred body text.</b> Headlines may be left-aligned or nothing. Long-form copy is always ragged
+          right, always under 76 characters.</li>
+        <li><b>No default icon sets.</b> The glyph system is seven CSS shapes — dot, ring, diamond, arc, dash, bar,
+          square. If a concept needs an eighth, it needs a diagram instead.</li>
+        <li><b>No number without a source.</b> Live figures name their feed. Simulated figures say “simulated”
+          adjacent to the number, not in a footnote.</li>
+        <li><b>No decorative motion.</b> Animation communicates state change or spatial relationship. If it does
+          neither, it is deleted rather than slowed down.</li>
+      </ol>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="sx-card pg-card">
+          <span class="pg-card__tag">Motion</span>
+          <h3>Two easings, one duration scale</h3>
+          <p><span class="sx-mono" style="color:var(--neon-2)">cubic-bezier(.16,1,.3,1)</span> for entrances and
+            anything that arrives. <span class="sx-mono" style="color:var(--neon-2)">cubic-bezier(.4,0,.2,1)</span>
+            for state changes on something already present. 250ms for UI, 450–850ms for reveals.
+            <span class="sx-mono">prefers-reduced-motion</span> collapses everything to a fade.</p>
+        </div>
+        <div class="sx-card pg-card">
+          <span class="pg-card__tag">Layout</span>
+          <h3>1280px shell, asymmetric inside it</h3>
+          <p>Twelve columns, 24px gutters, a 4px spacing scale. Section content is deliberately off-balance —
+            a 1.12 / 0.88 split rather than 50/50 — because symmetrical layouts read as templates.</p>
+        </div>
+        <div class="sx-card pg-card">
+          <span class="pg-card__tag">Voice</span>
+          <h3>Specific, technical, and willing to say no</h3>
+          <p>Name the mechanism. Give the number. State the limit in the same paragraph as the claim. No
+            “seamlessly”, no “empower”, no exclamation marks, no emoji anywhere in the product or the marketing.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ═══════════════════════════════════════════════════ -->
+<section class="pg-cta">
+  <div class="sx-shell pg-cta__in" data-reveal="0">
+    <div>
+      <h2 class="sx-h1">Take what you need.</h2>
+      <p class="sx-lead">Press, integrations and community projects can use these assets as supplied without asking.
+        The one thing we ask back: do not modify the mark, and do not imply a partnership we have not announced.</p>
+      <div class="pg-cta__links">
+        <a class="sx-btn sx-btn--primary" href="assets/mark.svg" download>Download the mark</a>
+        <a class="sx-btn sx-btn--ghost" href="mailto:press@strix-hood.xyz">Press contact</a>
+        <a class="sx-btn sx-btn--quiet" href="about.html">About the company</a>
+      </div>
+    </div>
+    <div class="pg-cta__side">
+      <div class="sx-card sx-card--flat">
+        <span class="sx-label">The system in use</span>
+        <ul class="pg-ul" style="margin-top:12px">
+          <li><a href="index.html" style="color:var(--neon-2)">Landing page — the reference implementation</a></li>
+          <li><a href="docs.html" style="color:var(--neon-2)">Documentation — density and long-form</a></li>
+          <li><a href="status.html" style="color:var(--neon-2)">Status — data density and state colour</a></li>
+          <li><a href="marketplace.html" style="color:var(--neon-2)">Marketplace — generated imagery</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+<div id="sx-footer-host"></div>
+<script src="assets/strix.js"></script>
+<script src="assets/strix-data.js"></script>
+<script src="assets/wallet.js"></script>
+<script src="assets/shell.js"></script>
+<script src="assets/chatbot.js"></script>
+<script src="assets/strix-3d.js"></script>
+<script src="assets/page.js"></script>
+</body></html>

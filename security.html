@@ -1,0 +1,564 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Security — threat model, five layers, and what they miss | Strix Hood</title>
+<meta name="description" content="The Strix Hood security model in full: threat model, each of the five enforcement layers with what it catches and what it does not, audit status, bug bounty tiers, disclosure policy and an honest list of what none of it protects against.">
+<link rel="canonical" href="https://strix-hood.vercel.app/security.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:title" content="Security — threat model, five layers, and what they miss"><meta property="og:description" content="Assume the model is compromised on every request. Then ask what the attacker can actually do. Layer by layer, including the gaps.">
+<meta property="og:image" content="https://strix-hood.vercel.app/assets/og.png">
+<meta property="og:url" content="https://strix-hood.vercel.app/security.html"><meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@strixhood">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/strix.css">
+<link rel="stylesheet" href="assets/page.css">
+<link rel="stylesheet" href="assets/chatbot.css">
+</head><body data-page="security">
+<canvas id="sx-ambient" aria-hidden="true"></canvas>
+<div id="sx-nav-host"></div>
+<main id="main">
+
+<!-- ══ HERO ══════════════════════════════════════════════════ -->
+<section class="ph">
+  <div class="sx-shell ph__in">
+    <span class="sx-eyebrow" data-reveal="0"
+          style="border-color:rgba(255,80,0,.45);background:rgba(255,80,0,.07);color:#FF7A3D">
+      <span class="sx-glyph sx-glyph--dot"></span>Security model · v1.4.2
+    </span>
+    <h1 data-reveal="50">Assume the model is compromised. <em>Then ask what it can do.</em></h1>
+    <p class="sx-lead ph__lead" data-reveal="110">
+      Every defence on this page is downstream of one assumption: on any given request, the model driving your
+      agent is saying whatever an attacker wants it to say. Five layers narrow what that gets them. Two of the
+      scenarios below get through anyway, and we say which.
+    </p>
+    <div class="ph__actions" data-reveal="160">
+      <a class="sx-btn sx-btn--primary" href="#simulator">Run an attack scenario</a>
+      <a class="sx-btn sx-btn--ghost" href="#bounty">Bug bounty</a>
+      <a class="sx-btn sx-btn--quiet" href="#gaps">What this does not protect</a>
+    </div>
+    <div class="ph__meta" data-reveal="200">
+      <span>layers <b>5</b></span>
+      <span>audits <b>3 complete</b></span>
+      <span>open criticals <b>0</b></span>
+      <span>max bounty <b>$250,000</b></span>
+      <span>disclosure <b>90 days</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ THREAT MODEL ══════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--rule">
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Threat model</span>
+      <h2>What we are defending, from whom, and what we take on faith</h2>
+      <p class="sx-lead">A security page without a threat model is a marketing page. Here is ours, including the trust
+        assumptions we have not managed to remove.</p>
+    </div>
+
+    <div class="pg-grid pg-grid--3" data-reveal="50">
+      <div class="sx-card pg-card">
+        <span class="pg-card__tag">Assets</span>
+        <h3>What is worth stealing</h3>
+        <ul class="pg-ul" style="margin-top:6px">
+          <li>Balances in the user’s smart account.</li>
+          <li>Session keys and the authority they carry.</li>
+          <li>Agent bonds held in the vault contract.</li>
+          <li>The integrity of the attestation log — a forged clean record is worth real money.</li>
+        </ul>
+      </div>
+      <div class="sx-card pg-card">
+        <span class="pg-card__tag">Adversaries</span>
+        <h3>Who we assume is trying</h3>
+        <ul class="pg-ul" style="margin-top:6px">
+          <li>Anyone who can put text in front of the model.</li>
+          <li>Malicious contract authors, including upgradeable ones.</li>
+          <li>A compromised or dishonest solver.</li>
+          <li>An insider on our team with deploy access.</li>
+        </ul>
+      </div>
+      <div class="sx-card pg-card">
+        <span class="pg-card__tag">Assumptions</span>
+        <h3>What we take on faith</h3>
+        <ul class="pg-ul pg-ul--no" style="margin-top:6px">
+          <li>The owner’s root key is not stolen.</li>
+          <li>The chain does not reorg deeper than the finality window.</li>
+          <li>At least one honest solver participates in each auction.</li>
+          <li>The signature scheme and the EVM behave as specified.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sx-tablewrap" data-reveal="90" style="margin-top:26px">
+      <table class="sx-table" style="min-width:880px">
+        <caption class="sx-sr">Adversaries, their capabilities and the primary control</caption>
+        <thead><tr>
+          <th scope="col">Adversary</th><th scope="col">Assumed capability</th>
+          <th scope="col">Primary control</th><th scope="col">Residual risk</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>Prompt injector</b></td>
+            <td>Full control of what the model says, on every request, indefinitely.</td>
+            <td>Policy evaluated outside the model against a committed hash.</td>
+            <td class="sx-dim">Anything already inside your policy.</td></tr>
+          <tr><td><b>Malicious contract</b></td>
+            <td>Arbitrary code at the call target, including transfer hooks and re-entrancy.</td>
+            <td>Forked-state simulation with balance-delta and approval-diff assertions.</td>
+            <td class="sx-dim">Logic that behaves correctly at simulated size and badly at real size.</td></tr>
+          <tr><td><b>Upgradeable proxy</b></td>
+            <td>Legitimate today, hostile after the next upgrade transaction.</td>
+            <td>Implementation-slot fingerprinting against the attested hash.</td>
+            <td class="sx-dim">A window of one block between upgrade and our re-attestation.</td></tr>
+          <tr><td><b>Dishonest solver</b></td>
+            <td>Quotes a price it cannot honour, or front-runs the intent it is quoting.</td>
+            <td>Sealed bids, mandatory pre-award simulation, solver bond forfeited on miss.</td>
+            <td class="sx-dim">Collusion among every solver in one auction.</td></tr>
+          <tr><td><b>Key thief</b></td>
+            <td>Exfiltrates a live session key from the agent host.</td>
+            <td>Capability scoping plus a four-hour default expiry.</td>
+            <td class="sx-dim">One in-scope action per key until it expires or is revoked.</td></tr>
+          <tr><td><b>Insider</b></td>
+            <td>Deploy access to our infrastructure and the token contracts.</td>
+            <td>48-hour timelock on upgrades; policy enforcement lives in your account, not ours.</td>
+            <td class="sx-dim">Off-chain services — API, indexer — can be degraded immediately.</td></tr>
+          <tr><td><b>Oracle manipulator</b></td>
+            <td>Can move a thin market for two blocks.</td>
+            <td>Deviation bands against a second source; staleness bounds.</td>
+            <td class="sx-crimson" style="color:#FF7A3D">Real. See scenario 05 below.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══ THE FIVE LAYERS ═══════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark">
+  <span class="sx-index" aria-hidden="true">02</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">The stack</span>
+      <h2>Five layers, each with a column we would rather not write</h2>
+      <p class="sx-lead">Every layer can independently refuse an action, and every refusal is recorded. Expand a layer
+        for what it catches — and for what it demonstrably does not.</p>
+    </div>
+
+    <div id="se-layers" data-reveal="50">
+
+      <article class="se-layer is-open">
+        <h3 class="se-layer__h"><button class="se-layer__btn" type="button" aria-expanded="true" aria-controls="sl-1">
+          <span class="se-layer__n">01</span>
+          <span class="se-layer__t"><b>Account abstraction</b><span>ERC-4337 · validation logic you own</span></span>
+          <span class="sx-status sx-status--live"><i></i>ACTIVE</span>
+          <span class="se-layer__chev" aria-hidden="true"></span>
+        </button></h3>
+        <div class="se-layer__panel" id="sl-1"><div class="se-layer__inner"><div class="se-layer__pad">
+          <p class="sx-body">The agent never holds a key with unlimited authority. It operates a smart account whose
+            validation logic the owner controls, and receives session keys scoped by capability: an asset set, a venue
+            set, a notional ceiling and an expiry. Scope is checked in <code class="sx-mono">validateUserOp</code>,
+            before any call executes, so an out-of-scope action reverts rather than being caught after the fact.</p>
+          <div class="se-split">
+            <div class="se-split--yes"><h4>Catches</h4><ul>
+              <li>Any call to a venue outside the key’s capability set.</li>
+              <li>Any transfer of an asset the key was not issued for.</li>
+              <li>Use of a key past its expiry, without needing a revocation transaction.</li>
+              <li>Attempts by the agent to issue itself a wider key.</li>
+            </ul></div>
+            <div class="se-split--no"><h4>Does not catch</h4><ul>
+              <li>Anything the key was legitimately allowed to do — a stolen key is a bounded loss, not zero.</li>
+              <li>Actions taken by the owner key itself. It is the root of trust.</li>
+              <li>Bundler censorship or ordering games; that is layer 04’s and the solver’s problem.</li>
+            </ul></div>
+          </div>
+        </div></div></div>
+      </article>
+
+      <article class="se-layer">
+        <h3 class="se-layer__h"><button class="se-layer__btn" type="button" aria-expanded="false" aria-controls="sl-2">
+          <span class="se-layer__n">02</span>
+          <span class="se-layer__t"><b>Spending policy</b><span>onchain hash · offchain body</span></span>
+          <span class="sx-status sx-status--live"><i></i>ACTIVE</span>
+          <span class="se-layer__chev" aria-hidden="true"></span>
+        </button></h3>
+        <div class="se-layer__panel" id="sl-2"><div class="se-layer__inner"><div class="se-layer__pad">
+          <p class="sx-body">Caps, allow-lists and guards are committed as a hash. The executor loads the policy body,
+            verifies the hash, and refuses to act if they disagree. The model never reads the policy, so it cannot be
+            argued into a different one; changing it is a signed, timestamped transaction from the owner.</p>
+          <div class="se-split">
+            <div class="se-split--yes"><h4>Catches</h4><ul>
+              <li>Notional above per-transaction or rolling daily caps.</li>
+              <li>Counterparties and contracts outside the allow-list.</li>
+              <li>Slippage bands, gas ceilings and oracle-staleness bounds.</li>
+              <li>Prompt injection asking for anything you did not already permit.</li>
+            </ul></div>
+            <div class="se-split--no"><h4>Does not catch</h4><ul>
+              <li>A loose policy. If you allow $5,000 swaps without approval, an attacker gets one.</li>
+              <li>An honest agent executing a bad strategy inside its limits.</li>
+              <li>Economic manipulation that makes a bad price look like a good one — see layer 03.</li>
+            </ul></div>
+          </div>
+        </div></div></div>
+      </article>
+
+      <article class="se-layer">
+        <h3 class="se-layer__h"><button class="se-layer__btn" type="button" aria-expanded="false" aria-controls="sl-3">
+          <span class="se-layer__n">03</span>
+          <span class="se-layer__t"><b>Simulation</b><span>forked state · pre-auction</span></span>
+          <span class="sx-status sx-status--live"><i></i>ACTIVE</span>
+          <span class="se-layer__chev" aria-hidden="true"></span>
+        </button></h3>
+        <div class="se-layer__panel" id="sl-3"><div class="se-layer__inner"><div class="se-layer__pad">
+          <p class="sx-body">Every candidate route runs against a fork of current state before it can win the auction.
+            We assert on balance deltas and approval diffs rather than on the return value of the call, so a contract
+            that reports success while draining the caller fails the assertion.</p>
+          <div class="se-split">
+            <div class="se-split--yes"><h4>Catches</h4><ul>
+              <li>Malicious transfer hooks and re-entrancy against the caller.</li>
+              <li>Routes that would revert, before they ever reach a mempool.</li>
+              <li>Unexpected approval grants left behind by a call.</li>
+              <li>Stale oracles, by freshness bound.</li>
+            </ul></div>
+            <div class="se-split--no"><h4>Does not catch</h4><ul>
+              <li>Contracts that behave correctly at the simulated size and badly at another.</li>
+              <li>Time-bombed logic keyed to a block number after the simulation.</li>
+              <li>A manipulated but <em>fresh</em> oracle. Freshness is not correctness.</li>
+              <li>State that changes between simulation and inclusion, beyond the bounds we assert.</li>
+            </ul></div>
+          </div>
+        </div></div></div>
+      </article>
+
+      <article class="se-layer">
+        <h3 class="se-layer__h"><button class="se-layer__btn" type="button" aria-expanded="false" aria-controls="sl-4">
+          <span class="se-layer__n">04</span>
+          <span class="se-layer__t"><b>Contract registry</b><span>bytecode fingerprints · continuous</span></span>
+          <span class="sx-status sx-status--live"><i></i>ACTIVE</span>
+          <span class="se-layer__chev" aria-hidden="true"></span>
+        </button></h3>
+        <div class="se-layer__panel" id="sl-4"><div class="se-layer__inner"><div class="se-layer__pad">
+          <p class="sx-body">Target contracts are fingerprinted against a registry of attested bytecode. For proxies we
+            fingerprint the <em>implementation slot</em>, not the proxy address, which is what makes a post-audit upgrade
+            visible. Unknown targets are not blocked outright; they are flagged and subject to a lower notional ceiling.</p>
+          <div class="se-split">
+            <div class="se-split--yes"><h4>Catches</h4><ul>
+              <li>Proxy upgrades to unattested implementations.</li>
+              <li>Known-malicious bytecode and honeypot patterns.</li>
+              <li>Address-poisoning lookalikes on the counterparty list.</li>
+              <li>Contracts deployed within the last 24 hours, by policy default.</li>
+            </ul></div>
+            <div class="se-split--no"><h4>Does not catch</h4><ul>
+              <li>Novel malicious code that has never been seen and passes simulation.</li>
+              <li>A legitimate contract whose owner turns hostile without an upgrade — configuration, not code.</li>
+              <li>Off-chain components of a target protocol.</li>
+            </ul></div>
+          </div>
+        </div></div></div>
+      </article>
+
+      <article class="se-layer">
+        <h3 class="se-layer__h"><button class="se-layer__btn" type="button" aria-expanded="false" aria-controls="sl-5">
+          <span class="se-layer__n">05</span>
+          <span class="se-layer__t"><b>Human in the loop</b><span>threshold · you set it</span></span>
+          <span class="sx-status sx-status--live"><i></i>ACTIVE</span>
+          <span class="se-layer__chev" aria-hidden="true"></span>
+        </button></h3>
+        <div class="se-layer__panel" id="sl-5"><div class="se-layer__inner"><div class="se-layer__pad">
+          <p class="sx-body">Above a threshold you set, execution pauses for explicit approval. The agent waits; it does
+            not retry around you, and it cannot lower the threshold. Every hold is recorded on the passport with the
+            rule that fired, so the pattern of what gets held is itself readable.</p>
+          <div class="se-split">
+            <div class="se-split--yes"><h4>Catches</h4><ul>
+              <li>Anything above your notional threshold, whatever the cause.</li>
+              <li>First interaction with a new counterparty, if you enable that guard.</li>
+              <li>Anomaly signatures: unusual hour, unusual venue, unusual size for this agent.</li>
+            </ul></div>
+            <div class="se-split--no"><h4>Does not catch</h4><ul>
+              <li>Anything below the threshold — which is most things, by design.</li>
+              <li>Approval fatigue. A threshold set too low trains you to approve without reading.</li>
+              <li>An attacker who already controls the approval channel.</li>
+            </ul></div>
+          </div>
+        </div></div></div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ SIMULATOR ═════════════════════════════════════════════ -->
+<section class="pg-sec" id="simulator">
+  <span class="sx-index" aria-hidden="true">03</span>
+  <div class="sx-shell">
+    <div class="pg-head pg-head--row" data-reveal="0">
+      <div>
+        <span class="sx-eyebrow">Attack walkthrough</span>
+        <h2>Six scenarios. Four are stopped. Two are not.</h2>
+        <p class="sx-lead">Pick an attack and watch it walk the stack. The trace shows what each layer actually
+          evaluated, not a cartoon of it.</p>
+      </div>
+      <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="se-ask">Ask about the gaps</button>
+    </div>
+
+    <div class="se-sim" data-reveal="50">
+      <div class="se-sim__list" id="se-sim-list" role="group" aria-label="Attack scenarios"></div>
+      <div class="se-sim__out" id="se-sim-out" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ AUDITS ════════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark">
+  <span class="sx-index" aria-hidden="true">04</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Audit status</span>
+      <h2>Three audits complete, one in progress, one component unaudited</h2>
+      <p class="sx-lead">Reports are published in full, including findings we disputed and findings we accepted but
+        have not yet fixed.</p>
+    </div>
+
+    <div class="sx-tablewrap" data-reveal="50">
+      <table class="sx-table" style="min-width:900px">
+        <caption class="sx-sr">Audit status by component</caption>
+        <thead><tr>
+          <th scope="col">Component</th><th scope="col">Firm</th><th scope="col">Completed</th>
+          <th class="num" scope="col">Crit</th><th class="num" scope="col">High</th>
+          <th class="num" scope="col">Med</th><th class="num" scope="col">Low</th><th scope="col">State</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>Settlement + registry</b></td><td class="sx-dim">Trail of Bits</td><td class="sx-mono">2026-03-18</td>
+            <td class="num">0</td><td class="num">2</td><td class="num">7</td><td class="num">14</td>
+            <td><span class="pg-tag pg-tag--on">all fixed</span></td></tr>
+          <tr><td><b>Account + session keys</b></td><td class="sx-dim">OpenZeppelin</td><td class="sx-mono">2026-04-29</td>
+            <td class="num">1</td><td class="num">3</td><td class="num">5</td><td class="num">9</td>
+            <td><span class="pg-tag pg-tag--on">all fixed</span></td></tr>
+          <tr><td><b>Bond vault + arbitration</b></td><td class="sx-dim">Spearbit</td><td class="sx-mono">2026-06-11</td>
+            <td class="num">0</td><td class="num">1</td><td class="num">4</td><td class="num">11</td>
+            <td><span class="pg-tag pg-tag--amber">1 medium open</span></td></tr>
+          <tr><td><b>RWA token + allow-list</b></td><td class="sx-dim">Zellic</td><td class="sx-mono">in progress</td>
+            <td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
+            <td><span class="pg-tag pg-tag--amber">draft received</span></td></tr>
+          <tr><td><b>Indexer + API</b></td><td class="sx-dim">—</td><td class="sx-mono">not scheduled</td>
+            <td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
+            <td><span class="pg-tag pg-tag--crimson">unaudited</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pg-note pg-note--warn" data-reveal="80">
+      <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--dash"></span></span>
+      <div><b>The unaudited row is the honest one</b>
+        <p>The indexer and API hold no funds and cannot authorise a transaction, which is why they are last in the
+          queue. They can still lie to you about what happened, which is why they are on this table at all. Scheduled
+          for Q4 2026.</p></div>
+    </div>
+
+    <div class="pg-grid pg-grid--3" data-reveal="100" style="margin-top:24px">
+      <div class="sx-card pg-card">
+        <span class="pg-card__tag">Continuous</span><h3>Invariant suite</h3>
+        <p>412 invariants run against every commit under Foundry fuzzing. A new invariant ships with the feature that
+          needs it; the suite is not allowed to shrink.</p>
+      </div>
+      <div class="sx-card pg-card">
+        <span class="pg-card__tag">Continuous</span><h3>Attack corpus</h3>
+        <p>1,840 recorded malicious payloads replayed against the simulator nightly. Safety score on the passport is the
+          fraction of this corpus refused.</p>
+      </div>
+      <div class="sx-card pg-card">
+        <span class="pg-card__tag">Quarterly</span><h3>Chaos suite</h3>
+        <p>Reorg replay to depth 32, RPC failover, solver withdrawal mid-auction, certificate rotation. Added to
+          whenever an incident teaches us a new failure.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BOUNTY ════════════════════════════════════════════════ -->
+<section class="pg-sec" id="bounty">
+  <span class="sx-index" aria-hidden="true">05</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Bug bounty</span>
+      <h2>Paid in USDC, within 30 days of triage</h2>
+      <p class="sx-lead">Scope is every contract in the registry, the policy engine, the session-key validator and the
+        settlement path. Out of scope: this website, the testnet faucet, and anything requiring the owner’s root key.</p>
+    </div>
+
+    <div class="sx-tablewrap se-bounty" data-reveal="50">
+      <table class="sx-table" style="min-width:880px">
+        <caption class="sx-sr">Bug bounty severity tiers</caption>
+        <thead><tr>
+          <th scope="col">Severity</th><th scope="col">Definition</th><th scope="col">Example</th>
+          <th class="num" scope="col">Reward</th><th class="num" scope="col">First response</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>Critical</b></td><td>Direct theft of user funds or agent bonds, or minting without collateral.</td>
+            <td>Session-key validator accepts a forged scope.</td><td class="num pay">$50,000 – $250,000</td><td class="num">4 hours</td></tr>
+          <tr><td><b>High</b></td><td>Griefing that permanently locks funds, or bypass of a single enforcement layer.</td>
+            <td>Policy hash check bypassed for one intent type.</td><td class="num pay">$15,000 – $50,000</td><td class="num">12 hours</td></tr>
+          <tr><td><b>Medium</b></td><td>Temporary denial of service, or forcing an incorrect but recoverable state.</td>
+            <td>Auction stalls when a solver disconnects mid-quote.</td><td class="num pay">$4,000 – $15,000</td><td class="num">2 days</td></tr>
+          <tr><td><b>Low</b></td><td>Information disclosure or an inconsistency with no direct path to loss.</td>
+            <td>Refusal reason leaks an allow-list entry.</td><td class="num pay">$500 – $4,000</td><td class="num">5 days</td></tr>
+          <tr><td><b>Informational</b></td><td>Hardening suggestions, documentation errors that could mislead.</td>
+            <td>A stated default that does not match the code.</td><td class="num pay">swag + credit</td><td class="num">10 days</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pg-grid pg-grid--2" data-reveal="80" style="margin-top:24px;align-items:start">
+      <div class="sx-card">
+        <h3 class="sx-h3" style="font-size:18px">Rules</h3>
+        <ul class="pg-ul">
+          <li>Testnet only. Do not touch mainnet contracts or other people’s accounts.</li>
+          <li>No denial of service against live infrastructure; describe it instead and we will reproduce it.</li>
+          <li>First report wins. Duplicates get credit, not payment.</li>
+          <li>We will not sue you for good-faith research within these rules, and that commitment is in writing.</li>
+          <li>Public disclosure after a fix ships, or 90 days, whichever comes first — your choice of timing within that.</li>
+        </ul>
+      </div>
+      <div class="sx-card">
+        <h3 class="sx-h3" style="font-size:18px">How to report</h3>
+        <p class="sx-body" style="margin-top:10px">Encrypted mail preferred. Include a reproduction, the commit hash and
+          the impact you believe it has. A proof-of-concept transaction on testnet is worth more than three paragraphs
+          of description.</p>
+        <div class="sx-row" style="margin-top:18px">
+          <a class="sx-btn sx-btn--primary sx-btn--sm" href="mailto:security@strix-hood.xyz?subject=Security%20report">security@strix-hood.xyz</a>
+          <a class="sx-btn sx-btn--ghost sx-btn--sm" href="https://github.com/allinoneacount1-dot/strix-hood" target="_blank" rel="noopener noreferrer">Repo + PGP key</a>
+        </div>
+        <p class="sx-mono sx-dim" style="font-size:11.5px;margin-top:16px">
+          PGP fingerprint · 9C4A 71B0 F2D8 3E55 0A17 · published in the repository root
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ DISCLOSURE ════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark">
+  <span class="sx-index" aria-hidden="true">06</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Disclosure policy</span>
+      <h2>What we commit to when something goes wrong</h2>
+      <p class="sx-lead">These are commitments, not aspirations. If we miss one, the postmortem on the status page says
+        so explicitly.</p>
+    </div>
+
+    <ol class="pg-ol" data-reveal="50" style="max-width:76ch">
+      <li><b>Acknowledge within 4 hours for anything critical.</b> A human replies, not an autoresponder. The clock
+        starts when the report arrives, not when we open it.</li>
+      <li><b>Publish an initial notice within 24 hours of confirming user impact.</b> Even when we do not yet know the
+        cause. “We do not know why” is publishable; silence is not.</li>
+      <li><b>Ship the fix before the disclosure, if a fix is possible.</b> Where it is not — an economic issue rather
+        than a bug — we disclose with the mitigation you can apply yourself.</li>
+      <li><b>Full postmortem within 5 working days.</b> Impact, timeline, root cause, and what changed. Published on
+        the status page and never quietly edited afterwards.</li>
+      <li><b>90-day maximum embargo.</b> After 90 days the reporter may publish regardless of our fix status. We will
+        not ask for an extension more than once, and we will say publicly that we asked.</li>
+      <li><b>Name the missed commitment.</b> On 9 July we were paged 47 minutes after an outage began, against a
+        45-minute alerting threshold that was itself wrong. That sentence is in the postmortem.</li>
+    </ol>
+
+    <div class="sx-row" data-reveal="80" style="margin-top:26px">
+      <a class="sx-btn sx-btn--ghost" href="status.html">Read past postmortems</a>
+      <a class="sx-btn sx-btn--quiet" href="docs.html#disclosure">Disclosure reference</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ GAPS ══════════════════════════════════════════════════ -->
+<section class="pg-sec" id="gaps">
+  <span class="sx-index" aria-hidden="true">07</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow" style="border-color:rgba(255,80,0,.45);background:rgba(255,80,0,.07);color:#FF7A3D">Honest limits</span>
+      <h2>What none of this protects against</h2>
+      <p class="sx-lead">Every item below is a real, current gap. Where a mitigation exists it is outside this stack,
+        and we say what it is.</p>
+    </div>
+
+    <div class="pg-grid pg-grid--2" data-reveal="50" style="align-items:start;gap:clamp(20px,3vw,44px)">
+      <div>
+        <ul class="pg-ul pg-ul--no" style="margin-top:0">
+          <li><strong>Owner key theft.</strong> Whoever holds the owner key can rewrite the policy, widen every scope
+            and disable human-in-the-loop. No protocol layer can stop the root of trust.
+            <em>Mitigation: multi-sig or hardware owner, plus the guardian timelock landing in v1.5.</em></li>
+          <li><strong>A policy that is too loose.</strong> The most common real-world loss is not an exploit; it is a
+            $50,000 daily cap on an agent that only ever needed $500.
+            <em>Mitigation: start at a tenth of what you think you need.</em></li>
+          <li><strong>Oracle manipulation with a fresh price.</strong> Our freshness checks confirm the oracle is
+            current, not that it is right. Deviation bands narrow the window; they do not close it.
+            <em>Mitigation: low approval thresholds on illiquid pairs.</em></li>
+          <li><strong>An agent that is honest and bad at its job.</strong> Nothing is slashed, because no promise was
+            broken. The protocol bounds behaviour, not competence.</li>
+          <li><strong>Chain-level failures.</strong> A reorg deeper than the finality window, a sequencer halt, or a
+            consensus bug is outside anything we control.</li>
+          <li><strong>Off-chain service compromise.</strong> Our API and indexer cannot move your funds, but they can
+            show you a false picture of what happened. Verify against the chain for anything material.</li>
+          <li><strong>Social engineering of you.</strong> An approval prompt you did not read is an approval.</li>
+          <li><strong>Regulatory action against the RWA structure.</strong> A forced redemption is a real scenario for
+            tokenized equities and is described on the <a href="stocks.html" style="color:var(--neon-2)">stocks page</a>.</li>
+        </ul>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="pg-note pg-note--risk" style="margin-top:0">
+          <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--diamond"></span></span>
+          <div><b>Why this list is on the marketing site</b>
+            <p>A security model you cannot check is a claim. Publishing the gaps is the only way the claims about what
+              we <em>do</em> stop mean anything, and it costs us nothing we should want to keep.</p></div>
+        </div>
+        <div class="sx-card sx-card--flat">
+          <span class="sx-label">Shipping next</span>
+          <ul class="pg-ul" style="margin-top:12px">
+            <li><b>v1.5 · guardian timelock</b> — policy edits delayed 24 hours with guardian veto, reducing owner-key
+              blast radius to the timelock window.</li>
+            <li><b>v1.5 · dual-oracle mandatory</b> — deviation bands become non-optional for pairs below a liquidity floor.</li>
+            <li><b>v1.6 · attestation proofs</b> — prove an execution complied with a policy without publishing the policy.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ═══════════════════════════════════════════════════ -->
+<section class="pg-cta">
+  <div class="sx-shell pg-cta__in" data-reveal="0">
+    <div>
+      <h2 class="sx-h1">Find something we missed.</h2>
+      <p class="sx-lead">The contracts are public, the invariant suite runs on every commit, and the bounty pays up to
+        $250,000 in USDC. If this page is wrong somewhere, that is worth money to us.</p>
+      <div class="pg-cta__links">
+        <a class="sx-btn sx-btn--primary" href="https://github.com/allinoneacount1-dot/strix-hood" target="_blank" rel="noopener noreferrer">Read the contracts</a>
+        <a class="sx-btn sx-btn--ghost" href="mailto:security@strix-hood.xyz?subject=Security%20report">Report a finding</a>
+        <a class="sx-btn sx-btn--quiet" href="docs.html#security-layers">Layer reference</a>
+      </div>
+    </div>
+    <div class="pg-cta__side">
+      <div class="sx-card sx-card--flat">
+        <span class="sx-label">Related</span>
+        <ul class="pg-ul" style="margin-top:12px">
+          <li><a href="docs.html#not-protected" style="color:var(--neon-2)">Not-protected reference</a></li>
+          <li><a href="docs.html#failure-modes" style="color:var(--neon-2)">Failure-mode catalogue</a></li>
+          <li><a href="status.html" style="color:var(--neon-2)">Incident history</a></li>
+          <li><a href="agents.html" style="color:var(--neon-2)">Where the bond fits in</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+<div id="sx-footer-host"></div>
+<script src="assets/strix.js"></script>
+<script src="assets/strix-data.js"></script>
+<script src="assets/wallet.js"></script>
+<script src="assets/shell.js"></script>
+<script src="assets/chatbot.js"></script>
+<script src="assets/strix-3d.js"></script>
+<script src="assets/page.js"></script>
+</body></html>

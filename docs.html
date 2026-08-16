@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Documentation — Strix Hood Protocol</title>
+  <meta name="description" content="Strix Hood protocol documentation: intents, agent passports, the policy engine, simulation, solver routing, settlement, $STRX tokenomics, supported networks and contract addresses.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta property="og:title" content="Documentation — Strix Hood Protocol"><meta property="og:description" content="How AI agents transact onchain under a policy you wrote: intents, simulation, solver routing, settlement and attestation.">
+  <meta property="og:image" content="assets/og.png"><meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@strixhood">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/strix.css">
+  <link rel="stylesheet" href="assets/docs.css">
+</head>
+<body>
+  <div id="sx-nav-host"></div>
+  <main id="main" class="dx">
+
+    <div class="dx-bar">
+      <div class="dx-wrap dx-bar__in">
+        <button class="sx-btn sx-btn--ghost sx-btn--icon dx-menubtn" id="dx-menubtn" type="button"
+                aria-expanded="false" aria-controls="dx-rail" aria-label="Open documentation navigation">
+          <span class="sx-burger__bars"><i></i><i></i><i></i></span>
+        </button>
+        <p class="dx-crumb"><b>Docs</b><i>/</i><span id="dx-crumb-sec">Introduction</span></p>
+        <span class="dx-bar__spacer"></span>
+        <button class="dx-searchbtn" type="button" aria-label="Search the documentation">
+          <span class="sx-glyph sx-glyph--ring" aria-hidden="true"></span>
+          <span>Search docs</span><kbd>⌘K</kbd>
+        </button>
+      </div>
+    </div>
+
+    <div class="dx-wrap">
+      <div class="dx-grid">
+        <aside class="dx-rail" id="dx-rail" aria-label="Documentation navigation"></aside>
+
+        <div class="dx-body">
+
+          <header class="dx-hero">
+            <span class="sx-eyebrow">Protocol documentation</span>
+            <h1>Agents that buy, sell and pay onchain — under a policy you wrote</h1>
+            <p>Strix Hood is an intent-based commerce layer for autonomous agents. An agent states
+              <em>what</em> it wants; the protocol decides <em>whether</em> it is allowed, <em>how</em> it should be
+              routed, and <em>proves</em> what happened. This is the reference for the intent format, the policy
+              engine, the security model and the onchain contracts.</p>
+            <p class="dx-hero__meta">
+              <span>Protocol <b>v1.4.2</b></span>
+              <span>API <b>2026-07-01</b></span>
+              <span>Chains <b>7</b></span>
+              <span>Status <b>Public beta</b></span>
+            </p>
+          </header>
+
+          <!-- ============================ INTRODUCTION ============================ -->
+          <section class="dx-sec" data-group="Start here">
+            <span class="dx-kicker">01 — Overview</span>
+            <h2 id="introduction" data-nav="Introduction">Introduction</h2>
+            <p class="dx-lead">Large models can already decide what to buy. They cannot be trusted with a private
+              key. Strix Hood exists to close that gap: it accepts a declarative <strong>intent</strong> from an
+              agent, checks it against a signed spending policy, simulates it against live chain state, auctions
+              execution to competing solvers, settles it, and writes an attestation that can be audited later.</p>
+
+            <h3 id="the-problem">The problem</h3>
+            <p>Every practical approach to agent-driven commerce today fails in one of three ways.</p>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Approach</th><th>Failure mode</th><th>Consequence</th></tr></thead>
+                <tbody>
+                  <tr><td>Give the agent a hot wallet</td><td>Unbounded authority</td><td>One prompt injection drains the balance. No recovery, no recourse.</td></tr>
+                  <tr><td>Human signs every transaction</td><td>Latency and attention</td><td>Defeats autonomy. A 20-second approval loop loses the fill.</td></tr>
+                  <tr><td>Custodial API broker</td><td>Counterparty risk, no proof</td><td>You trust an operator's ledger. Nothing is verifiable onchain.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>All three collapse the same distinction: <strong>capability</strong> (the agent can produce a
+              transaction) versus <strong>authority</strong> (the transaction is permitted). Strix Hood separates
+              them. The agent produces intents. Authority lives in a policy that the agent cannot edit, committed
+              onchain as a hash and enforced by the account's validator module at signing time.</p>
+
+            <h3 id="the-core-promise">The core promise</h3>
+            <p>An agent holding a Strix Hood session key can spend only what the policy allows, only on the
+              actions the policy names, only on the chains the policy lists, and only if the simulated asset diff
+              matches what the intent claimed. Everything else reverts before it reaches the mempool.</p>
+            <div class="dx-stats">
+              <div class="dx-stat"><b>0.25%</b><span>Protocol fee on settled notional</span></div>
+              <div class="dx-stat"><b>~0.9 s</b><span>p50 intent to inclusion on Base</span></div>
+              <div class="dx-stat"><b>5</b><span>Independent enforcement layers</span></div>
+              <div class="dx-stat"><b>7</b><span>Settlement networks</span></div>
+            </div>
+
+            <h3 id="who-it-is-for">Who it is for</h3>
+            <ul>
+              <li><strong>Agent developers</strong> shipping an autonomous trader, treasury manager, procurement
+                bot or research agent that needs to move value without a human in the loop for every action.</li>
+              <li><strong>Applications</strong> that want to offer "let the assistant do it" without becoming a
+                custodian or building a policy engine, simulator and router themselves.</li>
+              <li><strong>Solvers and market makers</strong> competing for agent order flow through the routing
+                auction, and earning a share of the 0.25% fee.</li>
+              <li><strong>Risk and compliance owners</strong> who need a signed, replayable record of why every
+                automated transaction was permitted.</li>
+            </ul>
+
+            <h3 id="what-it-is-not">What it is not</h3>
+            <p>Strix Hood is not a wallet, not an LLM, and not a custodian. It never holds user funds outside of
+              the atomic settlement window, it does not generate the agent's reasoning, and it does not decide
+              whether a trade is a good idea. It decides whether a trade is <em>permitted</em> and executes it
+              well. Read <a href="#security">Security model</a> for the explicit list of risks it does not
+              remove.</p>
+
+            <div class="dx-cards">
+              <a class="dx-card" href="#quickstart"><span class="dx-card__k">Next</span><b>Quickstart</b>
+                <p>Register an agent, bind a policy and submit a first intent in about ten minutes.</p></a>
+              <a class="dx-card" href="api.html"><span class="dx-card__k">Reference</span><b>REST &amp; WebSocket API</b>
+                <p>Every endpoint, parameter, error code and streaming channel.</p></a>
+              <a class="dx-card" href="sdk.html"><span class="dx-card__k">Clients</span><b>SDKs</b>
+                <p>TypeScript, Python and Rust with identical method surfaces.</p></a>
+            </div>
+          </section>
+
+          <!-- ============================ QUICKSTART ============================ -->
+          <section class="dx-sec" data-group="Start here">
+            <span class="dx-kicker">02 — Get running</span>
+            <h2 id="quickstart" data-nav="Quickstart">Quickstart</h2>
+            <p class="dx-lead">This walkthrough gets a policy-governed agent from zero to a settled swap on Base
+              Sepolia. It uses test keys throughout; nothing here touches mainnet value.</p>
+
+            <h3 id="qs-install">1. Install a client</h3>
+            <p>The SDKs are thin, typed wrappers over the REST API. Every method in them maps to exactly one
+              endpoint, so you can drop to raw HTTP at any point without losing behaviour.</p>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="bash" data-title="terminal"><pre><code>npm install @strixhood/sdk
+# or: pnpm add @strixhood/sdk / bun add @strixhood/sdk</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="bash" data-title="terminal"><pre><code>pip install strixhood
+# requires Python 3.10+</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="bash" data-title="terminal"><pre><code>cargo add strix-hood --features rustls,stream</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="qs-keys">2. Create an API key</h3>
+            <p>Keys are created in the console under <strong>Settings → API keys</strong>. Two prefixes exist and
+              they are not interchangeable.</p>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Prefix</th><th>Environment</th><th>Where it may be used</th><th>Scopes</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">strx_sk_test_</td><td>Testnets</td><td>Server side only</td><td>All</td></tr>
+                  <tr><td class="mono">strx_sk_live_</td><td>Mainnets</td><td>Server side only</td><td>Granted per key</td></tr>
+                  <tr><td class="mono">strx_pk_live_</td><td>Mainnets</td><td>Browser, mobile, agent runtime</td><td class="mono">quotes:read, prices:read</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="dx-note dx-note--warn">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>Never ship a secret key into an agent runtime</b>
+                <p>An agent that can read its own <code>sk_</code> key can create a new policy for itself. Keep
+                  secret keys on a server the model cannot reach, and give the agent runtime a
+                  <code>pk_</code> key plus a scoped session key. See
+                  <a href="#security-layers">the five enforcement layers</a>.</p></div>
+            </div>
+            <div class="dx-code" data-lang="bash" data-title="~/.zshrc or your secret manager"><pre><code>export STRIX_API_KEY="strx_sk_test_9f2c41bd7a084e6cb35d0e17"
+export STRIX_ENV="testnet"</code></pre></div>
+
+            <h3 id="qs-policy">3. Write the policy first</h3>
+            <p>Policies are created before agents, not after. An agent without a bound policy can be registered
+              but cannot be issued a session key, so it can never sign anything.</p>
+            <div class="dx-code" data-lang="json" data-title="policy.json"><pre><code>{
+  "name": "dca-conservative",
+  "limits": {
+    "per_tx_usd": 250,
+    "daily_usd": 1000,
+    "monthly_usd": 20000,
+    "max_open_intents": 4
+  },
+  "allow": {
+    "chains": ["eip155:8453", "eip155:42161"],
+    "actions": ["swap", "transfer"],
+    "tokens": ["USDC", "WETH", "cbBTC"],
+    "venues": ["uniswap_v4", "aerodrome", "curve"]
+  },
+  "deny": {
+    "categories": ["leverage", "gambling", "unverified_contract"]
+  },
+  "simulation": {
+    "require_success": true,
+    "max_price_impact_bps": 120,
+    "min_liquidity_usd": 250000
+  },
+  "hitl": {
+    "threshold_usd": 200,
+    "channels": ["webhook"],
+    "timeout_sec": 180,
+    "on_timeout": "reject"
+  },
+  "expires_at": "2027-01-01T00:00:00Z"
+}</code></pre></div>
+            <div class="dx-code" data-lang="bash" data-title="create the policy"><pre><code>curl -sS https://api.strixhood.xyz/v1/policies \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  -H "Content-Type: application/json" \
+  --data @policy.json | jq '{id, version, hash}'</code></pre></div>
+            <div class="dx-code" data-lang="json" data-title="response"><pre><code>{
+  "id": "pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD",
+  "version": 1,
+  "hash": "0x7d41a9c0b83e5f2d16c4a87b90ef3524ca1d6b8f0472e93a5c18df6027ab4e91"
+}</code></pre></div>
+
+            <h3 id="qs-agent">4. Register the agent</h3>
+            <p>Registration mints an <a href="#agent-passport">Agent NFT Passport</a> and locks a
+              <span class="sx-num">2,500</span> $STRX bond. On testnets the bond is waived and the passport is
+              minted on Base Sepolia.</p>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="register.ts"><pre><code>import { Strix } from "@strixhood/sdk";
+
+const strix = new Strix({ apiKey: process.env.STRIX_API_KEY! });
+
+const agent = await strix.agents.create({
+  name: "dca-eth",
+  kind: "trader",
+  policyId: "pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD",
+  chains: ["eip155:8453"],
+  sessionKey: { ttlSeconds: 86_400, rotate: true },
+});
+
+console.log(agent.id, agent.smartAccount, agent.passport.tokenId);
+// agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP  0x1F3c…9aE2  #4182</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="register.py"><pre><code>import os
+from strixhood import Strix
+
+strix = Strix(api_key=os.environ["STRIX_API_KEY"])
+
+agent = strix.agents.create(
+    name="dca-eth",
+    kind="trader",
+    policy_id="pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD",
+    chains=["eip155:8453"],
+    session_key={"ttl_seconds": 86400, "rotate": True},
+)
+
+print(agent.id, agent.smart_account, agent.passport.token_id)</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="src/main.rs"><pre><code>use strix_hood::{Strix, CreateAgent, SessionKey};
+
+let strix = Strix::from_env()?;
+
+let agent = strix
+    .agents()
+    .create(CreateAgent {
+        name: "dca-eth".into(),
+        kind: "trader".into(),
+        policy_id: "pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD".into(),
+        chains: vec!["eip155:8453".into()],
+        session_key: Some(SessionKey { ttl_seconds: 86_400, rotate: true }),
+    })
+    .await?;
+
+println!("{} {}", agent.id, agent.smart_account);</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="qs-intent">5. Submit the first intent</h3>
+            <p>An intent is a statement of outcome, not a calldata blob. You never encode a router call, choose a
+              pool or set a gas price — the solver auction does that, bounded by your constraints.</p>
+            <div class="dx-code" data-lang="bash" data-title="submit an intent"><pre><code>curl -sS https://api.strixhood.xyz/v1/intents \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: dca-2026-08-16-0900" \
+  -d '{
+    "agent_id": "agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP",
+    "action": "swap",
+    "chain": "eip155:8453",
+    "params": {
+      "sell_token": "USDC",
+      "buy_token": "WETH",
+      "sell_amount": "150.00"
+    },
+    "constraints": { "max_slippage_bps": 40, "route_preference": "best_price" }
+  }'</code></pre></div>
+            <div class="dx-code" data-lang="json" data-title="202 Accepted"><pre><code>{
+  "id": "int_01JQ8ZP1V6C3MD8R0YF2WKGSTA",
+  "object": "intent",
+  "status": "policy_check",
+  "agent_id": "agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP",
+  "policy_version": 1,
+  "estimated": { "buy_amount": "0.04129", "fee_usd": 0.375, "price_impact_bps": 6 },
+  "created_at": "2026-08-16T09:00:00.412Z"
+}</code></pre></div>
+
+            <h3 id="qs-watch">6. Follow it to settlement</h3>
+            <p>Poll <code>GET /v1/intents/{id}</code> if you must, but the stream is authoritative and costs no
+              rate-limit budget. Both surfaces emit the same status values.</p>
+            <div class="dx-code" data-lang="ts" data-title="watch.ts"><pre><code>const stream = strix.stream.executions({ agentId: agent.id });
+
+for await (const evt of stream) {
+  console.log(evt.status, evt.txHash ?? "-");
+  if (evt.status === "settled") {
+    console.log("filled", evt.fills[0].buyAmount, "WETH");
+    console.log("attestation", evt.attestation.uid);
+    break;
+  }
+}</code></pre></div>
+            <div class="dx-note">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>What just happened</b>
+                <p>The intent was normalised, checked against policy version 1, simulated on a fork of the pending
+                  Base block, auctioned to three solvers, signed by a session key whose validator contains your
+                  policy hash, included, and attested. The full sequence is documented in
+                  <a href="#architecture">Architecture</a>.</p></div>
+            </div>
+          </section>
+
+          <!-- ============================ CORE CONCEPTS ============================ -->
+          <section class="dx-sec" data-group="Protocol">
+            <span class="dx-kicker">03 — Vocabulary</span>
+            <h2 id="concepts" data-nav="Core concepts">Core concepts</h2>
+            <p class="dx-lead">Seven objects carry the whole protocol. Everything else in this documentation is a
+              detail of how they interact.</p>
+
+            <h3 id="intents-concept">Intents</h3>
+            <p>An intent is a signed, expiring statement of a desired outcome — <em>"end up holding at least
+              0.041 WETH, spending at most 150 USDC, on Base, within 90 seconds"</em>. It contains no calldata, no
+              route and no gas parameters. That deliberate omission is what makes intents safe to hand to a
+              language model: the worst an adversarial prompt can produce is a request that the policy engine
+              rejects.</p>
+            <p>Intents are immutable once accepted. Changing terms means cancelling and submitting a new one.
+              Every intent carries an <code>idempotency_key</code>; replaying the same key inside 24 hours returns
+              the original intent rather than creating a second one.</p>
+
+            <h3 id="agents-concept">Agents</h3>
+            <p>An agent is the protocol-side identity of an autonomous actor. It owns an ERC-4337 smart account,
+              one bound policy, zero or more session keys, a reputation score, and a $STRX bond that can be
+              slashed. An agent is not a wallet: the smart account is controlled by the owner's root key, and the
+              agent only ever holds a scoped session key with an expiry.</p>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Agent kind</th><th>Typical actions</th><th>Default bond</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">trader</td><td class="mono">swap, transfer, equity_order</td><td class="n">2,500 STRX</td></tr>
+                  <tr><td class="mono">collector</td><td class="mono">nft_bid, nft_buy, transfer</td><td class="n">2,500 STRX</td></tr>
+                  <tr><td class="mono">treasury</td><td class="mono">swap, transfer, subscribe</td><td class="n">10,000 STRX</td></tr>
+                  <tr><td class="mono">service</td><td class="mono">agent_hire, transfer</td><td class="n">2,500 STRX</td></tr>
+                  <tr><td class="mono">verified</td><td>Any, plus marketplace listing</td><td class="n">25,000 STRX</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="agent-passport">The Agent NFT Passport</h3>
+            <p>Registration mints an ERC-721 passport to the agent's owner. The passport is the portable record
+              of what an agent is allowed to be, and it is the only object in the protocol that survives a full
+              redeploy of the agent runtime.</p>
+            <ul>
+              <li><strong>Identity</strong> — <code>tokenId</code> is the canonical agent reference onchain;
+                <code>agent_id</code> is its offchain mirror.</li>
+              <li><strong>Dynamic metadata</strong> — level, lifetime settled notional, success rate and
+                capability traits are re-rendered on every 1,000 settlements or on demand.</li>
+              <li><strong>Permission traits</strong> — the passport records which capability modules are equipped
+                (execution, data, payment, intelligence, security). Equipping a module raises specific policy
+                ceilings; it never lowers a policy floor.</li>
+              <li><strong>Revenue rights</strong> — for service agents, marketplace fees settle to the passport
+                holder, so selling the NFT transfers the income stream.</li>
+              <li><strong>Slashing surface</strong> — the bond is escrowed against the <code>tokenId</code>. A
+                slashed passport keeps its history; the history is the point.</li>
+            </ul>
+            <div class="dx-note">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>Transfer semantics</b>
+                <p>Transferring a passport revokes every live session key for that agent in the same transaction
+                  and forces a policy re-bind by the new owner. There is no window in which the previous owner's
+                  policy governs the new owner's funds.</p></div>
+            </div>
+
+            <h3 id="policy-concept">The policy engine</h3>
+            <p>A policy is a versioned document of limits, allow lists, deny lists, simulation thresholds and
+              human-in-the-loop rules. It is evaluated offchain for speed and committed onchain as a
+              <code>bytes32</code> hash for enforcement. The two must agree: the session key validator recomputes
+              nothing, but it refuses to validate a user operation whose attached policy hash is not the one the
+              <code>PolicyRegistry</code> currently holds for that agent. Full schema in
+              <a href="#policy">Policy engine</a>.</p>
+
+            <h3 id="solvers-concept">Solvers and routing</h3>
+            <p>Solvers are independent parties that compete to fill intents. When an intent clears policy and
+              simulation, the router broadcasts a sealed request for quotes; solvers respond with a committed
+              execution path and an output guarantee. The best quote by the intent's
+              <code>route_preference</code> wins, and the winner is bound to its quote — under-delivering slashes
+              25% of the solver's bond and refunds the difference to the agent.</p>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>route_preference</th><th>Objective</th><th>Typical use</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">best_price</td><td>Maximise output after fees and gas</td><td>Default. Rebalancing, DCA.</td></tr>
+                  <tr><td class="mono">fastest</td><td>Minimise time to inclusion</td><td>Liquidations, NFT snipes.</td></tr>
+                  <tr><td class="mono">lowest_gas</td><td>Minimise gas paid</td><td>Batched maintenance work.</td></tr>
+                  <tr><td class="mono">private</td><td>Private orderflow, no public mempool</td><td>Size that would be sandwiched.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="settlement-concept">Settlement</h3>
+            <p>Settlement is atomic per intent. The winning solver's path is executed through
+              <code>SettlementVault</code>, which enforces the output guarantee in the same transaction: if the
+              agent would receive less than the quoted minimum, the whole call reverts. Protocol fees are taken
+              from the output leg at 0.25% and split on settlement. Cross-chain intents settle as two locally
+              atomic legs with a bonded relayer, never as an optimistic promise.</p>
+
+            <h3 id="reputation-concept">Reputation and slashing</h3>
+            <p>Every settled intent updates two scores. <strong>Agent reputation</strong> is a decayed ratio of
+              settled to submitted intents weighted by notional, and gates marketplace visibility. <strong>Solver
+              reliability</strong> is the ratio of honoured to won quotes, and gates auction participation.
+              Both are recomputed onchain at each epoch (7,200 blocks on Ethereum, daily elsewhere). Slashing
+              conditions and amounts are listed in <a href="#slashing">Slashing</a>.</p>
+          </section>
+
+          <!-- ============================ ARCHITECTURE ============================ -->
+          <section class="dx-sec" data-group="Protocol">
+            <span class="dx-kicker">04 — How it runs</span>
+            <h2 id="architecture" data-nav="Architecture">Architecture</h2>
+            <p class="dx-lead">One intent travels through eight stages. Four of them can terminate it. The
+              diagram below is the authoritative flow; the table under it names the component that owns each
+              stage and what it is allowed to do.</p>
+
+            <figure class="dx-fig">
+              <div class="dx-fig__frame">
+                <svg class="dx-fig--wide" viewBox="0 0 760 372" role="img"
+                     aria-label="Intent lifecycle: received, parsed, policy check, simulation, routing, execution, settlement, attestation. Policy check can escalate to a human approval gate. Parsing, policy check and simulation can terminate the intent as rejected.">
+                  <defs>
+                    <marker id="ah-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#CCFF00"/></marker>
+                    <marker id="ah-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#FF5000"/></marker>
+                    <marker id="ah-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#FF9900"/></marker>
+                    <linearGradient id="bx" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#171d09"/><stop offset="1" stop-color="#0b0b10"/>
+                    </linearGradient>
+                  </defs>
+
+                  <!-- human gate -->
+                  <rect x="397" y="8" width="160" height="34" rx="17" fill="rgba(255,153,0,.09)" stroke="#FF9900" stroke-width="1" stroke-dasharray="4 3"/>
+                  <text x="477" y="24" text-anchor="middle" font-family="'Space Grotesk',sans-serif" font-size="11.5" font-weight="600" fill="#FF9900">Human approval gate</text>
+                  <text x="477" y="35" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#B08040">status: awaiting_approval</text>
+                  <path d="M477 74 L477 46" stroke="#FF9900" stroke-width="1.2" stroke-dasharray="4 3" fill="none" marker-end="url(#ah-a)"/>
+                  <path d="M557 25 H662 A8 8 0 0 1 670 33 V70" stroke="#CCFF00" stroke-width="1.2" fill="none" marker-end="url(#ah-n)" opacity=".8"/>
+
+                  <!-- row 1 -->
+                  <g>
+                    <rect x="10" y="76" width="160" height="62" rx="11" fill="url(#bx)" stroke="rgba(204,255,0,.3)"/>
+                    <text x="24" y="97" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">01</text>
+                    <text x="24" y="115" font-family="'Space Grotesk',sans-serif" font-size="13.5" font-weight="600" fill="#F5F5F7">Received</text>
+                    <text x="24" y="129" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">REST · SDK · WS</text>
+                  </g>
+                  <g>
+                    <rect x="203" y="76" width="160" height="62" rx="11" fill="url(#bx)" stroke="rgba(204,255,0,.3)"/>
+                    <text x="217" y="97" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">02</text>
+                    <text x="217" y="115" font-family="'Space Grotesk',sans-serif" font-size="13.5" font-weight="600" fill="#F5F5F7">Parsed</text>
+                    <text x="217" y="129" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">normalise · resolve</text>
+                  </g>
+                  <g>
+                    <rect x="397" y="76" width="160" height="62" rx="11" fill="url(#bx)" stroke="rgba(204,255,0,.55)"/>
+                    <text x="411" y="97" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">03</text>
+                    <text x="411" y="115" font-family="'Space Grotesk',sans-serif" font-size="13.5" font-weight="600" fill="#F5F5F7">Policy check</text>
+                    <text x="411" y="129" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">hash-bound rules</text>
+                  </g>
+                  <g>
+                    <rect x="590" y="76" width="160" height="62" rx="11" fill="url(#bx)" stroke="rgba(204,255,0,.55)"/>
+                    <text x="604" y="97" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">04</text>
+                    <text x="604" y="115" font-family="'Space Grotesk',sans-serif" font-size="13.5" font-weight="600" fill="#F5F5F7">Simulation</text>
+                    <text x="604" y="129" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">fork · asset diff</text>
+                  </g>
+                  <path d="M174 107 H197" stroke="#CCFF00" stroke-width="1.4" fill="none" marker-end="url(#ah-n)"/>
+                  <path d="M367 107 H391" stroke="#CCFF00" stroke-width="1.4" fill="none" marker-end="url(#ah-n)"/>
+                  <path d="M561 107 H584" stroke="#CCFF00" stroke-width="1.4" fill="none" marker-end="url(#ah-n)"/>
+
+                  <!-- rejection terminal -->
+                  <rect x="10" y="168" width="160" height="44" rx="11" fill="rgba(255,80,0,.07)" stroke="#FF5000" stroke-dasharray="4 3"/>
+                  <text x="24" y="187" font-family="'Space Grotesk',sans-serif" font-size="12.5" font-weight="600" fill="#FF7A3D">Rejected</text>
+                  <text x="24" y="201" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#A76445">422 · reason recorded</text>
+                  <path d="M610 138 V190 H176" stroke="#FF5000" stroke-width="1.1" stroke-dasharray="4 3" fill="none" marker-end="url(#ah-r)" opacity=".85"/>
+                  <path d="M477 138 V190" stroke="#FF5000" stroke-width="1.1" stroke-dasharray="4 3" fill="none" opacity=".85"/>
+                  <path d="M283 138 V190" stroke="#FF5000" stroke-width="1.1" stroke-dasharray="4 3" fill="none" opacity=".85"/>
+
+                  <!-- wrap -->
+                  <path d="M670 138 V232" stroke="#CCFF00" stroke-width="1.4" fill="none" marker-end="url(#ah-n)"/>
+
+                  <!-- row 2 -->
+                  <g>
+                    <rect x="590" y="238" width="160" height="62" rx="11" fill="url(#bx)" stroke="rgba(204,255,0,.3)"/>
+                    <text x="604" y="259" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">05</text>
+                    <text x="604" y="277" font-family="'Space Grotesk',sans-serif" font-size="13.5" font-weight="600" fill="#F5F5F7">Routing</text>
+                    <text x="604" y="291" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">sealed solver auction</text>
+                  </g>
+                  <g>
+                    <rect x="397" y="238" width="160" height="62" rx="11" fill="url(#bx)" stroke="rgba(204,255,0,.3)"/>
+                    <text x="411" y="259" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">06</text>
+                    <text x="411" y="277" font-family="'Space Grotesk',sans-serif" font-size="13.5" font-weight="600" fill="#F5F5F7">Execution</text>
+                    <text x="411" y="291" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">session key · ERC-4337</text>
+                  </g>
+                  <g>
+                    <rect x="203" y="238" width="160" height="62" rx="11" fill="url(#bx)" stroke="rgba(204,255,0,.3)"/>
+                    <text x="217" y="259" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">07</text>
+                    <text x="217" y="277" font-family="'Space Grotesk',sans-serif" font-size="13.5" font-weight="600" fill="#F5F5F7">Settlement</text>
+                    <text x="217" y="291" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">atomic · fee split</text>
+                  </g>
+                  <g>
+                    <rect x="10" y="238" width="160" height="62" rx="11" fill="url(#bx)" stroke="rgba(0,229,160,.5)"/>
+                    <text x="24" y="259" font-family="'JetBrains Mono',monospace" font-size="10" fill="#00E5A0">08</text>
+                    <text x="24" y="277" font-family="'Space Grotesk',sans-serif" font-size="13.5" font-weight="600" fill="#F5F5F7">Attestation</text>
+                    <text x="24" y="291" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">EAS receipt · webhook</text>
+                  </g>
+                  <path d="M586 269 H565" stroke="#CCFF00" stroke-width="1.4" fill="none" marker-end="url(#ah-n)"/>
+                  <path d="M393 269 H371" stroke="#CCFF00" stroke-width="1.4" fill="none" marker-end="url(#ah-n)"/>
+                  <path d="M199 269 H178" stroke="#CCFF00" stroke-width="1.4" fill="none" marker-end="url(#ah-n)"/>
+
+                  <!-- legend -->
+                  <g font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">
+                    <path d="M12 336 H40" stroke="#CCFF00" stroke-width="1.4"/>
+                    <text x="47" y="339">happy path</text>
+                    <path d="M180 336 H208" stroke="#FF5000" stroke-width="1.1" stroke-dasharray="4 3"/>
+                    <text x="215" y="339">terminal rejection</text>
+                    <path d="M390 336 H418" stroke="#FF9900" stroke-width="1.2" stroke-dasharray="4 3"/>
+                    <text x="425" y="339">human escalation</text>
+                    <text x="600" y="339" fill="#5A5B6E">p50 ≈ 0.9 s on Base</text>
+                  </g>
+                </svg>
+
+                <svg class="dx-fig--tall" viewBox="0 0 360 790" role="img"
+                     aria-label="Intent lifecycle, stacked: received, parsed, policy check, human approval gate, simulation, rejection terminal, routing, execution, settlement, attestation.">
+                  <defs>
+                    <marker id="ahm-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#CCFF00"/></marker>
+                    <linearGradient id="bxm" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#171d09"/><stop offset="1" stop-color="#0b0b10"/>
+                    </linearGradient>
+                  </defs>
+                  <g font-family="'Space Grotesk',sans-serif">
+                    <g><rect x="8" y="8" width="344" height="60" rx="11" fill="url(#bxm)" stroke="rgba(204,255,0,.3)"/>
+                      <text x="24" y="30" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">01</text>
+                      <text x="24" y="48" font-size="14" font-weight="600" fill="#F5F5F7">Received</text>
+                      <text x="24" y="61" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">REST · SDK · WebSocket</text></g>
+                    <path d="M180 68 V84" stroke="#CCFF00" stroke-width="1.4" marker-end="url(#ahm-n)"/>
+                    <g><rect x="8" y="90" width="344" height="60" rx="11" fill="url(#bxm)" stroke="rgba(204,255,0,.3)"/>
+                      <text x="24" y="112" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">02</text>
+                      <text x="24" y="130" font-size="14" font-weight="600" fill="#F5F5F7">Parsed</text>
+                      <text x="24" y="143" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">normalise · resolve symbols</text></g>
+                    <path d="M180 150 V166" stroke="#CCFF00" stroke-width="1.4" marker-end="url(#ahm-n)"/>
+                    <g><rect x="8" y="172" width="344" height="60" rx="11" fill="url(#bxm)" stroke="rgba(204,255,0,.55)"/>
+                      <text x="24" y="194" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">03</text>
+                      <text x="24" y="212" font-size="14" font-weight="600" fill="#F5F5F7">Policy check</text>
+                      <text x="24" y="225" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">hash-bound rules</text></g>
+                    <path d="M180 232 V248" stroke="#FF9900" stroke-width="1.4" stroke-dasharray="4 3"/>
+                    <rect x="8" y="254" width="344" height="40" rx="20" fill="rgba(255,153,0,.09)" stroke="#FF9900" stroke-dasharray="4 3"/>
+                    <text x="24" y="272" font-size="12.5" font-weight="600" fill="#FF9900">Human approval gate</text>
+                    <text x="24" y="285" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#B08040">only above policy.hitl.threshold_usd</text>
+                    <path d="M180 294 V310" stroke="#CCFF00" stroke-width="1.4" marker-end="url(#ahm-n)"/>
+                    <g><rect x="8" y="316" width="344" height="60" rx="11" fill="url(#bxm)" stroke="rgba(204,255,0,.55)"/>
+                      <text x="24" y="338" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">04</text>
+                      <text x="24" y="356" font-size="14" font-weight="600" fill="#F5F5F7">Simulation</text>
+                      <text x="24" y="369" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">fork · asset diff · drainer scan</text></g>
+                    <path d="M180 376 V392" stroke="#FF5000" stroke-width="1.4" stroke-dasharray="4 3"/>
+                    <rect x="8" y="398" width="344" height="40" rx="11" fill="rgba(255,80,0,.07)" stroke="#FF5000" stroke-dasharray="4 3"/>
+                    <text x="24" y="416" font-size="12.5" font-weight="600" fill="#FF7A3D">Rejected</text>
+                    <text x="24" y="429" font-family="'JetBrains Mono',monospace" font-size="8.5" fill="#A76445">422 from stage 02, 03 or 04</text>
+                    <path d="M180 438 V454" stroke="#CCFF00" stroke-width="1.4" marker-end="url(#ahm-n)"/>
+                    <g><rect x="8" y="460" width="344" height="60" rx="11" fill="url(#bxm)" stroke="rgba(204,255,0,.3)"/>
+                      <text x="24" y="482" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">05</text>
+                      <text x="24" y="500" font-size="14" font-weight="600" fill="#F5F5F7">Routing</text>
+                      <text x="24" y="513" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">sealed solver auction</text></g>
+                    <path d="M180 520 V536" stroke="#CCFF00" stroke-width="1.4" marker-end="url(#ahm-n)"/>
+                    <g><rect x="8" y="542" width="344" height="60" rx="11" fill="url(#bxm)" stroke="rgba(204,255,0,.3)"/>
+                      <text x="24" y="564" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">06</text>
+                      <text x="24" y="582" font-size="14" font-weight="600" fill="#F5F5F7">Execution</text>
+                      <text x="24" y="595" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">session key · ERC-4337</text></g>
+                    <path d="M180 602 V618" stroke="#CCFF00" stroke-width="1.4" marker-end="url(#ahm-n)"/>
+                    <g><rect x="8" y="624" width="344" height="60" rx="11" fill="url(#bxm)" stroke="rgba(204,255,0,.3)"/>
+                      <text x="24" y="646" font-family="'JetBrains Mono',monospace" font-size="10" fill="#CCFF00">07</text>
+                      <text x="24" y="664" font-size="14" font-weight="600" fill="#F5F5F7">Settlement</text>
+                      <text x="24" y="677" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">atomic · 0.25% fee split</text></g>
+                    <path d="M180 684 V700" stroke="#CCFF00" stroke-width="1.4" marker-end="url(#ahm-n)"/>
+                    <g><rect x="8" y="706" width="344" height="60" rx="11" fill="url(#bxm)" stroke="rgba(0,229,160,.5)"/>
+                      <text x="24" y="728" font-family="'JetBrains Mono',monospace" font-size="10" fill="#00E5A0">08</text>
+                      <text x="24" y="746" font-size="14" font-weight="600" fill="#F5F5F7">Attestation</text>
+                      <text x="24" y="759" font-family="'JetBrains Mono',monospace" font-size="9" fill="#8A8B9E">EAS receipt · webhook</text></g>
+                  </g>
+                </svg>
+              </div>
+              <figcaption>Intent lifecycle. Stages 02, 03 and 04 are the only ones that can reject; stages 05
+                onward can fail but never silently change the terms the agent asked for.</figcaption>
+            </figure>
+
+            <h3 id="stage-reference">Stage reference</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Stage</th><th>Owner</th><th>Does</th><th>Can terminate</th><th>p50</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">01 received</td><td>API gateway</td><td>Authenticates the key, enforces rate limits, deduplicates on <code>Idempotency-Key</code>, assigns a ULID.</td><td>No</td><td class="n">3 ms</td></tr>
+                  <tr><td class="mono">02 parsed</td><td>Intent compiler</td><td>Resolves token symbols to canonical addresses per chain, normalises decimals, expands defaults, validates the schema.</td><td>Yes — <code>invalid_request_error</code></td><td class="n">6 ms</td></tr>
+                  <tr><td class="mono">03 policy check</td><td>Policy engine</td><td>Loads the bound policy at its committed hash, evaluates limits, lists and rolling windows. Escalates to the human gate above <code>hitl.threshold_usd</code>.</td><td>Yes — <code>policy_violation</code></td><td class="n">4 ms</td></tr>
+                  <tr><td class="mono">04 simulation</td><td>Simulator</td><td>Executes the candidate path on a fork of the pending block with state overrides. Produces a signed asset diff. Runs drainer, approval-sweep and honeypot detectors.</td><td>Yes — <code>simulation_failed</code></td><td class="n">118 ms</td></tr>
+                  <tr><td class="mono">05 routing</td><td>Router</td><td>Sealed request for quotes to eligible solvers, 150 ms window, ranks by <code>route_preference</code>, binds the winner to its output guarantee.</td><td>No — falls back to direct route</td><td class="n">176 ms</td></tr>
+                  <tr><td class="mono">06 execution</td><td>Bundler</td><td>Builds the ERC-4337 user operation, signs with the scoped session key, submits to the bundler or private relay.</td><td>No</td><td class="n">41 ms</td></tr>
+                  <tr><td class="mono">07 settlement</td><td>SettlementVault</td><td>Enforces the minimum output onchain, takes the 0.25% fee from the output leg, splits it, and emits <code>Settled</code>.</td><td>Reverts on shortfall</td><td class="n">1 block</td></tr>
+                  <tr><td class="mono">08 attestation</td><td>Attestor</td><td>Writes an EAS attestation binding intent hash, policy hash, simulation digest, solver and receipt. Fires <code>execution.settled</code>.</td><td>No</td><td class="n">92 ms</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Latencies are p50 measured over the last 30 days on Base and exclude block time. The end-to-end
+              budget from <code>received</code> to a broadcast user operation is 440 ms; anything slower than
+              1,200 ms trips an internal alert and the intent is re-quoted rather than executed on a stale price.</p>
+
+            <h3 id="failure-modes">Failure modes</h3>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Symptom</th><th>Cause</th><th>Protocol behaviour</th></tr></thead>
+                <tbody>
+                  <tr><td>Solver wins then under-delivers</td><td>Adverse move between quote and inclusion</td><td>Settlement reverts. Solver forfeits 25% of bond, agent is refunded gas, intent is re-quoted once.</td></tr>
+                  <tr><td>No solver responds</td><td>Illiquid pair or all solvers rate-limited</td><td>Falls back to the direct canonical route inside the same slippage bound. Marked <code>route_fallback</code>.</td></tr>
+                  <tr><td>Simulation and execution disagree</td><td>State changed between fork and inclusion</td><td>Onchain minimum-output check reverts the whole call. Intent moves to <code>failed</code>, funds never leave.</td></tr>
+                  <tr><td>Human gate times out</td><td>No approval inside <code>timeout_sec</code></td><td><code>on_timeout</code> decides: <code>reject</code> (default) or <code>hold</code> until explicit action.</td></tr>
+                  <tr><td>Chain reorg after settlement</td><td>Reorg deeper than the finality target</td><td>Attestation is marked <code>reorged</code>, webhook <code>execution.reverted</code> fires, balances re-derived from the canonical chain.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ============================ INTENT SPEC ============================ -->
+          <section class="dx-sec" data-group="Protocol">
+            <span class="dx-kicker">05 — Wire format</span>
+            <h2 id="intents" data-nav="Intent specification">Intent specification</h2>
+            <p class="dx-lead">The intent object is the single input surface of the protocol. It is stable across
+              REST, WebSocket and all three SDKs; the SDKs only change the casing convention.</p>
+
+            <h3 id="intent-object">The intent object</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <caption>Top-level fields</caption>
+                <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="ty">string</td><td><span class="dx-req dx-req--n">read only</span></td><td>ULID with an <code>int_</code> prefix. Monotonic, so it doubles as a pagination cursor.</td></tr>
+                  <tr><td class="mono">object</td><td class="ty">string</td><td><span class="dx-req dx-req--n">read only</span></td><td>Always <code>"intent"</code>.</td></tr>
+                  <tr><td class="mono">agent_id</td><td class="ty">string</td><td><span class="dx-req dx-req--y">required</span></td><td>The agent that will execute. Must be <code>active</code> and hold a live session key for <code>chain</code>.</td></tr>
+                  <tr><td class="mono">action</td><td class="ty">enum</td><td><span class="dx-req dx-req--y">required</span></td><td>One of the seven values in <a href="#action-types">Action types</a>. Determines the shape of <code>params</code>.</td></tr>
+                  <tr><td class="mono">chain</td><td class="ty">string</td><td><span class="dx-req dx-req--y">required</span></td><td>CAIP-2 identifier, for example <code>eip155:8453</code> or <code>solana:5eykt4Us…</code>. Must appear in <code>policy.allow.chains</code>.</td></tr>
+                  <tr><td class="mono">params</td><td class="ty">object</td><td><span class="dx-req dx-req--y">required</span></td><td>Action-specific payload. Unknown keys are rejected rather than ignored.</td></tr>
+                  <tr><td class="mono">constraints</td><td class="ty">object</td><td><span class="dx-req dx-req--n">optional</span></td><td>Execution bounds. Defaults come from the policy, never from the market.</td></tr>
+                  <tr><td class="mono">policy_id</td><td class="ty">string</td><td><span class="dx-req dx-req--n">optional</span></td><td>Overrides the agent's bound policy. The override must be <em>stricter</em> on every axis or the request is rejected.</td></tr>
+                  <tr><td class="mono">expires_at</td><td class="ty">timestamp</td><td><span class="dx-req dx-req--n">optional</span></td><td>RFC 3339. Defaults to <code>created_at + 300 s</code>. Maximum 24 hours; NFT bids may set up to 30 days.</td></tr>
+                  <tr><td class="mono">simulate_only</td><td class="ty">boolean</td><td><span class="dx-req dx-req--n">optional</span></td><td>Runs stages 01–05 and returns the quote and asset diff without signing. Default <code>false</code>.</td></tr>
+                  <tr><td class="mono">idempotency_key</td><td class="ty">string</td><td><span class="dx-req dx-req--c">recommended</span></td><td>≤ 128 chars. Also accepted as the <code>Idempotency-Key</code> header. Retained 24 hours.</td></tr>
+                  <tr><td class="mono">metadata</td><td class="ty">object</td><td><span class="dx-req dx-req--n">optional</span></td><td>Up to 20 string keys, 512 bytes per value. Echoed on every webhook and included in the attestation payload.</td></tr>
+                  <tr><td class="mono">status</td><td class="ty">enum</td><td><span class="dx-req dx-req--n">read only</span></td><td>See <a href="#intent-status">Status values</a>.</td></tr>
+                  <tr><td class="mono">execution_id</td><td class="ty">string | null</td><td><span class="dx-req dx-req--n">read only</span></td><td>Set once the intent enters <code>routing</code>.</td></tr>
+                  <tr><td class="mono">rejection</td><td class="ty">object | null</td><td><span class="dx-req dx-req--n">read only</span></td><td><code>{ code, message, rule, stage }</code> — <code>rule</code> is the exact policy path that failed, e.g. <code>limits.daily_usd</code>.</td></tr>
+                  <tr><td class="mono">created_at</td><td class="ty">timestamp</td><td><span class="dx-req dx-req--n">read only</span></td><td>Millisecond precision, UTC.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4 id="intent-constraints">constraints</h4>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">max_slippage_bps</td><td class="ty">integer</td><td class="mono">50</td><td>1–5000. Enforced onchain as a minimum-output amount, not as a router hint.</td></tr>
+                  <tr><td class="mono">max_fee_usd</td><td class="ty">number</td><td class="mono">null</td><td>Ceiling on protocol fee plus solver fee. Intent is rejected before routing if unreachable.</td></tr>
+                  <tr><td class="mono">max_gas_usd</td><td class="ty">number</td><td class="mono">null</td><td>Ceiling on gas paid by the agent. Sponsored intents ignore this.</td></tr>
+                  <tr><td class="mono">limit_price</td><td class="ty">decimal string</td><td class="mono">null</td><td>Quote asset per base asset. Present makes the intent a resting order; absent makes it marketable.</td></tr>
+                  <tr><td class="mono">valid_after</td><td class="ty">timestamp</td><td class="mono">null</td><td>Do not route before this time. Used for scheduled DCA legs.</td></tr>
+                  <tr><td class="mono">route_preference</td><td class="ty">enum</td><td class="mono">best_price</td><td><code>best_price</code>, <code>fastest</code>, <code>lowest_gas</code>, <code>private</code>.</td></tr>
+                  <tr><td class="mono">mev_protection</td><td class="ty">boolean</td><td class="mono">true</td><td>Routes through a private relay and rejects public-mempool solver paths.</td></tr>
+                  <tr><td class="mono">partial_fill</td><td class="ty">boolean</td><td class="mono">false</td><td>Allows multiple fills against one intent. Each fill settles and attests independently.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="action-types">Action types</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>action</th><th>Required params</th><th>Optional params</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">swap</td><td class="mono">sell_token, buy_token, sell_amount | buy_amount</td><td class="mono">recipient, pools</td><td>Exactly one of <code>sell_amount</code> / <code>buy_amount</code>. The other becomes the guaranteed side.</td></tr>
+                  <tr><td class="mono">transfer</td><td class="mono">token, amount, to</td><td class="mono">memo</td><td><code>to</code> must clear <code>allow.contracts</code> or be an EOA on the agent's address book.</td></tr>
+                  <tr><td class="mono">nft_bid</td><td class="mono">collection, max_price, currency</td><td class="mono">token_id, traits, marketplaces, expiry</td><td>Trait bids are matched continuously until <code>expires_at</code>. One fill per bid unless <code>partial_fill</code>.</td></tr>
+                  <tr><td class="mono">nft_buy</td><td class="mono">collection, token_id, max_price</td><td class="mono">marketplaces</td><td>Immediate purchase at or below <code>max_price</code>, aggregated across listed marketplaces.</td></tr>
+                  <tr><td class="mono">equity_order</td><td class="mono">symbol, side, quantity | notional, order_type</td><td class="mono">limit_price, time_in_force, venue</td><td>Tokenized equities only. Subject to the issuer's transfer-agent hours; see <a href="#faq-rwa">the FAQ</a>.</td></tr>
+                  <tr><td class="mono">subscribe</td><td class="mono">merchant, token, amount, interval</td><td class="mono">start_at, max_cycles</td><td>Creates a recurring child intent per cycle. Each child is policy-checked at its own execution time.</td></tr>
+                  <tr><td class="mono">agent_hire</td><td class="mono">target_agent_id, task, max_price</td><td class="mono">deadline, spec_uri</td><td>Escrowed agent-to-agent payment. Released on the target agent's signed completion attestation.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="intent-examples">Examples</h3>
+            <h4 id="example-swap">Swap</h4>
+            <p>A market swap with a hard 40 bps slippage bound and private routing. The <code>sell_amount</code> is
+              exact; <code>buy_amount</code> is guaranteed at a minimum by the settlement contract.</p>
+            <div class="dx-code" data-lang="json" data-title="POST /v1/intents"><pre><code>{
+  "agent_id": "agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP",
+  "action": "swap",
+  "chain": "eip155:8453",
+  "params": {
+    "sell_token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "buy_token": "0x4200000000000000000000000000000000000006",
+    "sell_amount": "1500.000000"
+  },
+  "constraints": {
+    "max_slippage_bps": 40,
+    "max_fee_usd": 6.00,
+    "route_preference": "private",
+    "mev_protection": true
+  },
+  "idempotency_key": "rebalance-2026-08-16T09:00Z",
+  "metadata": { "strategy": "weekly-rebalance", "leg": "1/3" }
+}</code></pre></div>
+
+            <h4 id="example-nft">NFT trait bid</h4>
+            <p>A standing bid across two marketplaces for any token in the collection matching both traits, live
+              for seven days, denominated in WETH.</p>
+            <div class="dx-code" data-lang="json" data-title="POST /v1/intents"><pre><code>{
+  "agent_id": "agt_01JQ8ZQ4E9F1NH7T2XM6BKWCVD",
+  "action": "nft_bid",
+  "chain": "eip155:1",
+  "params": {
+    "collection": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8",
+    "traits": [
+      { "type": "Background", "value": "Cosmic" },
+      { "type": "Eyes", "value": "Laser" }
+    ],
+    "max_price": "3.85",
+    "currency": "WETH",
+    "marketplaces": ["opensea", "blur"]
+  },
+  "constraints": { "partial_fill": false, "route_preference": "fastest" },
+  "expires_at": "2026-08-23T09:00:00Z"
+}</code></pre></div>
+
+            <h4 id="example-equity">Tokenized equity order</h4>
+            <p>A limit order for tokenized Apple equity, good until cancelled, settled onchain against the
+              issuer's transfer agent. Fractional quantities are permitted to six decimals.</p>
+            <div class="dx-code" data-lang="json" data-title="POST /v1/intents"><pre><code>{
+  "agent_id": "agt_01JQ8ZR8H2K5PM3W9YT0CDNXBF",
+  "action": "equity_order",
+  "chain": "eip155:42161",
+  "params": {
+    "symbol": "AAPLX",
+    "side": "buy",
+    "notional": "2500.00",
+    "order_type": "limit",
+    "limit_price": "231.40",
+    "time_in_force": "gtc",
+    "venue": "backed_rwa"
+  },
+  "constraints": { "max_fee_usd": 8.00, "route_preference": "best_price" },
+  "expires_at": "2026-09-16T20:00:00Z",
+  "metadata": { "mandate": "core-equity", "reviewed_by": "risk-desk" }
+}</code></pre></div>
+            <div class="dx-note dx-note--warn">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>Equity orders are not 24/7 in every venue</b>
+                <p>Tokenized equity intents submitted outside the venue's session are accepted and held in
+                  <code>routing</code> until the session opens, unless <code>expires_at</code> falls first. Check
+                  <code>venue.session</code> on the quote before assuming immediate fill.</p></div>
+            </div>
+
+            <h3 id="intent-status">Status values</h3>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>status</th><th>Terminal</th><th>Meaning</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">received</td><td>No</td><td>Accepted by the gateway, not yet compiled.</td></tr>
+                  <tr><td class="mono">policy_check</td><td>No</td><td>Being evaluated against the bound policy.</td></tr>
+                  <tr><td class="mono">awaiting_approval</td><td>No</td><td>Escalated to a human. Clock is <code>hitl.timeout_sec</code>.</td></tr>
+                  <tr><td class="mono">simulating</td><td>No</td><td>Fork execution and asset-diff analysis in progress.</td></tr>
+                  <tr><td class="mono">routing</td><td>No</td><td>Solver auction open, or waiting on <code>valid_after</code> / venue session.</td></tr>
+                  <tr><td class="mono">submitted</td><td>No</td><td>User operation broadcast. <code>tx_hash</code> is populated.</td></tr>
+                  <tr><td class="mono">settled</td><td>Yes</td><td>Included and attested. <code>fills[]</code> is final.</td></tr>
+                  <tr><td class="mono">rejected</td><td>Yes</td><td>Failed a check. <code>rejection.rule</code> names the exact clause.</td></tr>
+                  <tr><td class="mono">failed</td><td>Yes</td><td>Reverted onchain or the solver defaulted. No value moved.</td></tr>
+                  <tr><td class="mono">expired</td><td>Yes</td><td>Passed <code>expires_at</code> without a fill.</td></tr>
+                  <tr><td class="mono">cancelled</td><td>Yes</td><td>Cancelled by the owner before <code>submitted</code>.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ============================ POLICY ENGINE ============================ -->
+          <section class="dx-sec" data-group="Protocol">
+            <span class="dx-kicker">06 — Authority</span>
+            <h2 id="policy" data-nav="Policy engine">Policy engine</h2>
+            <p class="dx-lead">A policy is the only thing standing between an agent and your balance. It is
+              written by a human, versioned, hashed, committed onchain, and enforced twice — once offchain for a
+              fast rejection, once onchain because offchain checks can be bypassed.</p>
+
+            <h3 id="policy-object">The policy object</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">id</td><td class="ty">string</td><td><span class="dx-req dx-req--n">read only</span></td><td>ULID with a <code>pol_</code> prefix.</td></tr>
+                  <tr><td class="mono">name</td><td class="ty">string</td><td><span class="dx-req dx-req--y">required</span></td><td>1–64 chars, unique per account. Used in approval prompts, so make it readable by a human at 3 a.m.</td></tr>
+                  <tr><td class="mono">version</td><td class="ty">integer</td><td><span class="dx-req dx-req--n">read only</span></td><td>Increments on every update. Old versions stay readable for audit.</td></tr>
+                  <tr><td class="mono">hash</td><td class="ty">bytes32</td><td><span class="dx-req dx-req--n">read only</span></td><td>keccak256 of the canonicalised document. See <a href="#policy-hash">Policy hash</a>.</td></tr>
+                  <tr><td class="mono">limits</td><td class="ty">object</td><td><span class="dx-req dx-req--y">required</span></td><td>Spending ceilings. At least <code>per_tx_usd</code> must be set.</td></tr>
+                  <tr><td class="mono">allow</td><td class="ty">object</td><td><span class="dx-req dx-req--y">required</span></td><td>Positive lists. An empty list means "nothing", never "everything".</td></tr>
+                  <tr><td class="mono">deny</td><td class="ty">object</td><td><span class="dx-req dx-req--n">optional</span></td><td>Negative lists. Evaluated after <code>allow</code> and always wins.</td></tr>
+                  <tr><td class="mono">simulation</td><td class="ty">object</td><td><span class="dx-req dx-req--n">optional</span></td><td>Thresholds applied to the simulated asset diff.</td></tr>
+                  <tr><td class="mono">hitl</td><td class="ty">object</td><td><span class="dx-req dx-req--n">optional</span></td><td>Human-in-the-loop escalation. Absent means never escalate.</td></tr>
+                  <tr><td class="mono">expires_at</td><td class="ty">timestamp</td><td><span class="dx-req dx-req--c">recommended</span></td><td>After this, every intent under the policy is rejected. A policy without an expiry is a standing grant.</td></tr>
+                  <tr><td class="mono">commitment</td><td class="ty">object</td><td><span class="dx-req dx-req--n">read only</span></td><td><code>{ chain, registry, tx_hash, block, committed_at }</code> for the onchain hash commitment.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="policy-limits">Spending limits</h3>
+            <p>All limits are denominated in USD and evaluated against the notional of the intent at the price
+              observed during simulation, not at submission. Rolling windows are true sliding windows, computed
+              over settled and in-flight intents so two concurrent requests cannot both slip under a cap.</p>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Field</th><th>Type</th><th>Window</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">per_tx_usd</td><td class="ty">number</td><td>—</td><td>Maximum notional of a single intent. Required.</td></tr>
+                  <tr><td class="mono">daily_usd</td><td class="ty">number</td><td>24 h sliding</td><td>Sum of settled plus in-flight notional.</td></tr>
+                  <tr><td class="mono">weekly_usd</td><td class="ty">number</td><td>7 d sliding</td><td>Applied after <code>daily_usd</code>.</td></tr>
+                  <tr><td class="mono">monthly_usd</td><td class="ty">number</td><td>30 d sliding</td><td>Applied after <code>weekly_usd</code>.</td></tr>
+                  <tr><td class="mono">max_open_intents</td><td class="ty">integer</td><td>instant</td><td>Concurrency ceiling. Prevents a runaway loop from queueing a thousand orders.</td></tr>
+                  <tr><td class="mono">max_position_pct</td><td class="ty">number</td><td>instant</td><td>Ceiling on any single asset as a percentage of the agent's portfolio after the trade.</td></tr>
+                  <tr><td class="mono">gas_budget_daily_usd</td><td class="ty">number</td><td>24 h sliding</td><td>Separate from notional. Stops gas-griefing loops.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="dx-note">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>In-flight notional counts</b>
+                <p>An intent reserves against its window from <code>policy_check</code> until it reaches a
+                  terminal status. This is why a rejected intent frees budget immediately while a
+                  <code>routing</code> intent does not.</p></div>
+            </div>
+
+            <h3 id="policy-lists">Allow and deny lists</h3>
+            <p>Evaluation is strict: an intent must match <em>every</em> relevant <code>allow</code> dimension and
+              <em>no</em> <code>deny</code> entry. Omitting a dimension from <code>allow</code> denies it
+              entirely. There is no wildcard for <code>contracts</code>.</p>
+            <div class="dx-code" data-lang="json" data-title="allow / deny"><pre><code>{
+  "allow": {
+    "chains":      ["eip155:8453", "eip155:42161"],
+    "actions":     ["swap", "transfer", "equity_order"],
+    "tokens":      ["USDC", "WETH", "cbBTC", "AAPLX"],
+    "collections": [],
+    "contracts":   ["0x2626664c2603336E57B271c5C0b26F421741e481"],
+    "venues":      ["uniswap_v4", "aerodrome", "backed_rwa"],
+    "categories":  ["spot", "rwa_equity"]
+  },
+  "deny": {
+    "tokens":     ["*_LEVERAGED", "*_3L", "*_3S"],
+    "contracts":  ["0x0000000000000000000000000000000000000000"],
+    "categories": ["gambling", "leverage", "unverified_contract", "sanctioned"]
+  }
+}</code></pre></div>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <caption>Built-in categories</caption>
+                <thead><tr><th>Category</th><th>Matches</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">unverified_contract</td><td>Target has no verified source on the canonical explorer, or its proxy implementation changed within 72 hours.</td></tr>
+                  <tr><td class="mono">leverage</td><td>Perpetuals, margin, leveraged tokens, and any position with a liquidation price.</td></tr>
+                  <tr><td class="mono">gambling</td><td>Prediction markets, lotteries, casino contracts on the maintained registry.</td></tr>
+                  <tr><td class="mono">sanctioned</td><td>Addresses on OFAC SDN and the equivalent EU/UK lists, refreshed hourly.</td></tr>
+                  <tr><td class="mono">low_liquidity</td><td>Pair depth below <code>simulation.min_liquidity_usd</code> at simulation time.</td></tr>
+                  <tr><td class="mono">rwa_equity</td><td>Tokenized equities and ETFs with a named transfer agent.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="policy-hitl">Human-in-the-loop</h3>
+            <p>The human gate is a policy outcome, not a separate product. Above the threshold the intent moves to
+              <code>awaiting_approval</code>, an <code>approval.requested</code> webhook fires with the full
+              simulated asset diff, and the clock starts.</p>
+            <div class="dx-code" data-lang="json" data-title="hitl"><pre><code>{
+  "hitl": {
+    "threshold_usd": 500,
+    "actions": ["transfer", "nft_buy"],
+    "always_for_new_counterparty": true,
+    "channels": ["webhook", "push"],
+    "timeout_sec": 300,
+    "on_timeout": "reject",
+    "approvers": ["usr_01JQ8ZS2M4N6P8R0T2V4X6Z8B0"],
+    "quorum": 1
+  }
+}</code></pre></div>
+            <ul>
+              <li><code>threshold_usd</code> — escalate any intent whose notional exceeds this.</li>
+              <li><code>actions</code> — escalate these actions at any notional. Union with the threshold rule.</li>
+              <li><code>always_for_new_counterparty</code> — escalate the first interaction with any address the
+                agent has never settled with before, regardless of size.</li>
+              <li><code>on_timeout</code> — <code>reject</code> fails safe (default); <code>hold</code> keeps the
+                intent pending until an explicit decision, at the cost of a stale price.</li>
+              <li><code>quorum</code> — number of distinct approvers required. Approvals are signed by the
+                approver's key and included in the attestation.</li>
+            </ul>
+
+            <h3 id="policy-hash">Policy hash and onchain commitment</h3>
+            <p>The hash is what makes the policy enforceable rather than advisory. It is computed as follows, and
+              the algorithm is fixed for the lifetime of an API version.</p>
+            <ol>
+              <li>Drop every server-assigned field: <code>id</code>, <code>version</code>, <code>hash</code>,
+                <code>commitment</code>, <code>created_at</code>, <code>updated_at</code>.</li>
+              <li>Canonicalise the remainder with RFC 8785 JSON Canonicalisation Scheme — keys sorted by UTF-16
+                code unit, no insignificant whitespace, numbers in shortest round-trip form.</li>
+              <li>Prefix the domain separator <code>"strixhood.policy.v1"</code> as UTF-8 bytes.</li>
+              <li>Take <code>keccak256</code> of the concatenation. That 32-byte digest is <code>policy.hash</code>.</li>
+              <li>Call <code>PolicyRegistry.commit(agentId, policyHash, version)</code>. The registry stores one
+                live hash per agent and emits <code>PolicyCommitted</code>.</li>
+            </ol>
+            <div class="dx-code" data-lang="ts" data-title="verify-policy-hash.ts"><pre><code>import { canonicalize } from "@strixhood/sdk/jcs";
+import { keccak256, toBytes, concat } from "viem";
+
+export function policyHash(policy: Record&lt;string, unknown&gt;): `0x${string}` {
+  const { id, version, hash, commitment, created_at, updated_at, ...doc } = policy as never;
+  const body = toBytes(canonicalize(doc));
+  const domain = toBytes("strixhood.policy.v1");
+  return keccak256(concat([domain, body]));
+}
+
+// Recompute locally and compare with what the registry holds.
+const local = policyHash(await strix.policies.get("pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD"));
+const onchain = await registry.read.policyOf([agent.passport.tokenId]);
+if (local !== onchain) throw new Error("policy drift: refuse to sign");</code></pre></div>
+            <p>The session-key validator module reads the committed hash on every user operation and compares it
+              with the hash embedded in the key's permission blob at issuance. Rotating a policy therefore
+              invalidates every session key issued under the previous version — by construction, not by
+              convention.</p>
+
+            <h3 id="policy-order">Evaluation order</h3>
+            <p>Order matters because the first failure short-circuits and is reported as
+              <code>rejection.rule</code>. Knowing the order tells you which rule to loosen.</p>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>#</th><th>Check</th><th>Failure code</th></tr></thead>
+                <tbody>
+                  <tr><td class="n">1</td><td>Policy is live, not expired, and its hash matches the registry</td><td class="mono">policy_stale</td></tr>
+                  <tr><td class="n">2</td><td><code>chain</code> ∈ <code>allow.chains</code></td><td class="mono">chain_not_allowed</td></tr>
+                  <tr><td class="n">3</td><td><code>action</code> ∈ <code>allow.actions</code></td><td class="mono">action_not_allowed</td></tr>
+                  <tr><td class="n">4</td><td>Every token, collection, contract and venue in <code>params</code> is allow-listed</td><td class="mono">asset_not_allowed</td></tr>
+                  <tr><td class="n">5</td><td>Nothing in <code>params</code> matches <code>deny</code></td><td class="mono">denied</td></tr>
+                  <tr><td class="n">6</td><td><code>per_tx_usd</code></td><td class="mono">limit_exceeded</td></tr>
+                  <tr><td class="n">7</td><td>Sliding windows, daily then weekly then monthly</td><td class="mono">limit_exceeded</td></tr>
+                  <tr><td class="n">8</td><td><code>max_open_intents</code>, <code>max_position_pct</code>, gas budget</td><td class="mono">limit_exceeded</td></tr>
+                  <tr><td class="n">9</td><td>Human gate evaluation</td><td class="mono">approval_required</td></tr>
+                  <tr><td class="n">10</td><td>Simulation thresholds, after stage 04 returns</td><td class="mono">simulation_failed</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ============================ SECURITY ============================ -->
+          <section class="dx-sec" data-group="Protocol">
+            <span class="dx-kicker">07 — Trust</span>
+            <h2 id="security" data-nav="Security model">Security model</h2>
+            <p class="dx-lead">This section is written to be argued with. It states what the protocol enforces,
+              what it assumes, and what it cannot do. If a claim here is not testable against the contracts, it
+              should not be here.</p>
+
+            <h3 id="security-layers">The five layers</h3>
+            <p>Each layer is independent. Removing any one of them still leaves the others enforcing; none of
+              them depends on another being honest.</p>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Layer</th><th>Mechanism</th><th>Stops</th><th>Enforced</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>1 · Account abstraction</strong></td><td>ERC-4337 v0.7 smart account. Session keys carry a permission blob: selector allowlist, value ceiling, chain, expiry, policy hash.</td><td>Key exfiltration turning into unlimited spend. An escaped session key expires and cannot call unlisted selectors.</td><td>Onchain, in the validator module</td></tr>
+                  <tr><td><strong>2 · Spending policy</strong></td><td>Versioned policy document, keccak256-committed to <code>PolicyRegistry</code>, evaluated offchain and bound into the key.</td><td>Scope creep. An agent cannot widen its own authority, because it cannot produce a valid commitment.</td><td>Offchain for speed, onchain for truth</td></tr>
+                  <tr><td><strong>3 · Simulation</strong></td><td>Fork execution against the pending block with state overrides. Signed asset diff. Drainer, approval-sweep, honeypot and price-impact detectors.</td><td>Malicious calldata that looks benign: infinite approvals, hidden transfer hooks, fee-on-transfer traps.</td><td>Offchain, gates signing</td></tr>
+                  <tr><td><strong>4 · Contract audit</strong></td><td>Source verification, proxy-admin and implementation-age checks, deployer reputation, sanctions screening, maintained registries.</td><td>Interaction with a contract deployed 40 seconds ago by an address with no history.</td><td>Offchain, at policy-check time</td></tr>
+                  <tr><td><strong>5 · Human in the loop</strong></td><td>Threshold, action and new-counterparty escalation with signed approvals and a fail-safe timeout.</td><td>Everything the first four layers considered permissible but a person would not.</td><td>Offchain, blocks signing</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="threat-model">Threat model</h3>
+            <p>Assumed adversaries, and what the protocol does about each.</p>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Adversary</th><th>Capability assumed</th><th>Mitigation</th><th>Residual risk</th></tr></thead>
+                <tbody>
+                  <tr><td>Prompt injection into the agent</td><td>Full control of the intents the agent emits</td><td>Intents carry no calldata; policy bounds every dimension; simulation checks the diff.</td><td>Attacker can burn the agent's allowed budget on permitted actions — for example swapping USDC to WETH repeatedly within limits.</td></tr>
+                  <tr><td>Compromised agent host</td><td>Reads the session key from memory</td><td>Key is scoped, expiring and policy-bound; rotation is automatic; owner can revoke in one transaction.</td><td>Value up to the remaining window limits until revocation lands.</td></tr>
+                  <tr><td>Malicious counterparty contract</td><td>Arbitrary code at the target address</td><td>Layer 3 and 4: asset-diff must match intent; unverified and fresh contracts are denied by category.</td><td>A contract that behaves correctly in simulation and maliciously on a later call path.</td></tr>
+                  <tr><td>Dishonest solver</td><td>Wins the auction, then under-delivers</td><td>Output guarantee enforced onchain in <code>SettlementVault</code>; 25% bond slash; reliability score gates future auctions.</td><td>Griefing by repeatedly losing the auction to delay a fill.</td></tr>
+                  <tr><td>Searcher / MEV</td><td>Observes the mempool, reorders</td><td><code>mev_protection</code> routes privately; minimum output enforced atomically.</td><td>Timing leakage from public settlement events after the fact.</td></tr>
+                  <tr><td>Leaked API key</td><td>Full REST access with the key's scopes</td><td>Scoped keys; secret keys cannot sign — only session keys can; policy is unchanged by API access without <code>policies:write</code>.</td><td>A key with <code>policies:write</code> can widen a policy. Do not issue one to anything an agent can read.</td></tr>
+                  <tr><td>Protocol operator</td><td>Controls the offchain services</td><td>Onchain policy hash and settlement checks are independent of the operator; attestations are verifiable by anyone.</td><td>Operator can censor or delay intents. It cannot move funds outside policy.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="not-protected">What this does not protect against</h3>
+            <div class="dx-note dx-note--stop">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>Read this list before you fund an agent</b>
+                <p>Strix Hood bounds the blast radius of an autonomous actor. It does not make that actor correct,
+                  and it removes none of the following risks.</p></div>
+            </div>
+            <ul>
+              <li><strong>Your root key.</strong> If the owner key controlling the smart account is compromised,
+                the attacker rewrites the policy and every layer above is void.</li>
+              <li><strong>Bad strategy.</strong> A policy-compliant trade can still lose money. The protocol has
+                no opinion on whether a permitted action is a good one.</li>
+              <li><strong>Market and liquidity risk.</strong> Slippage bounds guarantee an execution price, not a
+                fair one. Thin markets stay thin.</li>
+              <li><strong>Third-party protocol failure.</strong> If you allowlist a lending market and it is
+                exploited, funds you sent there are gone. Allowlisting is an explicit trust decision.</li>
+              <li><strong>Oracle and price-feed failure.</strong> Notional limits use observed prices. A
+                manipulated venue price manipulates the limit calculation with it.</li>
+              <li><strong>RWA issuer and transfer-agent risk.</strong> Tokenized equities carry issuer credit
+                risk, redemption risk and jurisdictional restrictions. The token is a claim, not the share.</li>
+              <li><strong>Deep reorgs and chain halts.</strong> Attestations follow the canonical chain; a reorg
+                beyond the finality target can unwind a settled intent. See
+                <a href="#failure-modes">Failure modes</a>.</li>
+              <li><strong>Phishing the human approver.</strong> The human gate is only as good as the person
+                reading the diff. Approval fatigue is a real failure mode; set thresholds you will actually
+                respect.</li>
+              <li><strong>Regulatory and tax exposure.</strong> Automation does not change your obligations, and
+                the protocol does not file anything on your behalf.</li>
+              <li><strong>Availability.</strong> The protocol depends on the underlying chains, bundlers and
+                relays. Degraded modes are published on the <a href="status.html">status page</a>.</li>
+            </ul>
+
+            <h3 id="disclosure">Audits and disclosure</h3>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Scope</th><th>Firm</th><th>Date</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td>Core contracts — router, vault, registry</td><td>Spearbit</td><td class="mono">2026-03</td><td>Complete, 2 medium resolved</td></tr>
+                  <tr><td>Session-key validator module</td><td>OpenZeppelin</td><td class="mono">2026-05</td><td>Complete, 1 high resolved</td></tr>
+                  <tr><td>Solver auction and bonding</td><td>Trail of Bits</td><td class="mono">2026-07</td><td>In progress</td></tr>
+                  <tr><td>Continuous</td><td>Immunefi bug bounty</td><td class="mono">ongoing</td><td>Up to $500,000 for critical</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Report vulnerabilities to <code>security@strixhood.xyz</code> with the PGP key published at
+              <code>/.well-known/security.txt</code>. Do not open a public issue. Disclosure target is 90 days or
+              on-fix, whichever comes first.</p>
+          </section>
+
+          <!-- ============================ TOKENOMICS ============================ -->
+          <section class="dx-sec" data-group="Economics &amp; networks">
+            <span class="dx-kicker">08 — $STRX</span>
+            <h2 id="tokenomics" data-nav="Tokenomics">Tokenomics</h2>
+            <p class="dx-lead">$STRX exists to make agent identity expensive to fake and dishonest execution
+              expensive to attempt. It is a work token and a bond, not a payment rail — commerce settles in USDC,
+              WETH and the assets being traded.</p>
+
+            <h3 id="supply">Supply and distribution</h3>
+            <div class="dx-stats">
+              <div class="dx-stat"><b>1,000,000,000</b><span>Total supply, fixed</span></div>
+              <div class="dx-stat"><b>Base</b><span>Canonical chain</span></div>
+              <div class="dx-stat"><b>18</b><span>Decimals</span></div>
+              <div class="dx-stat"><b>None</b><span>Inflation after TGE</span></div>
+            </div>
+            <div class="dx-dist" role="img" aria-label="Token distribution: Community and Ecosystem 40 percent, Team and Advisors 20 percent, Protocol Treasury 15 percent, Liquidity 15 percent, Early Contributors 10 percent.">
+              <div class="dx-dist__row"><span>Community &amp; Ecosystem</span><span class="dx-dist__bar"><i style="width:100%;background:linear-gradient(90deg,#CCFF00,#E4FF4D)"></i></span><b>40%</b></div>
+              <div class="dx-dist__row"><span>Team &amp; Advisors</span><span class="dx-dist__bar"><i style="width:50%;background:linear-gradient(90deg,#E4FF4D,#C8E85A)"></i></span><b>20%</b></div>
+              <div class="dx-dist__row"><span>Protocol Treasury</span><span class="dx-dist__bar"><i style="width:37.5%;background:linear-gradient(90deg,#00E5A0,#4DEFC0)"></i></span><b>15%</b></div>
+              <div class="dx-dist__row"><span>Liquidity</span><span class="dx-dist__bar"><i style="width:37.5%;background:linear-gradient(90deg,#FF9900,#FFC24D)"></i></span><b>15%</b></div>
+              <div class="dx-dist__row"><span>Early Contributors</span><span class="dx-dist__bar"><i style="width:25%;background:linear-gradient(90deg,#F5F5F7,#B9BAC6)"></i></span><b>10%</b></div>
+            </div>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <caption>Allocation and unlock schedule</caption>
+                <thead><tr><th>Allocation</th><th class="n">Share</th><th class="n">$STRX</th><th>Unlock</th><th>Controlled by</th></tr></thead>
+                <tbody>
+                  <tr><td>Community &amp; Ecosystem</td><td class="n">40%</td><td class="n">400,000,000</td><td>48-month linear emission to stakers, solvers and grant recipients. No TGE unlock.</td><td>Emissions contract</td></tr>
+                  <tr><td>Team &amp; Advisors</td><td class="n">20%</td><td class="n">200,000,000</td><td>12-month cliff, then 36-month linear vesting.</td><td>Vesting escrow</td></tr>
+                  <tr><td>Protocol Treasury</td><td class="n">15%</td><td class="n">150,000,000</td><td>Unlocked, governance-gated. Spend requires a passed proposal and a 48-hour timelock.</td><td>Governance timelock</td></tr>
+                  <tr><td>Liquidity</td><td class="n">15%</td><td class="n">150,000,000</td><td>20% at TGE for initial depth; remainder released against depth targets over 24 months.</td><td>Liquidity multisig 4/7</td></tr>
+                  <tr><td>Early Contributors</td><td class="n">10%</td><td class="n">100,000,000</td><td>6-month cliff, then 24-month linear vesting.</td><td>Vesting escrow</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="protocol-fee">Protocol fee</h3>
+            <p>Every settled intent pays <strong>0.25% of settled notional</strong>, taken from the output leg
+              inside the settlement transaction. There is no fee on rejected, failed or expired intents, and no
+              fee on <code>simulate_only</code> calls. Subscription tiers in
+              <a href="#limits">Rate limits &amp; pricing</a> are separate and buy throughput, not lower fees.</p>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Destination</th><th class="n">Share of fee</th><th>Mechanism</th></tr></thead>
+                <tbody>
+                  <tr><td>Protocol Treasury</td><td class="n">40%</td><td>Accrues in the settled asset, swept to USDC weekly. Spend is governance-gated.</td></tr>
+                  <tr><td>Stakers</td><td class="n">30%</td><td>Streamed pro-rata to staked $STRX, claimable continuously, no epoch lock.</td></tr>
+                  <tr><td>Buyback &amp; burn</td><td class="n">30%</td><td>Executed as TWAP over 24 hours by the treasury keeper; burned to <code>0x…dEaD</code> with an onchain receipt.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="dx-code" data-lang="text" data-title="worked example — a $1,500 swap"><pre><code>settled notional        $1,500.00
+protocol fee  0.25%     $    3.75   taken from the WETH output leg
+  ├─ treasury    40%    $    1.50
+  ├─ stakers     30%    $    1.125
+  └─ buyback     30%    $    1.125  → TWAP buy, burn, receipt emitted
+solver fee (quoted)     $    0.90   paid by the solver's own margin, not added on top
+agent receives                       output − 3.75 USD equivalent, ≥ quoted minimum</code></pre></div>
+
+            <h3 id="staking-bonds">Staking and registration bonds</h3>
+            <p>Two distinct locks use the same token and must not be confused.</p>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th></th><th>Registration bond</th><th>Fee stake</th></tr></thead>
+                <tbody>
+                  <tr><td>Purpose</td><td>Sybil resistance and slashable collateral for one agent</td><td>Claim on 30% of protocol fees</td></tr>
+                  <tr><td>Minimum</td><td class="mono">2,500 STRX</td><td class="mono">no minimum</td></tr>
+                  <tr><td>Locked against</td><td>The agent's passport <code>tokenId</code></td><td>The staker's address</td></tr>
+                  <tr><td>Slashable</td><td>Yes — see below</td><td>No</td></tr>
+                  <tr><td>Unbonding</td><td>14 days after the agent is retired</td><td>21 days</td></tr>
+                  <tr><td>Yield</td><td>None</td><td>Fee share, streamed</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Solvers post a separate bond sized to their maximum in-flight quote exposure, with a floor of
+              <span class="sx-num">50,000</span> $STRX. A solver whose bond falls below its exposure is excluded
+              from the auction until it tops up.</p>
+
+            <h3 id="slashing">Slashing conditions</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Condition</th><th class="n">Penalty</th><th>Detection</th><th>Destination of slashed bond</th></tr></thead>
+                <tbody>
+                  <tr><td>Forged policy commitment — submitting a user operation whose policy hash does not match the registry</td><td class="n">100%</td><td>Onchain, deterministic</td><td>Treasury</td></tr>
+                  <tr><td>Reputation fraud — wash volume, self-dealing between agents under one owner to inflate a score</td><td class="n">50%</td><td>Graph analysis, challenge period of 7 days</td><td>50% to the challenger, 50% burned</td></tr>
+                  <tr><td>Solver default — winning a quote and settling below the guaranteed output</td><td class="n">25%</td><td>Onchain, at settlement revert</td><td>Refund to the affected agent, remainder to stakers</td></tr>
+                  <tr><td>Liveness failure — a service agent accepting a hire and missing the deadline</td><td class="n">5%</td><td>Deadline elapses without a completion attestation</td><td>Refund to the hiring agent</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Slashing is executed by the <code>StakingBond</code> contract. Everything except the deterministic
+              onchain cases passes through a 7-day challenge window in which the accused can post evidence; an
+              unchallenged claim executes automatically, a challenged one goes to governance.</p>
+          </section>
+
+          <!-- ============================ NETWORKS ============================ -->
+          <section class="dx-sec" data-group="Economics &amp; networks">
+            <span class="dx-kicker">09 — Deployments</span>
+            <h2 id="networks" data-nav="Networks &amp; contracts">Networks &amp; contracts</h2>
+            <p class="dx-lead">Seven networks are live. EVM contracts are deployed with CREATE2 from the same
+              factory, so every EVM chain shares one address per contract. Solana runs a separate program set.</p>
+
+            <h3 id="supported-chains">Supported chains</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Network</th><th class="n">Chain ID</th><th>CAIP-2</th><th>Finality target</th><th>Gas asset</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td>Ethereum</td><td class="n">1</td><td class="mono">eip155:1</td><td class="mono">2 epochs (~13 min)</td><td class="mono">ETH</td><td><span class="sx-status sx-status--live"><i></i>live</span></td></tr>
+                  <tr><td>Base</td><td class="n">8453</td><td class="mono">eip155:8453</td><td class="mono">L1 inclusion (~3 min)</td><td class="mono">ETH</td><td><span class="sx-status sx-status--live"><i></i>live</span></td></tr>
+                  <tr><td>Arbitrum One</td><td class="n">42161</td><td class="mono">eip155:42161</td><td class="mono">L1 inclusion (~4 min)</td><td class="mono">ETH</td><td><span class="sx-status sx-status--live"><i></i>live</span></td></tr>
+                  <tr><td>OP Mainnet</td><td class="n">10</td><td class="mono">eip155:10</td><td class="mono">L1 inclusion (~3 min)</td><td class="mono">ETH</td><td><span class="sx-status sx-status--live"><i></i>live</span></td></tr>
+                  <tr><td>Polygon PoS</td><td class="n">137</td><td class="mono">eip155:137</td><td class="mono">128 blocks (~4 min)</td><td class="mono">POL</td><td><span class="sx-status sx-status--live"><i></i>live</span></td></tr>
+                  <tr><td>BNB Chain</td><td class="n">56</td><td class="mono">eip155:56</td><td class="mono">15 blocks (~45 s)</td><td class="mono">BNB</td><td><span class="sx-status sx-status--live"><i></i>live</span></td></tr>
+                  <tr><td>Solana</td><td class="n">—</td><td class="mono">solana:5eykt4Us…</td><td class="mono">32 slots (~13 s)</td><td class="mono">SOL</td><td><span class="sx-status sx-status--warn"><i></i>beta</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Testnets mirror the same contract addresses on Base Sepolia (<code>eip155:84532</code>), Arbitrum
+              Sepolia (<code>eip155:421614</code>) and Solana devnet. Use a <code>strx_sk_test_</code> key; live keys
+              are rejected against testnet chains and vice versa.</p>
+
+            <h3 id="contract-addresses">Contract addresses</h3>
+            <p>Identical on Ethereum, Base, Arbitrum, OP Mainnet, Polygon and BNB Chain. Verify before you
+              approve anything: the addresses below are also published in
+              <code>@strixhood/sdk/deployments.json</code> and in the repository release tags.</p>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <caption>EVM — CREATE2, same address on every EVM network</caption>
+                <thead><tr><th>Contract</th><th>Address</th><th>Purpose</th><th>Explorer</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>IntentRouter</td>
+                    <td><span class="dx-addr"><span class="mono">0x5Cf9A2b1E1d4a86F0c3D7B4e9F2a08C5D6e13B47</span><button class="dx-addr__c" type="button" data-dxcopy="0x5Cf9A2b1E1d4a86F0c3D7B4e9F2a08C5D6e13B47" data-dxlabel="IntentRouter address copied" aria-label="Copy IntentRouter address"><i aria-hidden="true"></i></button></span></td>
+                    <td>Accepts routed intents, opens the solver auction, forwards the winner.</td>
+                    <td><a href="https://basescan.org/address/0x5Cf9A2b1E1d4a86F0c3D7B4e9F2a08C5D6e13B47" target="_blank" rel="noopener noreferrer">Basescan</a></td>
+                  </tr>
+                  <tr>
+                    <td>PolicyRegistry</td>
+                    <td><span class="dx-addr"><span class="mono">0x8Ae4C0f37D1b52E9a6c8F401B2d73E5a9C0f18Db</span><button class="dx-addr__c" type="button" data-dxcopy="0x8Ae4C0f37D1b52E9a6c8F401B2d73E5a9C0f18Db" data-dxlabel="PolicyRegistry address copied" aria-label="Copy PolicyRegistry address"><i aria-hidden="true"></i></button></span></td>
+                    <td>One live policy hash per agent. Source of truth for the validator module.</td>
+                    <td><a href="https://basescan.org/address/0x8Ae4C0f37D1b52E9a6c8F401B2d73E5a9C0f18Db" target="_blank" rel="noopener noreferrer">Basescan</a></td>
+                  </tr>
+                  <tr>
+                    <td>AgentPassport</td>
+                    <td><span class="dx-addr"><span class="mono">0x2Fb1D8c47A0e35B9d6F82c11E7a4508D3bC96Ef2</span><button class="dx-addr__c" type="button" data-dxcopy="0x2Fb1D8c47A0e35B9d6F82c11E7a4508D3bC96Ef2" data-dxlabel="AgentPassport address copied" aria-label="Copy AgentPassport address"><i aria-hidden="true"></i></button></span></td>
+                    <td>ERC-721 identity, dynamic metadata, capability traits, revenue rights.</td>
+                    <td><a href="https://basescan.org/address/0x2Fb1D8c47A0e35B9d6F82c11E7a4508D3bC96Ef2" target="_blank" rel="noopener noreferrer">Basescan</a></td>
+                  </tr>
+                  <tr>
+                    <td>SettlementVault</td>
+                    <td><span class="dx-addr"><span class="mono">0x9D07E5a2C43b81F6e0A29d5c7B4831fE62aC0d75</span><button class="dx-addr__c" type="button" data-dxcopy="0x9D07E5a2C43b81F6e0A29d5c7B4831fE62aC0d75" data-dxlabel="SettlementVault address copied" aria-label="Copy SettlementVault address"><i aria-hidden="true"></i></button></span></td>
+                    <td>Enforces minimum output, takes and splits the 0.25% fee, emits <code>Settled</code>.</td>
+                    <td><a href="https://basescan.org/address/0x9D07E5a2C43b81F6e0A29d5c7B4831fE62aC0d75" target="_blank" rel="noopener noreferrer">Basescan</a></td>
+                  </tr>
+                  <tr>
+                    <td>SolverRegistry</td>
+                    <td><span class="dx-addr"><span class="mono">0x71Ba3E96d05C2f48A7e1B603D9c85274FaE0b3C8</span><button class="dx-addr__c" type="button" data-dxcopy="0x71Ba3E96d05C2f48A7e1B603D9c85274FaE0b3C8" data-dxlabel="SolverRegistry address copied" aria-label="Copy SolverRegistry address"><i aria-hidden="true"></i></button></span></td>
+                    <td>Solver bonds, reliability scores, auction eligibility.</td>
+                    <td><a href="https://basescan.org/address/0x71Ba3E96d05C2f48A7e1B603D9c85274FaE0b3C8" target="_blank" rel="noopener noreferrer">Basescan</a></td>
+                  </tr>
+                  <tr>
+                    <td>StakingBond</td>
+                    <td><span class="dx-addr"><span class="mono">0x3E82fA07C914d6B5e0287Fc3A1d94B60e5D7c2A9</span><button class="dx-addr__c" type="button" data-dxcopy="0x3E82fA07C914d6B5e0287Fc3A1d94B60e5D7c2A9" data-dxlabel="StakingBond address copied" aria-label="Copy StakingBond address"><i aria-hidden="true"></i></button></span></td>
+                    <td>Registration bonds, fee staking, slashing execution and challenges.</td>
+                    <td><a href="https://basescan.org/address/0x3E82fA07C914d6B5e0287Fc3A1d94B60e5D7c2A9" target="_blank" rel="noopener noreferrer">Basescan</a></td>
+                  </tr>
+                  <tr>
+                    <td>STRX token</td>
+                    <td><span class="dx-addr"><span class="mono">0x6b3F0aD82c19E574B1d0968Ae35c7f42D9a081Ec</span><button class="dx-addr__c" type="button" data-dxcopy="0x6b3F0aD82c19E574B1d0968Ae35c7f42D9a081Ec" data-dxlabel="STRX token address copied" aria-label="Copy STRX token address"><i aria-hidden="true"></i></button></span></td>
+                    <td>ERC-20, 18 decimals, fixed supply. Canonical deployment is Base.</td>
+                    <td><a href="https://basescan.org/token/0x6b3F0aD82c19E574B1d0968Ae35c7f42D9a081Ec" target="_blank" rel="noopener noreferrer">Basescan</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <caption>Solana — program IDs</caption>
+                <thead><tr><th>Program</th><th>ID</th><th>Purpose</th><th>Explorer</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Intent router</td>
+                    <td><span class="dx-addr"><span class="mono">STRXrtr9k2Qm4vN8pLdWfE6yTgHc1XbAoJz5RuVe3Sn</span><button class="dx-addr__c" type="button" data-dxcopy="STRXrtr9k2Qm4vN8pLdWfE6yTgHc1XbAoJz5RuVe3Sn" data-dxlabel="Solana router program ID copied" aria-label="Copy Solana router program ID"><i aria-hidden="true"></i></button></span></td>
+                    <td>Intent account creation and solver crank.</td>
+                    <td><a href="https://solscan.io/" target="_blank" rel="noopener noreferrer">Solscan</a></td>
+                  </tr>
+                  <tr>
+                    <td>Passport</td>
+                    <td><span class="dx-addr"><span class="mono">STRXpass7Yh3cV9nKdQ2mBxWtEuF6sRgAj4LpZv8Tq</span><button class="dx-addr__c" type="button" data-dxcopy="STRXpass7Yh3cV9nKdQ2mBxWtEuF6sRgAj4LpZv8Tq" data-dxlabel="Solana passport program ID copied" aria-label="Copy Solana passport program ID"><i aria-hidden="true"></i></button></span></td>
+                    <td>Metaplex-compatible agent passport with policy PDA.</td>
+                    <td><a href="https://solscan.io/" target="_blank" rel="noopener noreferrer">Solscan</a></td>
+                  </tr>
+                  <tr>
+                    <td>Settlement</td>
+                    <td><span class="dx-addr"><span class="mono">STRXstlmT5wR8kNc2VbHq7YdXfJ3gEuA9pLmZ6Sv4n</span><button class="dx-addr__c" type="button" data-dxcopy="STRXstlmT5wR8kNc2VbHq7YdXfJ3gEuA9pLmZ6Sv4n" data-dxlabel="Solana settlement program ID copied" aria-label="Copy Solana settlement program ID"><i aria-hidden="true"></i></button></span></td>
+                    <td>Minimum-output enforcement and fee split.</td>
+                    <td><a href="https://solscan.io/" target="_blank" rel="noopener noreferrer">Solscan</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="dx-note dx-note--warn">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>Verify before approving</b>
+                <p>Nobody from Strix Hood will ever DM you a contract address. Cross-check any address against
+                  this page, the SDK's <code>deployments.json</code> and the explorer's verified-source badge
+                  before granting an allowance.</p></div>
+            </div>
+          </section>
+
+          <!-- ============================ LIMITS ============================ -->
+          <section class="dx-sec" data-group="Economics &amp; networks">
+            <span class="dx-kicker">10 — Throughput</span>
+            <h2 id="limits" data-nav="Rate limits &amp; pricing">Rate limits &amp; pricing tiers</h2>
+            <p class="dx-lead">Subscription tiers buy throughput and support. They do not change the 0.25%
+              protocol fee, and they do not change what a policy allows.</p>
+
+            <h3 id="tiers">Tiers</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Tier</th><th class="n">Price</th><th class="n">Requests / min</th><th class="n">Concurrent intents</th><th class="n">Intents / month</th><th class="n">WS connections</th><th class="n">Webhooks</th><th>Networks</th><th>Support</th></tr></thead>
+                <tbody>
+                  <tr><td>Sandbox</td><td class="n">$0</td><td class="n">60</td><td class="n">2</td><td class="n">1,000</td><td class="n">1</td><td class="n">1</td><td>Testnets only</td><td>Community</td></tr>
+                  <tr><td>Builder</td><td class="n">$99 / mo</td><td class="n">600</td><td class="n">25</td><td class="n">50,000</td><td class="n">5</td><td class="n">10</td><td>All</td><td>Email, 2 business days</td></tr>
+                  <tr><td>Growth</td><td class="n">$499 / mo</td><td class="n">3,000</td><td class="n">200</td><td class="n">500,000</td><td class="n">25</td><td class="n">50</td><td>All</td><td>Email, 8 h · 99.9% SLA</td></tr>
+                  <tr><td>Scale</td><td class="n">$2,500 / mo</td><td class="n">12,000</td><td class="n">1,000</td><td class="n">5,000,000</td><td class="n">100</td><td class="n">200</td><td>All + priority solver lane</td><td>Shared channel, 1 h · 99.95% SLA</td></tr>
+                  <tr><td>Enterprise</td><td class="n">Custom</td><td>Negotiated</td><td>Negotiated</td><td>Unmetered</td><td>Negotiated</td><td>Negotiated</td><td>All + private solver pool</td><td>Named engineer · 99.99% SLA</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Overage on <em>intents per month</em> is billed at $0.004 per intent rather than blocked, so a
+              traffic spike degrades your invoice and not your agents. Overage on <em>requests per minute</em> is
+              never billed — it is rate limited.</p>
+
+            <h3 id="limit-headers">Rate-limit headers</h3>
+            <p>Every response carries the current window state. Read them; do not guess.</p>
+            <div class="dx-code" data-lang="http" data-title="response headers"><pre><code>HTTP/1.1 200 OK
+X-RateLimit-Limit: 600
+X-RateLimit-Remaining: 574
+X-RateLimit-Reset: 1786953600
+X-Request-Id: req_01JQ8ZT6P0Q2S4U6W8Y0A2C4E6
+Strix-Api-Version: 2026-07-01</code></pre></div>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Header</th><th>Meaning</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">X-RateLimit-Limit</td><td>Requests permitted in the current 60-second window.</td></tr>
+                  <tr><td class="mono">X-RateLimit-Remaining</td><td>Requests left. Treat 0 as "stop", not "try harder".</td></tr>
+                  <tr><td class="mono">X-RateLimit-Reset</td><td>Unix seconds at which the window resets.</td></tr>
+                  <tr><td class="mono">Retry-After</td><td>Only on <code>429</code>. Seconds to wait. Authoritative — ignore your own backoff if it is shorter.</td></tr>
+                  <tr><td class="mono">X-Request-Id</td><td>Include this in any support request. It resolves to the full trace.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="backoff">Bursts and backoff</h3>
+            <p>The limiter is a token bucket refilled continuously at <code>limit / 60</code> per second with a
+              burst capacity of <code>limit / 4</code>. Short spikes pass; sustained overload does not. On
+              <code>429</code>, back off with full jitter and honour <code>Retry-After</code>.</p>
+            <div class="dx-code" data-lang="ts" data-title="backoff.ts"><pre><code>async function withRetry&lt;T&gt;(fn: () =&gt; Promise&lt;T&gt;, tries = 5): Promise&lt;T&gt; {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      const e = err as { status?: number; retryAfter?: number };
+      const retryable = e.status === 429 || (e.status ?? 0) &gt;= 500;
+      if (!retryable || attempt &gt;= tries - 1) throw err;
+      const ceiling = e.retryAfter != null ? e.retryAfter * 1000 : Math.min(2 ** attempt * 250, 8_000);
+      await new Promise((r) =&gt; setTimeout(r, Math.random() * ceiling));
+    }
+  }
+}</code></pre></div>
+            <div class="dx-note">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>Streams are free</b>
+                <p>WebSocket frames do not consume the request budget. If you are polling
+                  <code>GET /v1/intents</code> in a loop, replace it with the <code>intents</code> channel and the
+                  rate limit stops being your problem.</p></div>
+            </div>
+          </section>
+
+          <!-- ============================ FAQ ============================ -->
+          <section class="dx-sec" data-group="Support">
+            <span class="dx-kicker">11 — Questions</span>
+            <h2 id="faq" data-nav="FAQ">FAQ</h2>
+            <div class="dx-faq">
+              <details><summary>Does Strix Hood ever hold my funds?</summary>
+                <div class="dx-faq__a"><p>No, outside the settlement transaction itself. Assets live in your
+                  ERC-4337 smart account, which you control with your root key. <code>SettlementVault</code>
+                  touches them only inside the atomic call that fills your intent; if that call does not satisfy
+                  the minimum output, it reverts and nothing moved.</p></div></details>
+              <details><summary>What happens if I lose the session key?</summary>
+                <div class="dx-faq__a"><p>Nothing catastrophic. A session key is scoped, expiring and
+                  policy-bound. Revoke it with <code>DELETE /v1/agents/{id}/session-keys/{keyId}</code>, which
+                  submits an onchain revocation. Until that lands the key can still spend up to the remaining
+                  window limits, which is the argument for short TTLs.</p></div></details>
+              <details><summary>Can the agent change its own policy?</summary>
+                <div class="dx-faq__a"><p>Only if you gave the agent runtime a key with
+                  <code>policies:write</code>. Do not. The intended split is: server holds the secret key and
+                  writes policy; agent holds a publishable key plus a session key and writes intents.</p></div></details>
+              <details><summary>Why is my intent stuck in <code>routing</code>?</summary>
+                <div class="dx-faq__a"><p>Three common causes: <code>valid_after</code> has not passed; the
+                  venue's trading session is closed (tokenized equities); or no solver has quoted inside your
+                  slippage bound. The <code>quote_status</code> field on the execution object names which.</p></div></details>
+              <details id="faq-rwa"><summary>Are tokenized equities tradable 24/7?</summary>
+                <div class="dx-faq__a"><p>Depends on the venue. Some issuers support continuous onchain
+                  secondary trading; primary issuance and redemption follow the transfer agent's hours and
+                  settlement calendar. The quote object returns <code>venue.session</code> with the next open and
+                  close, and orders outside a session are held rather than rejected.</p></div></details>
+              <details><summary>How do I test without spending real money?</summary>
+                <div class="dx-faq__a"><p>Use a <code>strx_sk_test_</code> key against Base Sepolia or Arbitrum
+                  Sepolia. Test-mode agents skip the $STRX bond, and the faucet in the console funds the smart
+                  account. Alternatively set <code>simulate_only: true</code> on mainnet to get a real quote and
+                  a real asset diff without signing anything.</p></div></details>
+              <details><summary>What is the difference between rejected and failed?</summary>
+                <div class="dx-faq__a"><p><code>rejected</code> means a check refused the intent before signing —
+                  policy, schema or simulation. Nothing was broadcast. <code>failed</code> means it was broadcast
+                  and reverted onchain, usually because state moved between simulation and inclusion. Both are
+                  terminal; only <code>failed</code> costs gas.</p></div></details>
+              <details><summary>Can two agents share one policy?</summary>
+                <div class="dx-faq__a"><p>Yes. A policy can be bound to many agents, and its limits then apply
+                  to the union of their activity — a shared $1,000 daily cap is $1,000 in total, not per agent.
+                  Use this for a fleet that must respect one budget.</p></div></details>
+              <details><summary>Do I need $STRX to use the API?</summary>
+                <div class="dx-faq__a"><p>Not on testnets, and not for <code>simulate_only</code>. Mainnet agent
+                  registration posts a bond, which the console can source for you at registration time. Fees are
+                  paid in the settled asset, not in $STRX.</p></div></details>
+              <details><summary>Is the protocol upgradeable?</summary>
+                <div class="dx-faq__a"><p><code>IntentRouter</code> and <code>SolverRegistry</code> sit behind a
+                  governance timelock of 48 hours. <code>SettlementVault</code>, <code>PolicyRegistry</code> and
+                  <code>AgentPassport</code> are immutable — a new version means a new address and an explicit
+                  migration, never a silent implementation swap under your allowances.</p></div></details>
+            </div>
+          </section>
+
+          <!-- ============================ GLOSSARY ============================ -->
+          <section class="dx-sec" data-group="Support">
+            <span class="dx-kicker">12 — Terms</span>
+            <h2 id="glossary" data-nav="Glossary">Glossary</h2>
+            <dl class="dx-defs">
+              <div class="dx-def"><dt>Agent</dt><dd>Protocol-side identity of an autonomous actor: a smart account, one bound policy, session keys, a reputation score and a slashable bond.</dd></div>
+              <div class="dx-def"><dt>Asset diff</dt><dd>The signed before/after balance delta produced by simulation. The intent is only signed if the diff matches what the intent claimed.</dd></div>
+              <div class="dx-def"><dt>Attestation</dt><dd>An EAS record binding intent hash, policy hash, simulation digest, solver identity and receipt. The audit artefact.</dd></div>
+              <div class="dx-def"><dt>Bond</dt><dd>$STRX locked against an agent passport or a solver's exposure, slashable under the conditions in <a href="#slashing">Slashing</a>.</dd></div>
+              <div class="dx-def"><dt>CAIP-2</dt><dd>Chain-agnostic identifier standard, e.g. <code>eip155:8453</code>. Used everywhere a chain is named.</dd></div>
+              <div class="dx-def"><dt>Execution</dt><dd>The object created when an intent enters routing. Holds quotes, fills, transaction hashes and the attestation.</dd></div>
+              <div class="dx-def"><dt>Fill</dt><dd>One settled portion of an intent. An intent without <code>partial_fill</code> has exactly one.</dd></div>
+              <div class="dx-def"><dt>HITL</dt><dd>Human in the loop. The policy clause that escalates an intent to a person before signing.</dd></div>
+              <div class="dx-def"><dt>Intent</dt><dd>A declarative, expiring statement of a desired outcome with no calldata and no route.</dd></div>
+              <div class="dx-def"><dt>Notional</dt><dd>USD value of an intent at simulation-time prices. The unit all policy limits are denominated in.</dd></div>
+              <div class="dx-def"><dt>Passport</dt><dd>ERC-721 token that carries an agent's identity, level, traits and revenue rights.</dd></div>
+              <div class="dx-def"><dt>Policy hash</dt><dd>keccak256 of the domain-separated, RFC 8785 canonicalised policy document. Committed onchain, embedded in session keys.</dd></div>
+              <div class="dx-def"><dt>Route preference</dt><dd>The objective the solver auction optimises: price, speed, gas or privacy.</dd></div>
+              <div class="dx-def"><dt>Session key</dt><dd>A short-lived signing key with a permission blob: selectors, value ceiling, chain, expiry and the policy hash it was issued under.</dd></div>
+              <div class="dx-def"><dt>Simulation</dt><dd>Fork execution of the candidate path against the pending block, with state overrides, producing the asset diff.</dd></div>
+              <div class="dx-def"><dt>Solver</dt><dd>A bonded third party that competes to fill intents and is contractually bound to the output it quoted.</dd></div>
+              <div class="dx-def"><dt>ULID</dt><dd>The lexicographically sortable identifier format used for every object ID, which makes IDs usable as pagination cursors.</dd></div>
+              <div class="dx-def"><dt>User operation</dt><dd>The ERC-4337 transaction envelope signed by a session key and validated by the account's validator module.</dd></div>
+            </dl>
+          </section>
+
+          <nav class="dx-pager" aria-label="Continue reading">
+            <a href="api.html"><small>Next</small><b>REST &amp; WebSocket API reference →</b></a>
+            <a href="sdk.html"><small>Also</small><b>SDKs: TypeScript, Python, Rust →</b></a>
+          </nav>
+
+        </div>
+
+        <nav class="dx-toc" id="dx-toc" aria-label="On this page"></nav>
+      </div>
+    </div>
+  </main>
+  <div id="sx-footer-host"></div>
+  <script src="assets/strix.js"></script>
+  <script src="assets/strix-data.js"></script>
+  <script src="assets/wallet.js"></script>
+  <script src="assets/shell.js"></script>
+  <script src="assets/docs.js"></script>
+  <script>Strix.page({ smooth:false });</script>
+</body>
+</html>

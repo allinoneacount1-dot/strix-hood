@@ -1,24 +1,68 @@
-# STRIX HOOD — Prompt (Disesuaikan untuk Build)
+# Strix Hood
 
-Basis: `uploads/strix_hood_web_design_prompt_robinhood_green.md`. Semua identitas visual, palet hijau, type scale, struktur section 0–11, dan Anti-AI-Slop Manifesto **dipertahankan**. Di bawah ini hanya delta penyesuaian agar prompt bisa dieksekusi sebagai satu halaman interaktif yang ringan.
+Autonomous AI agent commerce protocol — marketing site, documentation and dashboards.
 
-## Penyesuaian Teknis
-- **Stack**: Next.js/Tailwind/GSAP → satu file HTML interaktif (React runtime, inline styles). Zero build step, zero dependency eksternal selain Google Fonts.
-- **Hero 3D (Three.js/Spline)** → "Agent Core" berbasis CSS (orbit rings, glowing core, fragmen diamond) + **particle network Canvas 2D** dengan mouse-repel. Visual sama hidupnya, jauh lebih ringan (<3s load tetap tercapai).
-- **Icons** → sistem *geometric glyph* (lingkaran, diamond, ring, dashed-circle) yang konsisten — bukan SVG ilustratif hand-drawn, bukan icon pack default. Sesuai manifesto #7.
-- **Preloader** dipersingkat ke ±1.8 detik, click-to-skip, auto-skip saat `prefers-reduced-motion`.
-- **Partner logos** → wordmark tipografis grayscale (hover reveal hijau). Tidak menggambar ulang logo pihak ketiga.
-- **Count-up numbers** dihilangkan; angka monospace tabular statis (lebih tenang, tetap anti-slop).
-- **Pipeline packets**: dot Emerald bergerak di connector antar stage (CSS keyframe), bukan SVG path kompleks.
-- **Donut tokenomics**: SVG stroke-dasharray murni (5 segmen), bukan library chart.
+**Live:** https://strix-hood.vercel.app
 
-## Yang Tetap Sesuai Prompt Asli
-- Palet: Void Black `#0A0A0F`, Robinhood Green `#00C805`, Emerald Pulse `#2EDA12`, Teal Surge `#00E5A0`, Plasma White `#F5F5F7`, Deep Forest, Neural Gray, Crimson Alert, Amber Signal, Glass Border.
-- Typografi: Space Grotesk (display/UI) + JetBrains Mono (data). Type scale & aturan anti-slop (no center body text, tabular-nums, balance headings).
-- Semua 12 section: preloader boot sequence, nav fixed blur, hero asimetris 55/45 + floating intent cards, ticker RWA, intent pipeline 5 stage, bento capabilities, Agent NFT passport + equipment modules, security stack 5 layer + policy panel, tokenomics + revenue flow, marketplace dengan filter kategori live, testimonial + live metrics feed, CTA besar, footer 4 kolom.
-- Interaksi: custom cursor (blend-difference, membesar di elemen interaktif), reveal-on-scroll, hover lift + border glow, 3D tilt NFT card, holographic sheen, shimmer CTA, live feed berganti tiap 3 detik, grain overlay 3%, `prefers-reduced-motion` dihormati.
+## Stack
 
-## Kontrol (Tweaks)
-- `preloader` — on/off boot sequence
-- `customCursor` — on/off cursor custom
-- `particles` — on/off particle network
+Static HTML, vanilla JS, zero build step. No framework, no bundler, no npm install.
+Vercel serves the directory as-is (`vercel.json` sets `buildCommand: null`).
+
+## Pages
+
+| Page | Purpose |
+|---|---|
+| `index.html` | Landing page — 3D hero, live markets, intent simulator, agent marketplace preview |
+| `app.html` | User dashboard — overview, agents, portfolio, transactions, policy, settings |
+| `admin.html` | Protocol dashboard — network, registry, treasury, security, tokenomics |
+| `docs.html` `api.html` `sdk.html` | Documentation, REST/WS reference, SDK guides |
+| `agents.html` `marketplace.html` `nft.html` `stocks.html` `security.html` | Product |
+| `status.html` `about.html` `careers.html` `blog.html` `brand.html` | Company |
+
+## Assets
+
+| File | Role |
+|---|---|
+| `assets/strix.css` | Design system — tokens, components, motion |
+| `assets/strix.js` | Core runtime — modal, toast, smooth scroll, charts, formatting |
+| `assets/strix-data.js` | Live data layer (see below) |
+| `assets/wallet.js` | Real wallet connect — EIP-1193 + Solana |
+| `assets/shell.js` | Shared nav + footer, single source of truth for the sitemap |
+| `assets/strix-3d.js` | WebGL scenes — hero core, wordmark, NFT passport, ambient background |
+| `assets/chatbot.js` | Web3 assistant — intent router over the live data layer |
+| `assets/home.js` `dash.js` `docs.js` `page.js` | Per-surface behaviour |
+
+## Data sources
+
+All free tier, no API key, CORS-enabled. Every call degrades to a labelled
+simulation if it fails — the UI never shows stale data as live.
+
+| Source | Used for |
+|---|---|
+| Binance REST + WebSocket | Spot prices, 24h stats, klines |
+| CoinGecko | Market cap, 7d sparklines |
+| DeFiLlama | Chain TVL |
+| alternative.me | Crypto Fear & Greed index |
+| PublicNode / Cloudflare ETH RPC | Block height, gas price, balances |
+| DexScreener | On-chain pair lookup |
+| TradingView embed widget | Dashboard charts (native canvas fallback included) |
+
+## Brand
+
+Robin Neon `#CCFF00` primary, Teal Surge `#00E5A0` secondary, Void Black `#0A0A0F`.
+Space Grotesk (display/UI) + JetBrains Mono (data). Full kit at `/brand`.
+
+## Development
+
+```bash
+python3 -m http.server 8000
+```
+
+Three.js loads from unpkg at runtime; set `window.STRIX3D_URL` before
+`strix-3d.js` to pin a self-hosted copy. The site works with WebGL disabled.
+
+## Status
+
+Testnet software. Protocol metrics on the site are simulated and labelled as
+such; market data is live.

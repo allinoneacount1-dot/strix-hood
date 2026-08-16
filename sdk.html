@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SDK Reference — Strix Hood Protocol</title>
+  <meta name="description" content="Strix Hood SDKs for TypeScript, Python and Rust: installation, client configuration, full method coverage, streaming, retries, error handling and a complete worked DCA agent.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta property="og:title" content="SDK Reference — Strix Hood Protocol"><meta property="og:description" content="TypeScript, Python and Rust clients with identical method surfaces, streaming, retries and a worked DCA agent example.">
+  <meta property="og:image" content="assets/og.png"><meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@strixhood">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/strix.css">
+  <link rel="stylesheet" href="assets/docs.css">
+</head>
+<body>
+  <div id="sx-nav-host"></div>
+  <main id="main" class="dx">
+
+    <div class="dx-bar">
+      <div class="dx-wrap dx-bar__in">
+        <button class="sx-btn sx-btn--ghost sx-btn--icon dx-menubtn" id="dx-menubtn" type="button"
+                aria-expanded="false" aria-controls="dx-rail" aria-label="Open SDK navigation">
+          <span class="sx-burger__bars"><i></i><i></i><i></i></span>
+        </button>
+        <p class="dx-crumb"><b>SDK</b><i>/</i><span id="dx-crumb-sec">Overview</span></p>
+        <span class="dx-bar__spacer"></span>
+        <button class="dx-searchbtn" type="button" aria-label="Search the documentation">
+          <span class="sx-glyph sx-glyph--ring" aria-hidden="true"></span>
+          <span>Search docs</span><kbd>⌘K</kbd>
+        </button>
+      </div>
+    </div>
+
+    <div class="dx-wrap">
+      <div class="dx-grid">
+        <aside class="dx-rail" id="dx-rail" aria-label="SDK reference navigation"></aside>
+
+        <div class="dx-body">
+
+          <header class="dx-hero">
+            <span class="sx-eyebrow">TypeScript · Python · Rust</span>
+            <h1>SDK reference</h1>
+            <p>Three clients, one method surface. Each is a thin typed wrapper over the REST API — same
+              resources, same parameters, same errors — with idiomatic naming, retries and streaming built in.
+              Nothing in an SDK can do anything the API cannot.</p>
+            <p class="dx-hero__meta">
+              <span>TypeScript <b>@strixhood/sdk 1.4.2</b></span>
+              <span>Python <b>strixhood 1.4.2</b></span>
+              <span>Rust <b>strix-hood 1.4.2</b></span>
+            </p>
+          </header>
+
+          <!-- ============================ OVERVIEW ============================ -->
+          <section class="dx-sec" data-group="Getting started">
+            <span class="dx-kicker">Orientation</span>
+            <h2 id="sdk-overview" data-nav="Overview">Overview</h2>
+            <p class="dx-lead">Pick the SDK that matches where your agent runs. TypeScript is the primary client
+              and ships first; Python and Rust track it within one minor version and are generated from the same
+              OpenAPI document, so the shapes cannot drift.</p>
+
+            <h3 id="sdk-parity">Parity</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Capability</th><th>TypeScript</th><th>Python</th><th>Rust</th></tr></thead>
+                <tbody>
+                  <tr><td>Full resource coverage</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+                  <tr><td>Sync calls</td><td>Promise</td><td>sync + <code>asyncio</code></td><td><code>async</code> (tokio)</td></tr>
+                  <tr><td>Streaming</td><td>Async iterator + handlers</td><td>Async generator</td><td><code>Stream</code> impl</td></tr>
+                  <tr><td>Automatic retries</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+                  <tr><td>Webhook signature helper</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+                  <tr><td>Policy-hash verification</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+                  <tr><td>Auto-pagination</td><td><code>for await</code></td><td><code>for … in</code></td><td><code>try_next()</code></td></tr>
+                  <tr><td>Typed error classes</td><td>Yes</td><td>Yes</td><td><code>enum StrixError</code></td></tr>
+                  <tr><td>Bundled deployment addresses</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="sdk-naming">Naming conventions</h3>
+            <p>The wire format is <code>snake_case</code>. Each SDK converts to whatever its ecosystem expects
+              and converts back on the way out; you never hand-write the wire shape.</p>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Wire</th><th>TypeScript</th><th>Python</th><th>Rust</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">max_slippage_bps</td><td class="mono">maxSlippageBps</td><td class="mono">max_slippage_bps</td><td class="mono">max_slippage_bps</td></tr>
+                  <tr><td class="mono">agent_id</td><td class="mono">agentId</td><td class="mono">agent_id</td><td class="mono">agent_id</td></tr>
+                  <tr><td class="mono">"150.00"</td><td class="mono">string</td><td class="mono">Decimal | str</td><td class="mono">Decimal</td></tr>
+                  <tr><td class="mono">2026-08-16T09:00:00.412Z</td><td class="mono">Date</td><td class="mono">datetime (tz-aware)</td><td class="mono">DateTime&lt;Utc&gt;</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="dx-note">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>Amounts stay decimal, never float</b>
+                <p>TypeScript keeps them as strings, Python as <code>Decimal</code>, Rust as
+                  <code>rust_decimal::Decimal</code>. Passing a JavaScript <code>number</code> where an amount is
+                  expected is a type error, not a rounding surprise.</p></div>
+            </div>
+
+            <h3 id="sdk-runtimes">Supported runtimes</h3>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>SDK</th><th>Minimum</th><th>Tested on</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td>TypeScript</td><td>Node 20, TS 5.4</td><td>Node 20/22/24, Bun 1.2, Deno 2, modern browsers</td><td>ESM and CJS. Browser builds refuse <code>sk_</code> keys at runtime.</td></tr>
+                  <tr><td>Python</td><td>3.10</td><td>3.10–3.13, CPython and PyPy</td><td><code>httpx</code> transport; sync and async clients share one core.</td></tr>
+                  <tr><td>Rust</td><td>1.78, edition 2021</td><td>stable, beta</td><td><code>rustls</code> by default; <code>native-tls</code> behind a feature.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ============================ INSTALL ============================ -->
+          <section class="dx-sec" data-group="Getting started">
+            <span class="dx-kicker">Setup</span>
+            <h2 id="install" data-nav="Installation">Installation</h2>
+            <p class="dx-lead">No native dependencies, no build step, no post-install scripts in any of the three
+              packages.</p>
+
+            <h3 id="install-cmd">Install</h3>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="bash" data-title="terminal"><pre><code>npm install @strixhood/sdk
+pnpm add @strixhood/sdk
+bun add @strixhood/sdk
+deno add npm:@strixhood/sdk</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="bash" data-title="terminal"><pre><code>pip install strixhood
+# streaming + webhook helpers
+pip install "strixhood[stream,webhooks]"</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="bash" data-title="terminal"><pre><code>cargo add strix-hood --features rustls,stream
+# Cargo.toml
+# strix-hood = { version = "1.4", features = ["rustls", "stream"] }</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="install-verify">Verify the install</h3>
+            <p>Every client exposes <code>ping()</code>, which hits <code>GET /v1/health</code> and returns the
+              resolved API version. If this works, your key, network path and version pin are all correct.</p>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="verify.ts"><pre><code>import { Strix } from "@strixhood/sdk";
+
+const strix = new Strix({ apiKey: process.env.STRIX_API_KEY! });
+console.log(await strix.ping());
+// { ok: true, apiVersion: "2026-07-01", livemode: false, latencyMs: 41 }</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="verify.py"><pre><code>import os
+from strixhood import Strix
+
+strix = Strix(api_key=os.environ["STRIX_API_KEY"])
+print(strix.ping())
+# {'ok': True, 'api_version': '2026-07-01', 'livemode': False, 'latency_ms': 41}</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="src/main.rs"><pre><code>use strix_hood::Strix;
+
+#[tokio::main]
+async fn main() -&gt; anyhow::Result&lt;()&gt; {
+    let strix = Strix::from_env()?;
+    println!("{:?}", strix.ping().await?);
+    Ok(())
+}</code></pre></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================ INIT ============================ -->
+          <section class="dx-sec" data-group="Getting started">
+            <span class="dx-kicker">Client</span>
+            <h2 id="init" data-nav="Initialisation">Initialisation</h2>
+            <p class="dx-lead">One client per API key, constructed once and reused. The clients are
+              connection-pooled and safe to share across concurrent tasks; constructing one per request throws
+              away keep-alive and doubles your latency.</p>
+
+            <h3 id="init-construct">Constructing a client</h3>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="client.ts"><pre><code>import { Strix } from "@strixhood/sdk";
+
+export const strix = new Strix({
+  apiKey: process.env.STRIX_API_KEY!,      // required
+  apiVersion: "2026-07-01",                // pin explicitly in production
+  baseUrl: "https://api.strixhood.xyz/v1", // override for a private deployment
+  timeoutMs: 20_000,
+  maxRetries: 4,
+  telemetry: false,
+});</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="client.py"><pre><code>import os
+from strixhood import Strix, AsyncStrix
+
+strix = Strix(
+    api_key=os.environ["STRIX_API_KEY"],
+    api_version="2026-07-01",
+    base_url="https://api.strixhood.xyz/v1",
+    timeout=20.0,
+    max_retries=4,
+    telemetry=False,
+)
+
+# identical surface, awaitable
+astrix = AsyncStrix(api_key=os.environ["STRIX_API_KEY"])</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="src/client.rs"><pre><code>use std::time::Duration;
+use strix_hood::{Strix, StrixConfig};
+
+pub fn client() -&gt; anyhow::Result&lt;Strix&gt; {
+    Strix::new(StrixConfig {
+        api_key: std::env::var("STRIX_API_KEY")?,
+        api_version: "2026-07-01".into(),
+        base_url: "https://api.strixhood.xyz/v1".parse()?,
+        timeout: Duration::from_secs(20),
+        max_retries: 4,
+        telemetry: false,
+    })
+}</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="init-options">Configuration options</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">apiKey</td><td class="ty">string</td><td>env <code>STRIX_API_KEY</code></td><td>Required. Prefix decides the environment.</td></tr>
+                  <tr><td class="mono">apiVersion</td><td class="ty">string</td><td>key default</td><td>Pin it. Unpinned clients move when your key's default moves.</td></tr>
+                  <tr><td class="mono">baseUrl</td><td class="ty">string</td><td>public API</td><td>For private deployments and record/replay proxies in tests.</td></tr>
+                  <tr><td class="mono">timeoutMs</td><td class="ty">number</td><td class="mono">30000</td><td>Per attempt, not per call. A call with 4 retries can take longer.</td></tr>
+                  <tr><td class="mono">maxRetries</td><td class="ty">number</td><td class="mono">3</td><td>Applies to 429, 5xx and connection errors only. See <a href="#sdk-retries">Retries</a>.</td></tr>
+                  <tr><td class="mono">idempotencyKey</td><td class="ty">fn</td><td>UUID v4</td><td>Factory for auto-generated keys. Override to derive keys from your own job IDs.</td></tr>
+                  <tr><td class="mono">fetch / transport</td><td class="ty">fn</td><td>platform default</td><td>Inject your own HTTP layer for tracing or proxying.</td></tr>
+                  <tr><td class="mono">onRequest / onResponse</td><td class="ty">fn</td><td class="mono">null</td><td>Hooks for logging. Receive method, path, status, <code>requestId</code>, duration.</td></tr>
+                  <tr><td class="mono">telemetry</td><td class="ty">boolean</td><td class="mono">true</td><td>Anonymous SDK version and error-class counters. Set <code>false</code> to disable entirely.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="init-keys">Keys and environments</h3>
+            <p>The key prefix chooses the environment; there is no <code>testMode</code> flag to forget to set.
+              The browser build refuses to construct a client with an <code>sk_</code> key and throws
+              immediately, which is the failure you want at build time rather than the one you find in a bundle
+              analyser.</p>
+            <div class="dx-code" data-lang="ts" data-title="browser.ts"><pre><code>// Browser / agent runtime: publishable key only, quotes:read scope.
+const preview = new Strix({ apiKey: "strx_pk_live_4c8e1d0b6a92f375" });
+
+const quote = await preview.quotes.create({
+  action: "swap",
+  chain: "eip155:8453",
+  params: { sellToken: "USDC", buyToken: "WETH", sellAmount: "150.00" },
+});
+
+// Throws SecretKeyInBrowserError before any network call.
+new Strix({ apiKey: "strx_sk_live_9f2c41bd7a084e6cb35d0e17" });</code></pre></div>
+          </section>
+
+          <!-- ============================ AGENTS ============================ -->
+          <section class="dx-sec" data-group="Resources">
+            <span class="dx-kicker">Resource</span>
+            <h2 id="sdk-agents" data-nav="Agents">Agents</h2>
+            <p class="dx-lead">Mirrors <a href="api.html#agents">the agents endpoints</a>. Every method returns a
+              fully typed object; nothing is <code>any</code>.</p>
+
+            <h3 id="agents-methods">Method surface</h3>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Returns</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">agents.create(params)</td><td class="mono">POST /v1/agents</td><td class="ty">Agent</td></tr>
+                  <tr><td class="mono">agents.list(query?)</td><td class="mono">GET /v1/agents</td><td class="ty">Page&lt;Agent&gt;</td></tr>
+                  <tr><td class="mono">agents.get(id, opts?)</td><td class="mono">GET /v1/agents/{id}</td><td class="ty">Agent</td></tr>
+                  <tr><td class="mono">agents.update(id, patch)</td><td class="mono">PATCH /v1/agents/{id}</td><td class="ty">Agent</td></tr>
+                  <tr><td class="mono">agents.retire(id)</td><td class="mono">DELETE /v1/agents/{id}</td><td class="ty">Agent</td></tr>
+                  <tr><td class="mono">agents.sessionKeys.issue(id, params)</td><td class="mono">POST /v1/agents/{id}/session-keys</td><td class="ty">SessionKey</td></tr>
+                  <tr><td class="mono">agents.sessionKeys.revoke(id, keyId)</td><td class="mono">DELETE /v1/agents/{id}/session-keys/{keyId}</td><td class="ty">SessionKey</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="agents-create-sdk">Create and bind</h3>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="agents.ts"><pre><code>const agent = await strix.agents.create({
+  name: "dca-eth",
+  kind: "trader",
+  policyId: policy.id,
+  chains: ["eip155:8453"],
+  sessionKey: { ttlSeconds: 86_400, rotate: true },
+}, { idempotencyKey: "create-dca-eth-01" });
+
+agent.status;                 // "active"
+agent.smartAccount;           // "0x1F3c7A9b04E2d586Cf01B7e34a9D2c6058Ba9aE2"
+agent.passport.tokenId;       // "4182"
+agent.policy.hash;            // "0x7d41a9c0…"
+agent.sessionKeys[0].expiresAt; // Date</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="agents.py"><pre><code>agent = strix.agents.create(
+    name="dca-eth",
+    kind="trader",
+    policy_id=policy.id,
+    chains=["eip155:8453"],
+    session_key={"ttl_seconds": 86_400, "rotate": True},
+    idempotency_key="create-dca-eth-01",
+)
+
+agent.status                     # "active"
+agent.smart_account              # "0x1F3c…9aE2"
+agent.passport.token_id          # "4182"
+agent.session_keys[0].expires_at # datetime, tz-aware</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="agents.rs"><pre><code>use strix_hood::{CreateAgent, SessionKey};
+
+let agent = strix
+    .agents()
+    .create(CreateAgent {
+        name: "dca-eth".into(),
+        kind: "trader".into(),
+        policy_id: policy.id.clone(),
+        chains: vec!["eip155:8453".into()],
+        session_key: Some(SessionKey { ttl_seconds: 86_400, rotate: true }),
+        ..Default::default()
+    })
+    .idempotency_key("create-dca-eth-01")
+    .await?;
+
+println!("{} {}", agent.status, agent.smart_account);</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="agents-paginate">Listing and auto-pagination</h3>
+            <p>List methods return a page object. Iterating the client-side helper walks every page for you and
+              stops when <code>has_more</code> is false — you never manage a cursor by hand.</p>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="paginate.ts"><pre><code>// one page
+const page = await strix.agents.list({ status: "active", limit: 25 });
+page.data.length; page.hasMore; page.nextCursor;
+
+// every page, lazily
+for await (const agent of strix.agents.listAll({ status: "active" })) {
+  console.log(agent.id, agent.reputation.score);
+}</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="paginate.py"><pre><code>page = strix.agents.list(status="active", limit=25)
+len(page.data), page.has_more, page.next_cursor
+
+# every page, lazily
+for agent in strix.agents.list_all(status="active"):
+    print(agent.id, agent.reputation.score)</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="paginate.rs"><pre><code>use futures::TryStreamExt;
+
+let page = strix.agents().list().status("active").limit(25).await?;
+
+let mut stream = strix.agents().list().status("active").paginate();
+while let Some(agent) = stream.try_next().await? {
+    println!("{} {:?}", agent.id, agent.reputation.score);
+}</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="agents-keys-sdk">Session keys</h3>
+            <p>Issue short and rotate often. The private key never leaves the enclave, so there is nothing to
+              store, leak or back up on your side — only the key ID matters to you.</p>
+            <div class="dx-code" data-lang="ts" data-title="keys.ts"><pre><code>const key = await strix.agents.sessionKeys.issue(agent.id, {
+  ttlSeconds: 3_600,
+  maxValueUsd: 250,
+  rotate: true,
+});
+
+// ... incident: kill it now
+await strix.agents.sessionKeys.revoke(agent.id, key.id);
+// { status: "revoked", revocationTx: "0x91cb…f7c9" }</code></pre></div>
+          </section>
+
+          <!-- ============================ INTENTS ============================ -->
+          <section class="dx-sec" data-group="Resources">
+            <span class="dx-kicker">Resource</span>
+            <h2 id="sdk-intents" data-nav="Intents">Intents</h2>
+            <p class="dx-lead">Submitting an intent returns as soon as the policy check passes. Everything after
+              that is asynchronous, so the SDK gives you two ways to follow it: a stream, or a single
+              <code>waitFor</code> helper that resolves at a terminal status.</p>
+
+            <h3 id="intents-methods">Method surface</h3>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Returns</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">intents.create(params, opts?)</td><td class="mono">POST /v1/intents</td><td class="ty">Intent</td></tr>
+                  <tr><td class="mono">intents.get(id, opts?)</td><td class="mono">GET /v1/intents/{id}</td><td class="ty">Intent</td></tr>
+                  <tr><td class="mono">intents.list(query?)</td><td class="mono">GET /v1/intents</td><td class="ty">Page&lt;Intent&gt;</td></tr>
+                  <tr><td class="mono">intents.listAll(query?)</td><td class="mono">GET /v1/intents</td><td class="ty">AsyncIterable&lt;Intent&gt;</td></tr>
+                  <tr><td class="mono">intents.cancel(id)</td><td class="mono">POST /v1/intents/{id}/cancel</td><td class="ty">Intent</td></tr>
+                  <tr><td class="mono">intents.approve(id, params)</td><td class="mono">POST /v1/intents/{id}/approval</td><td class="ty">Intent</td></tr>
+                  <tr><td class="mono">intents.waitFor(id, opts?)</td><td>polling + stream</td><td class="ty">Intent</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="intents-submit-sdk">Submit</h3>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="submit.ts"><pre><code>const intent = await strix.intents.create({
+  agentId: agent.id,
+  action: "swap",
+  chain: "eip155:8453",
+  params: { sellToken: "USDC", buyToken: "WETH", sellAmount: "150.00" },
+  constraints: { maxSlippageBps: 40, routePreference: "best_price" },
+}, { idempotencyKey: "dca-2026-08-16-0900" });
+
+intent.status;              // "simulating"
+intent.estimated.buyAmount; // "0.04129"
+intent.estimated.feeUsd;    // 0.375</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="submit.py"><pre><code>from decimal import Decimal
+
+intent = strix.intents.create(
+    agent_id=agent.id,
+    action="swap",
+    chain="eip155:8453",
+    params={"sell_token": "USDC", "buy_token": "WETH", "sell_amount": Decimal("150.00")},
+    constraints={"max_slippage_bps": 40, "route_preference": "best_price"},
+    idempotency_key="dca-2026-08-16-0900",
+)
+
+intent.status                 # "simulating"
+intent.estimated.buy_amount   # Decimal("0.04129")</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="submit.rs"><pre><code>use rust_decimal_macros::dec;
+use strix_hood::{CreateIntent, Constraints, SwapParams};
+
+let intent = strix
+    .intents()
+    .create(CreateIntent {
+        agent_id: agent.id.clone(),
+        action: "swap".into(),
+        chain: "eip155:8453".into(),
+        params: SwapParams {
+            sell_token: "USDC".into(),
+            buy_token: "WETH".into(),
+            sell_amount: Some(dec!(150.00)),
+            ..Default::default()
+        }
+        .into(),
+        constraints: Some(Constraints {
+            max_slippage_bps: Some(40),
+            route_preference: Some("best_price".into()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    })
+    .idempotency_key("dca-2026-08-16-0900")
+    .await?;</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="intents-wait">Waiting for a terminal status</h3>
+            <p><code>waitFor</code> opens a stream, falls back to polling if the socket is unavailable, and
+              resolves on the first terminal status. It rejects on <code>rejected</code> and <code>failed</code>
+              unless you ask it not to — silent failure is not a default worth having.</p>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="wait.ts"><pre><code>import { IntentRejectedError } from "@strixhood/sdk";
+
+try {
+  const settled = await strix.intents.waitFor(intent.id, { timeoutMs: 90_000 });
+  console.log(settled.settled.buyAmount, settled.settled.feeUsdSettled);
+} catch (err) {
+  if (err instanceof IntentRejectedError) {
+    console.error(err.rule, err.message); // "limits.daily_usd", "…exceeds…"
+  } else {
+    throw err;
+  }
+}
+
+// or: resolve on any terminal status, never throw
+const outcome = await strix.intents.waitFor(intent.id, { throwOnFailure: false });</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="wait.py"><pre><code>from strixhood.errors import IntentRejected
+
+try:
+    settled = strix.intents.wait_for(intent.id, timeout=90.0)
+    print(settled.settled.buy_amount, settled.settled.fee_usd_settled)
+except IntentRejected as err:
+    print(err.rule, err.message)
+
+outcome = strix.intents.wait_for(intent.id, throw_on_failure=False)</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="wait.rs"><pre><code>use std::time::Duration;
+use strix_hood::StrixError;
+
+match strix.intents().wait_for(&amp;intent.id, Duration::from_secs(90)).await {
+    Ok(settled) =&gt; println!("{}", settled.settled.buy_amount),
+    Err(StrixError::IntentRejected { rule, message, .. }) =&gt; {
+        eprintln!("refused by {rule}: {message}");
+    }
+    Err(e) =&gt; return Err(e.into()),
+}</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="intents-dryrun">Dry runs</h3>
+            <p><code>simulateOnly</code> runs stages 01–05 and returns the quote plus the signed asset diff
+              without producing a user operation. It costs no fee and moves no value, which makes it the right
+              call to put in front of a model before you let it commit.</p>
+            <div class="dx-code" data-lang="ts" data-title="dryrun.ts"><pre><code>const preview = await strix.intents.create({
+  agentId: agent.id,
+  action: "swap",
+  chain: "eip155:8453",
+  params: { sellToken: "USDC", buyToken: "WETH", sellAmount: "150.00" },
+  simulateOnly: true,
+});
+
+preview.status;                        // "simulated"
+preview.simulation.assetDiff;          // [{ token: "USDC", delta: "-150.000000" }, …]
+preview.simulation.priceImpactBps;     // 6
+preview.simulation.warnings;           // []</code></pre></div>
+
+            <h3 id="intents-approvals">Resolving human gates</h3>
+            <div class="dx-code" data-lang="ts" data-title="approve.ts"><pre><code>for await (const evt of strix.stream.intents({ statuses: ["awaiting_approval"] })) {
+  const diff = evt.simulation.assetDiff
+    .map((d) =&gt; `${d.delta} ${d.token}`)
+    .join(", ");
+
+  const ok = await askAHuman(`${evt.agentId} wants: ${diff}`);
+
+  await strix.intents.approve(evt.id, {
+    decision: ok ? "approve" : "reject",
+    approverId: "usr_01JQ8ZS2M4N6P8R0T2V4X6Z8B0",
+    note: ok ? "reviewed against mandate" : "outside mandate",
+  });
+}</code></pre></div>
+          </section>
+
+          <!-- ============================ POLICIES ============================ -->
+          <section class="dx-sec" data-group="Resources">
+            <span class="dx-kicker">Resource</span>
+            <h2 id="sdk-policies" data-nav="Policies">Policies</h2>
+            <p class="dx-lead">Policy writes require <code>policies:write</code>. Keep this client in a separate
+              process from the one your agent talks to.</p>
+
+            <h3 id="policies-methods">Method surface</h3>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Returns</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">policies.create(doc)</td><td class="mono">POST /v1/policies</td><td class="ty">Policy</td></tr>
+                  <tr><td class="mono">policies.get(id, {version}?)</td><td class="mono">GET /v1/policies/{id}</td><td class="ty">Policy</td></tr>
+                  <tr><td class="mono">policies.list(query?)</td><td class="mono">GET /v1/policies</td><td class="ty">Page&lt;Policy&gt;</td></tr>
+                  <tr><td class="mono">policies.update(id, patch)</td><td class="mono">PATCH /v1/policies/{id}</td><td class="ty">Policy</td></tr>
+                  <tr><td class="mono">policies.simulate(id, {intent})</td><td class="mono">POST /v1/policies/{id}/simulate</td><td class="ty">PolicySimulation</td></tr>
+                  <tr><td class="mono">policies.hash(doc)</td><td>local, no network</td><td class="ty">Hex32</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="policies-write">Writing a policy</h3>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="policy.ts"><pre><code>const policy = await strix.policies.create({
+  name: "dca-conservative",
+  limits: { perTxUsd: 250, dailyUsd: 1_000, monthlyUsd: 20_000, maxOpenIntents: 4 },
+  allow: {
+    chains: ["eip155:8453"],
+    actions: ["swap"],
+    tokens: ["USDC", "WETH"],
+    venues: ["uniswap_v4", "aerodrome"],
+  },
+  deny: { categories: ["leverage", "gambling", "unverified_contract"] },
+  simulation: { requireSuccess: true, maxPriceImpactBps: 120, minLiquidityUsd: 250_000 },
+  hitl: { thresholdUsd: 200, channels: ["webhook"], timeoutSec: 180, onTimeout: "reject" },
+  expiresAt: new Date("2027-01-01T00:00:00Z"),
+});</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="policy.py"><pre><code>from datetime import datetime, timezone
+
+policy = strix.policies.create(
+    name="dca-conservative",
+    limits={"per_tx_usd": 250, "daily_usd": 1_000, "monthly_usd": 20_000, "max_open_intents": 4},
+    allow={
+        "chains": ["eip155:8453"],
+        "actions": ["swap"],
+        "tokens": ["USDC", "WETH"],
+        "venues": ["uniswap_v4", "aerodrome"],
+    },
+    deny={"categories": ["leverage", "gambling", "unverified_contract"]},
+    simulation={"require_success": True, "max_price_impact_bps": 120,
+                "min_liquidity_usd": 250_000},
+    hitl={"threshold_usd": 200, "channels": ["webhook"],
+          "timeout_sec": 180, "on_timeout": "reject"},
+    expires_at=datetime(2027, 1, 1, tzinfo=timezone.utc),
+)</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="policy.rs"><pre><code>use strix_hood::policy::{Allow, Deny, Hitl, Limits, NewPolicy, Simulation};
+
+let policy = strix
+    .policies()
+    .create(NewPolicy {
+        name: "dca-conservative".into(),
+        limits: Limits { per_tx_usd: dec!(250), daily_usd: Some(dec!(1000)),
+                         monthly_usd: Some(dec!(20000)), max_open_intents: Some(4),
+                         ..Default::default() },
+        allow: Allow { chains: vec!["eip155:8453".into()],
+                       actions: vec!["swap".into()],
+                       tokens: vec!["USDC".into(), "WETH".into()],
+                       ..Default::default() },
+        deny: Some(Deny { categories: vec!["leverage".into(), "gambling".into()],
+                          ..Default::default() }),
+        simulation: Some(Simulation { require_success: true,
+                                      max_price_impact_bps: Some(120),
+                                      min_liquidity_usd: Some(dec!(250000)) }),
+        hitl: Some(Hitl { threshold_usd: Some(dec!(200)), timeout_sec: 180,
+                          on_timeout: "reject".into(), ..Default::default() }),
+        ..Default::default()
+    })
+    .await?;</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="policies-verify">Verifying the commitment yourself</h3>
+            <p><code>policies.hash()</code> runs entirely locally: RFC 8785 canonicalisation, domain separator,
+              keccak256. Compare it with what the registry holds before you trust an agent with value. If they
+              disagree, something rewrote your policy.</p>
+            <div class="dx-code" data-lang="ts" data-title="verify-policy.ts"><pre><code>import { Strix, deployments } from "@strixhood/sdk";
+import { createPublicClient, http } from "viem";
+import { base } from "viem/chains";
+
+const doc = await strix.policies.get(policy.id);
+const local = strix.policies.hash(doc);          // pure function, no network
+
+const chain = createPublicClient({ chain: base, transport: http() });
+const onchain = await chain.readContract({
+  address: deployments.base.PolicyRegistry,
+  abi: deployments.abi.PolicyRegistry,
+  functionName: "policyOf",
+  args: [BigInt(agent.passport.tokenId)],
+});
+
+if (local !== onchain) {
+  await strix.agents.update(agent.id, { status: "paused" });
+  throw new Error(`policy drift: local ${local} vs registry ${onchain}`);
+}</code></pre></div>
+
+            <h3 id="policies-ci">Policy tests in CI</h3>
+            <p><code>policies.simulate()</code> is the assertion primitive. Enumerate the intents your agent could
+              produce and assert on the outcome — this catches a widened policy in review, not in production.</p>
+            <div class="dx-code" data-lang="ts" data-title="policy.test.ts"><pre><code>import { expect, test } from "vitest";
+
+const cases = [
+  { label: "small swap passes",  amount: "100.00", allowed: true },
+  { label: "over per-tx cap",    amount: "800.00", allowed: false, rule: "limits.per_tx_usd" },
+];
+
+for (const c of cases) {
+  test(c.label, async () =&gt; {
+    const sim = await strix.policies.simulate(policy.id, {
+      intent: {
+        action: "swap",
+        chain: "eip155:8453",
+        params: { sellToken: "USDC", buyToken: "WETH", sellAmount: c.amount },
+      },
+    });
+    expect(sim.allowed).toBe(c.allowed);
+    if (c.rule) expect(sim.firstFailure).toBe(c.rule);
+  });
+}</code></pre></div>
+          </section>
+
+          <!-- ============================ QUOTES / EXEC / PORTFOLIO ============================ -->
+          <section class="dx-sec" data-group="Resources">
+            <span class="dx-kicker">Resource</span>
+            <h2 id="sdk-market" data-nav="Quotes, executions, portfolio">Quotes, executions &amp; portfolio</h2>
+            <p class="dx-lead">Read paths. All three are safe to call with a publishable key except
+              <code>executions</code>, which needs <code>intents:read</code>.</p>
+
+            <h3 id="sdk-quotes">Quotes and routes</h3>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="quotes.ts"><pre><code>const quote = await strix.quotes.create({
+  action: "swap",
+  chain: "eip155:8453",
+  params: { sellToken: "USDC", buyToken: "WETH", sellAmount: "150.00" },
+  agentId: agent.id,          // also returns policyOk
+});
+
+quote.buy.minimum;            // "0.041128" — the guaranteed floor
+quote.priceImpactBps;         // 6
+quote.policyOk;               // true
+quote.expiresAt;              // Date, ~12 s out
+quote.routes.map((r) =&gt; [r.solver, r.venue, r.out]);
+
+const venues = await strix.routes.list({ chain: "eip155:42161", kind: "rwa_equity" });
+venues.data[0].session;       // { opensAt, closesAt, continuousSecondary }</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="quotes.py"><pre><code>quote = strix.quotes.create(
+    action="swap",
+    chain="eip155:8453",
+    params={"sell_token": "USDC", "buy_token": "WETH", "sell_amount": "150.00"},
+    agent_id=agent.id,
+)
+
+quote.buy.minimum        # Decimal("0.041128")
+quote.price_impact_bps   # 6
+quote.policy_ok          # True
+
+venues = strix.routes.list(chain="eip155:42161", kind="rwa_equity")
+venues.data[0].session</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="quotes.rs"><pre><code>let quote = strix
+    .quotes()
+    .create(NewQuote {
+        action: "swap".into(),
+        chain: "eip155:8453".into(),
+        params: SwapParams { sell_token: "USDC".into(), buy_token: "WETH".into(),
+                             sell_amount: Some(dec!(150.00)), ..Default::default() }.into(),
+        agent_id: Some(agent.id.clone()),
+        ..Default::default()
+    })
+    .await?;
+
+println!("floor {} impact {}bps", quote.buy.minimum, quote.price_impact_bps);</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="sdk-executions">Executions and attestations</h3>
+            <div class="dx-code" data-lang="ts" data-title="executions.ts"><pre><code>const exec = await strix.executions.get(intent.executionId!);
+
+exec.solver.id;                    // "slv_kestrel"
+exec.quote.bidsReceived;           // 3
+exec.quote.auctionMs;              // 176
+exec.fills[0].txHash;              // "0x7c02e9…d3a2"
+exec.fees.split;                   // { treasuryUsd, stakersUsd, buybackUsd }
+
+// the audit artefact, decoded plus raw for independent verification
+const att = await strix.executions.attestation(exec.id);
+att.data.policyHash === agent.policy.hash;  // true
+att.verifyUrl;                              // easscan link
+
+// monthly CSV for accounting
+const csv = await strix.executions.export({
+  settledAfter: new Date("2026-07-01"),
+  settledBefore: new Date("2026-08-01"),
+});</code></pre></div>
+
+            <h3 id="sdk-portfolio">Portfolio</h3>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="portfolio.ts"><pre><code>const pf = await strix.portfolio.get({ agentId: agent.id, minValueUsd: 1 });
+
+pf.totalValueUsd;    // 48213.77
+pf.change24hPct;     // 1.84
+pf.tokens.find((t) =&gt; t.symbol === "WETH")?.allocationPct; // 71
+
+const history = await strix.portfolio.history({
+  agentId: agent.id, interval: "1h", range: "24h",
+});
+
+for await (const txn of strix.portfolio.transactionsAll({ agentId: agent.id })) {
+  if (txn.intentId === null) console.log("external movement", txn.kind, txn.valueUsd);
+}</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="portfolio.py"><pre><code>pf = strix.portfolio.get(agent_id=agent.id, min_value_usd=1)
+
+pf.total_value_usd    # Decimal("48213.77")
+pf.change_24h_pct     # 1.84
+
+history = strix.portfolio.history(agent_id=agent.id, interval="1h", range="24h")
+
+for txn in strix.portfolio.transactions_all(agent_id=agent.id):
+    if txn.intent_id is None:
+        print("external movement", txn.kind, txn.value_usd)</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="portfolio.rs"><pre><code>let pf = strix.portfolio().get(&amp;agent.id).min_value_usd(dec!(1)).await?;
+println!("{} ({:+.2}%)", pf.total_value_usd, pf.change_24h_pct);
+
+let mut txns = strix.portfolio().transactions(&amp;agent.id).paginate();
+while let Some(txn) = txns.try_next().await? {
+    if txn.intent_id.is_none() {
+        println!("external movement {} {}", txn.kind, txn.value_usd);
+    }
+}</code></pre></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================ STREAMING ============================ -->
+          <section class="dx-sec" data-group="Realtime">
+            <span class="dx-kicker">Realtime</span>
+            <h2 id="sdk-streaming" data-nav="Streaming">Streaming</h2>
+            <p class="dx-lead">The SDK owns the socket: authentication, heartbeats, resume-from-sequence and
+              jittered reconnect. You get an async iterator that does not end when the connection drops.</p>
+
+            <h3 id="stream-iterate">Async iteration</h3>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="stream.ts"><pre><code>const stream = strix.stream.executions({
+  agentIds: [agent.id],
+  chains: ["eip155:8453"],
+});
+
+for await (const evt of stream) {
+  switch (evt.status) {
+    case "submitted":
+      console.log("broadcast", evt.fills[0]?.txHash);
+      break;
+    case "settled":
+      console.log("filled", evt.fills[0].buyAmount, "att", evt.attestation.uid);
+      break;
+    case "failed":
+      console.error("reverted", evt.failure?.reason);
+      break;
+  }
+}
+
+// stop cleanly — closes the socket and ends the iterator
+await stream.close();</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="stream.py"><pre><code>import asyncio
+from strixhood import AsyncStrix
+
+async def main() -&gt; None:
+    strix = AsyncStrix(api_key=os.environ["STRIX_API_KEY"])
+    async with strix.stream.executions(agent_ids=[agent.id]) as stream:
+        async for evt in stream:
+            if evt.status == "settled":
+                print("filled", evt.fills[0].buy_amount)
+            elif evt.status == "failed":
+                print("reverted", evt.failure.reason)
+
+asyncio.run(main())</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="stream.rs"><pre><code>use futures::StreamExt;
+use strix_hood::stream::ExecutionFilter;
+
+let mut stream = strix
+    .stream()
+    .executions(ExecutionFilter { agent_ids: vec![agent.id.clone()], ..Default::default() })
+    .await?;
+
+while let Some(evt) = stream.next().await {
+    let evt = evt?;
+    match evt.status.as_str() {
+        "settled" =&gt; println!("filled {}", evt.fills[0].buy_amount),
+        "failed"  =&gt; eprintln!("reverted {:?}", evt.failure),
+        _ =&gt; {}
+    }
+}</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="stream-handlers">Event handlers</h3>
+            <p>If an iterator does not fit your architecture, subscribe with callbacks instead. Both forms share
+              one underlying socket per client, so mixing them does not open a second connection or count twice
+              against the tier limit.</p>
+            <div class="dx-code" data-lang="ts" data-title="handlers.ts"><pre><code>const sub = strix.stream.subscribe({
+  channels: [
+    { name: "intents", agentIds: [agent.id] },
+    { name: "prices", symbols: ["ETH"] },
+  ],
+  onIntent: (i) =&gt; metrics.observe(i.status),
+  onPrice: (p) =&gt; { if (p.stalenessMs &gt; 5_000) pauseTrading(); },
+  onReconnect: (attempt, gap) =&gt; log.warn({ attempt, replayed: gap }, "stream resumed"),
+  onError: (err) =&gt; log.error(err),
+});
+
+// later
+sub.unsubscribe(["prices"]);
+await sub.close();</code></pre></div>
+
+            <h3 id="stream-resume">Reconnection and gaps</h3>
+            <p>The client tracks the last <code>seq</code> per channel and resumes from it. The server buffers 15
+              minutes; if the gap is longer the SDK emits <code>onGap</code> with the range it could not replay so
+              you can backfill over REST rather than silently losing events.</p>
+            <div class="dx-code" data-lang="ts" data-title="gap.ts"><pre><code>strix.stream.subscribe({
+  channels: [{ name: "executions", agentIds: [agent.id] }],
+  onExecution: handle,
+  onGap: async ({ channel, fromSeq, toSeq, since }) =&gt; {
+    log.warn({ channel, fromSeq, toSeq }, "buffer exceeded, backfilling over REST");
+    for await (const exec of strix.executions.listAll({
+      agentId: agent.id,
+      settledAfter: since,
+    })) {
+      handle(exec);
+    }
+  },
+});</code></pre></div>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Behaviour</th><th>Default</th><th>Option</th></tr></thead>
+                <tbody>
+                  <tr><td>Reconnect backoff</td><td>500 ms → 30 s, full jitter</td><td class="mono">reconnect.maxDelayMs</td></tr>
+                  <tr><td>Reconnect attempts</td><td>unbounded</td><td class="mono">reconnect.maxAttempts</td></tr>
+                  <tr><td>Fatal close codes</td><td><code>4001</code>, <code>4003</code> — never retried</td><td>—</td></tr>
+                  <tr><td>Heartbeat</td><td>server-driven, auto-answered</td><td>—</td></tr>
+                  <tr><td>Resume window</td><td>15 minutes of buffer</td><td class="mono">resume: false</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ============================ WEBHOOKS ============================ -->
+          <section class="dx-sec" data-group="Realtime">
+            <span class="dx-kicker">Realtime</span>
+            <h2 id="sdk-webhooks" data-nav="Webhooks">Webhooks</h2>
+            <p class="dx-lead">Each SDK ships a constant-time verifier and adapters for the common server
+              frameworks. The verifier needs the <em>raw</em> body — every adapter below is built around getting
+              you that before anything parses it.</p>
+
+            <h3 id="webhooks-verify-sdk">Verify a delivery</h3>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="express.ts"><pre><code>import express from "express";
+import { Strix, WebhookSignatureError } from "@strixhood/sdk";
+
+const app = express();
+const strix = new Strix({ apiKey: process.env.STRIX_API_KEY! });
+
+// raw body, not express.json()
+app.post("/hooks/strix", express.raw({ type: "application/json" }), (req, res) =&gt; {
+  let event;
+  try {
+    event = strix.webhooks.verify({
+      payload: req.body,                              // Buffer
+      signature: req.header("Strix-Signature")!,
+      secret: process.env.STRIX_WEBHOOK_SECRET!,
+      toleranceSeconds: 300,
+    });
+  } catch (err) {
+    if (err instanceof WebhookSignatureError) return res.sendStatus(400);
+    throw err;
+  }
+
+  res.sendStatus(202);          // acknowledge first
+  void queue.push(event);       // then do the work
+});</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="fastapi_app.py"><pre><code>from fastapi import FastAPI, Request, Response, BackgroundTasks
+from strixhood import Strix
+from strixhood.errors import WebhookSignatureError
+
+app = FastAPI()
+strix = Strix(api_key=os.environ["STRIX_API_KEY"])
+
+@app.post("/hooks/strix")
+async def hook(request: Request, tasks: BackgroundTasks) -&gt; Response:
+    raw = await request.body()
+    try:
+        event = strix.webhooks.verify(
+            payload=raw,
+            signature=request.headers["strix-signature"],
+            secret=os.environ["STRIX_WEBHOOK_SECRET"],
+            tolerance_seconds=300,
+        )
+    except WebhookSignatureError:
+        return Response(status_code=400)
+
+    tasks.add_task(handle, event)
+    return Response(status_code=202)</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="axum_app.rs"><pre><code>use axum::{body::Bytes, http::{HeaderMap, StatusCode}};
+use strix_hood::webhooks;
+
+async fn hook(headers: HeaderMap, body: Bytes) -&gt; StatusCode {
+    let sig = match headers.get("strix-signature").and_then(|v| v.to_str().ok()) {
+        Some(s) =&gt; s,
+        None =&gt; return StatusCode::BAD_REQUEST,
+    };
+
+    let event = match webhooks::verify(&amp;body, sig, secret(), 300) {
+        Ok(e) =&gt; e,
+        Err(_) =&gt; return StatusCode::BAD_REQUEST,
+    };
+
+    tokio::spawn(handle(event));
+    StatusCode::ACCEPTED
+}</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="webhooks-idempotent">Deduplicating deliveries</h3>
+            <p>Delivery is at-least-once and unordered. Two lines of defence cover both: dedupe on
+              <code>event.id</code>, and treat the status machine as the source of truth rather than arrival
+              order.</p>
+            <div class="dx-code" data-lang="ts" data-title="handle.ts"><pre><code>const RANK = {
+  received: 0, policy_check: 1, awaiting_approval: 2, simulating: 3,
+  routing: 4, submitted: 5, settled: 6, rejected: 6, failed: 6, expired: 6, cancelled: 6,
+} as const;
+
+async function handle(event: StrixEvent) {
+  if (await seen.has(event.id)) return;      // at-least-once → dedupe
+  await seen.add(event.id, { ttlSeconds: 172_800 });
+
+  const next = event.data.object;
+  const prev = await db.intents.get(next.id);
+
+  // out-of-order retry: never move an intent backwards
+  if (prev &amp;&amp; RANK[next.status] &lt; RANK[prev.status]) return;
+
+  await db.intents.upsert(next);
+}</code></pre></div>
+          </section>
+
+          <!-- ============================ ERRORS ============================ -->
+          <section class="dx-sec" data-group="Reliability">
+            <span class="dx-kicker">Failure</span>
+            <h2 id="sdk-errors" data-nav="Errors &amp; retries">Errors &amp; retries</h2>
+            <p class="dx-lead">Every SDK error carries the full API envelope — <code>type</code>,
+              <code>code</code>, <code>param</code>, <code>rule</code>, <code>requestId</code> — and the classes
+              map one-to-one onto the <a href="api.html#error-codes">error-code table</a>.</p>
+
+            <h3 id="errors-classes">Error classes</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>TypeScript</th><th>Python</th><th>Rust variant</th><th>Retryable</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">AuthenticationError</td><td class="mono">AuthenticationError</td><td class="mono">StrixError::Auth</td><td>No</td></tr>
+                  <tr><td class="mono">PermissionError</td><td class="mono">PermissionError</td><td class="mono">StrixError::Permission</td><td>No</td></tr>
+                  <tr><td class="mono">InvalidRequestError</td><td class="mono">InvalidRequest</td><td class="mono">StrixError::InvalidRequest</td><td>No</td></tr>
+                  <tr><td class="mono">PolicyError</td><td class="mono">PolicyError</td><td class="mono">StrixError::Policy</td><td>No</td></tr>
+                  <tr><td class="mono">SimulationError</td><td class="mono">SimulationError</td><td class="mono">StrixError::Simulation</td><td>No</td></tr>
+                  <tr><td class="mono">RoutingError</td><td class="mono">RoutingError</td><td class="mono">StrixError::Routing</td><td>Sometimes — <code>quote_expired</code> only</td></tr>
+                  <tr><td class="mono">IdempotencyError</td><td class="mono">IdempotencyError</td><td class="mono">StrixError::Idempotency</td><td>No</td></tr>
+                  <tr><td class="mono">RateLimitError</td><td class="mono">RateLimitError</td><td class="mono">StrixError::RateLimit</td><td>Yes</td></tr>
+                  <tr><td class="mono">ApiError</td><td class="mono">ApiError</td><td class="mono">StrixError::Api</td><td>Yes</td></tr>
+                  <tr><td class="mono">ConnectionError</td><td class="mono">ConnectionError</td><td class="mono">StrixError::Transport</td><td>Yes</td></tr>
+                  <tr><td class="mono">IntentRejectedError</td><td class="mono">IntentRejected</td><td class="mono">StrixError::IntentRejected</td><td>No — raised by <code>waitFor</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="errors.ts"><pre><code>import { PolicyError, RateLimitError, StrixError } from "@strixhood/sdk";
+
+try {
+  await strix.intents.create(body);
+} catch (err) {
+  if (err instanceof PolicyError) {
+    // err.rule === "limits.daily_usd"; not retryable, the budget is spent
+    metrics.inc("policy_refusal", { rule: err.rule });
+    await pauseUntilWindowResets(err.rule);
+  } else if (err instanceof RateLimitError) {
+    await sleep(err.retryAfterMs);
+  } else if (err instanceof StrixError) {
+    log.error({ requestId: err.requestId, code: err.code }, err.message);
+    throw err;
+  } else {
+    throw err;
+  }
+}</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="errors.py"><pre><code>from strixhood.errors import PolicyError, RateLimitError, StrixError
+
+try:
+    strix.intents.create(**body)
+except PolicyError as err:
+    metrics.inc("policy_refusal", rule=err.rule)
+    pause_until_window_resets(err.rule)
+except RateLimitError as err:
+    time.sleep(err.retry_after)
+except StrixError as err:
+    log.error("%s %s: %s", err.request_id, err.code, err.message)
+    raise</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="errors.rs"><pre><code>use strix_hood::StrixError;
+
+match strix.intents().create(body).await {
+    Ok(intent) =&gt; Ok(intent),
+    Err(StrixError::Policy { rule, .. }) =&gt; {
+        metrics::inc("policy_refusal", &amp;rule);
+        pause_until_window_resets(&amp;rule).await;
+        Err(anyhow!("refused by {rule}"))
+    }
+    Err(StrixError::RateLimit { retry_after, .. }) =&gt; {
+        tokio::time::sleep(retry_after).await;
+        Err(anyhow!("rate limited"))
+    }
+    Err(e) =&gt; Err(e.into()),
+}</code></pre></div>
+              </div>
+            </div>
+
+            <h3 id="sdk-retries">Retries</h3>
+            <p>Retries are automatic for <code>429</code>, <code>5xx</code> and transport errors, with full-jitter
+              exponential backoff that honours <code>Retry-After</code>. Everything else fails immediately,
+              because retrying a policy refusal just refuses again.</p>
+            <div class="dx-code" data-lang="ts" data-title="retries.ts"><pre><code>const strix = new Strix({
+  apiKey: process.env.STRIX_API_KEY!,
+  maxRetries: 5,
+  retry: {
+    baseDelayMs: 250,
+    maxDelayMs: 8_000,
+    jitter: "full",
+    honourRetryAfter: true,
+    retryOn: (err) =&gt; err.status === 429 || err.status &gt;= 500,
+  },
+});
+
+// per call
+await strix.intents.create(body, { maxRetries: 0 });          // never retry this one
+await strix.portfolio.get({ agentId }, { maxRetries: 8 });    // read path, retry harder</code></pre></div>
+            <div class="dx-note dx-note--warn">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>Retries and idempotency go together</b>
+                <p>The SDK attaches an <code>Idempotency-Key</code> to every <code>POST</code> automatically and
+                  reuses it across retries of the same call, so a retried submit can never create a second
+                  intent. If you supply your own key, make it unique per logical operation — not per process.</p></div>
+            </div>
+
+            <h3 id="sdk-timeouts">Timeouts and cancellation</h3>
+            <div class="dx-code" data-lang="ts" data-title="cancel.ts"><pre><code>const ac = new AbortController();
+setTimeout(() =&gt; ac.abort(), 5_000);
+
+await strix.quotes.create(body, { signal: ac.signal, timeoutMs: 4_000, maxRetries: 0 });
+
+// Streams take a signal too — aborting closes the socket and ends the iterator.
+for await (const evt of strix.stream.executions({ signal: ac.signal })) { /* … */ }</code></pre></div>
+            <p>Python uses <code>timeout=</code> plus <code>asyncio.CancelledError</code>; Rust composes with
+              <code>tokio::select!</code> and <code>CancellationToken</code>. In all three, cancelling a request
+              that has already been accepted by the API does <em>not</em> cancel the intent — call
+              <code>intents.cancel()</code> for that.</p>
+
+            <h3 id="sdk-logging">Logging and tracing</h3>
+            <div class="dx-code" data-lang="ts" data-title="tracing.ts"><pre><code>const strix = new Strix({
+  apiKey: process.env.STRIX_API_KEY!,
+  onRequest: ({ method, path, attempt, idempotencyKey }) =&gt;
+    log.debug({ method, path, attempt, idempotencyKey }, "strix →"),
+  onResponse: ({ status, requestId, durationMs, retryCount }) =&gt;
+    log.debug({ status, requestId, durationMs, retryCount }, "strix ←"),
+});</code></pre></div>
+            <p>Log <code>requestId</code> on every response. It is the only identifier that resolves to the
+              policy evaluation and simulation transcript on our side, and it is the first thing support asks
+              for.</p>
+          </section>
+
+          <!-- ============================ WORKED EXAMPLE ============================ -->
+          <section class="dx-sec" data-group="Guides">
+            <span class="dx-kicker">End to end</span>
+            <h2 id="sdk-example" data-nav="Worked example: DCA agent">Worked example: a DCA agent under a policy cap</h2>
+            <p class="dx-lead">Build an agent that buys $150 of ETH every weekday at 09:00 UTC, never spends more
+              than $250 in one intent or $1,000 in a day, escalates anything above $200 to a human, and stops
+              itself if the policy it was issued under ever changes. Roughly 120 lines, no framework.</p>
+
+            <h3 id="example-shape">Shape of the program</h3>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Process</th><th>Key</th><th>Responsibility</th></tr></thead>
+                <tbody>
+                  <tr><td><code>setup.ts</code>, run once</td><td class="mono">sk_ · policies:write, agents:write</td><td>Creates the policy, registers the agent, binds them.</td></tr>
+                  <tr><td><code>dca.ts</code>, long-running</td><td class="mono">sk_ · intents:write, intents:read</td><td>Submits one intent per weekday, follows it to settlement, halts on drift.</td></tr>
+                  <tr><td><code>approve.ts</code>, long-running</td><td class="mono">sk_ · intents:write</td><td>Watches the human gate and routes it to a person.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Splitting the write scopes matters. The DCA loop is the process most likely to be compromised —
+              it is the one taking instructions from a schedule and a market — and it holds no authority to widen
+              its own limits.</p>
+
+            <h3 id="example-setup">1. Policy and agent</h3>
+            <div class="dx-code" data-lang="ts" data-title="setup.ts"><pre><code>import { Strix } from "@strixhood/sdk";
+
+const admin = new Strix({ apiKey: process.env.STRIX_ADMIN_KEY! }); // policies:write
+
+const policy = await admin.policies.create({
+  name: "dca-eth-weekday",
+  limits: {
+    perTxUsd: 250,
+    dailyUsd: 1_000,
+    monthlyUsd: 20_000,
+    maxOpenIntents: 2,
+    gasBudgetDailyUsd: 5,
+  },
+  allow: {
+    chains: ["eip155:8453"],
+    actions: ["swap"],
+    tokens: ["USDC", "WETH"],
+    venues: ["uniswap_v4", "aerodrome"],
+  },
+  deny: { categories: ["leverage", "gambling", "unverified_contract", "low_liquidity"] },
+  simulation: { requireSuccess: true, maxPriceImpactBps: 80, minLiquidityUsd: 500_000 },
+  hitl: {
+    thresholdUsd: 200,
+    channels: ["webhook"],
+    timeoutSec: 600,
+    onTimeout: "reject",
+    approvers: [process.env.APPROVER_ID!],
+    quorum: 1,
+  },
+  expiresAt: new Date("2027-01-01T00:00:00Z"),
+});
+
+const agent = await admin.agents.create({
+  name: "dca-eth",
+  kind: "trader",
+  policyId: policy.id,
+  chains: ["eip155:8453"],
+  sessionKey: { ttlSeconds: 86_400, rotate: true },
+}, { idempotencyKey: "bootstrap-dca-eth-v1" });
+
+console.log({
+  agent: agent.id,
+  account: agent.smartAccount,
+  policyHash: policy.hash,   // pin this in your config; the loop checks it
+});</code></pre></div>
+
+            <h3 id="example-loop">2. The loop</h3>
+            <p>Two things make this safe rather than merely automated. The idempotency key is derived from the
+              calendar day, so a crash-restart at 09:00:03 cannot double-buy. And the policy hash is verified
+              before every submission, so a policy rewritten out from under the agent halts it instead of
+              widening it.</p>
+            <div class="dx-code" data-lang="ts" data-title="dca.ts"><pre><code>import { Strix, PolicyError, IntentRejectedError } from "@strixhood/sdk";
+
+const strix = new Strix({ apiKey: process.env.STRIX_API_KEY!, maxRetries: 4 });
+
+const AGENT_ID = process.env.STRIX_AGENT_ID!;
+const PINNED_POLICY_HASH = process.env.STRIX_POLICY_HASH!; // from setup.ts
+const DAILY_USD = "150.00";
+
+/** Refuse to trade if the policy is not the one we were reviewed against. */
+async function assertPolicyUnchanged(): Promise&lt;void&gt; {
+  const agent = await strix.agents.get(AGENT_ID, { expand: ["policy"] });
+  if (agent.policy.hash !== PINNED_POLICY_HASH) {
+    await strix.agents.update(AGENT_ID, { status: "paused" });
+    throw new Error(
+      `policy drift: expected ${PINNED_POLICY_HASH}, registry holds ${agent.policy.hash}`,
+    );
+  }
+  if (agent.status !== "active") throw new Error(`agent is ${agent.status}`);
+}
+
+async function buyOnce(day: string): Promise&lt;void&gt; {
+  await assertPolicyUnchanged();
+
+  // Price it first so we can refuse obviously bad conditions before committing.
+  const quote = await strix.quotes.create({
+    action: "swap",
+    chain: "eip155:8453",
+    params: { sellToken: "USDC", buyToken: "WETH", sellAmount: DAILY_USD },
+    agentId: AGENT_ID,
+  });
+
+  if (quote.priceImpactBps &gt; 40) {
+    console.warn(`skipping ${day}: impact ${quote.priceImpactBps}bps`);
+    return;
+  }
+
+  const intent = await strix.intents.create({
+    agentId: AGENT_ID,
+    action: "swap",
+    chain: "eip155:8453",
+    params: { sellToken: "USDC", buyToken: "WETH", sellAmount: DAILY_USD },
+    constraints: {
+      maxSlippageBps: 40,
+      maxFeeUsd: 1.5,
+      routePreference: "best_price",
+      mevProtection: true,
+    },
+    metadata: { strategy: "dca-eth-weekday", day },
+  }, { idempotencyKey: `dca-eth-${day}` }); // one buy per calendar day, forever
+
+  const settled = await strix.intents.waitFor(intent.id, { timeoutMs: 120_000 });
+  console.log(day, "filled", settled.settled.buyAmount, "WETH",
+              "fee", settled.settled.feeUsdSettled);
+}
+
+export async function tick(now: Date): Promise&lt;void&gt; {
+  const day = now.toISOString().slice(0, 10);       // 2026-08-16
+  const weekday = now.getUTCDay() &gt;= 1 &amp;&amp; now.getUTCDay() &lt;= 5;
+  if (!weekday) return;
+
+  try {
+    await buyOnce(day);
+  } catch (err) {
+    if (err instanceof IntentRejectedError) {
+      // Terminal and expected: budget spent, gate declined, or simulation refused.
+      console.warn(day, "refused:", err.rule ?? err.code, err.message);
+      return;
+    }
+    if (err instanceof PolicyError &amp;&amp; err.code === "limit_exceeded") {
+      console.warn(day, "window exhausted:", err.rule);
+      return;
+    }
+    throw err;  // unknown failure: let the supervisor restart us loudly
+  }
+}</code></pre></div>
+
+            <h3 id="example-approval">3. The human gate</h3>
+            <p>Anything over $200 pauses at <code>awaiting_approval</code> with a ten-minute clock and a fail-safe
+              default. This worker turns that into a message a person can answer, and answers it back.</p>
+            <div class="dx-code" data-lang="ts" data-title="approve.ts"><pre><code>import { Strix } from "@strixhood/sdk";
+
+const strix = new Strix({ apiKey: process.env.STRIX_APPROVAL_KEY! });
+
+for await (const intent of strix.stream.intents({
+  agentIds: [process.env.STRIX_AGENT_ID!],
+  statuses: ["awaiting_approval"],
+})) {
+  const diff = intent.simulation.assetDiff
+    .map((d) =&gt; `${d.delta} ${d.token}`)
+    .join("  ");
+
+  const decision = await ask({
+    title: `${intent.agentId} · ${intent.action}`,
+    body: [
+      `notional  ${intent.policy.notionalUsd} USD`,
+      `diff      ${diff}`,
+      `impact    ${intent.simulation.priceImpactBps} bps`,
+      `expires   ${intent.expiresAt.toISOString()}`,
+    ].join("\n"),
+    choices: ["approve", "reject"] as const,
+  });
+
+  await strix.intents.approve(intent.id, {
+    decision,
+    approverId: process.env.APPROVER_ID!,
+    note: `answered in ${Date.now() - intent.createdAt.getTime()}ms`,
+  });
+}</code></pre></div>
+
+            <h3 id="example-python">The same loop in Python</h3>
+            <div class="dx-code" data-lang="py" data-title="dca.py"><pre><code>import asyncio, os
+from datetime import datetime, timezone
+from decimal import Decimal
+
+from strixhood import AsyncStrix
+from strixhood.errors import IntentRejected, PolicyError
+
+strix = AsyncStrix(api_key=os.environ["STRIX_API_KEY"], max_retries=4)
+
+AGENT_ID = os.environ["STRIX_AGENT_ID"]
+PINNED_POLICY_HASH = os.environ["STRIX_POLICY_HASH"]
+DAILY_USD = Decimal("150.00")
+
+
+async def assert_policy_unchanged() -&gt; None:
+    agent = await strix.agents.get(AGENT_ID, expand=["policy"])
+    if agent.policy.hash != PINNED_POLICY_HASH:
+        await strix.agents.update(AGENT_ID, status="paused")
+        raise RuntimeError(f"policy drift: registry holds {agent.policy.hash}")
+    if agent.status != "active":
+        raise RuntimeError(f"agent is {agent.status}")
+
+
+async def buy_once(day: str) -&gt; None:
+    await assert_policy_unchanged()
+
+    quote = await strix.quotes.create(
+        action="swap",
+        chain="eip155:8453",
+        params={"sell_token": "USDC", "buy_token": "WETH", "sell_amount": DAILY_USD},
+        agent_id=AGENT_ID,
+    )
+    if quote.price_impact_bps &gt; 40:
+        print(f"skipping {day}: impact {quote.price_impact_bps}bps")
+        return
+
+    intent = await strix.intents.create(
+        agent_id=AGENT_ID,
+        action="swap",
+        chain="eip155:8453",
+        params={"sell_token": "USDC", "buy_token": "WETH", "sell_amount": DAILY_USD},
+        constraints={"max_slippage_bps": 40, "max_fee_usd": 1.5,
+                     "route_preference": "best_price", "mev_protection": True},
+        metadata={"strategy": "dca-eth-weekday", "day": day},
+        idempotency_key=f"dca-eth-{day}",
+    )
+
+    settled = await strix.intents.wait_for(intent.id, timeout=120.0)
+    print(day, "filled", settled.settled.buy_amount, "WETH")
+
+
+async def tick(now: datetime) -&gt; None:
+    if now.weekday() &gt; 4:
+        return
+    day = now.date().isoformat()
+    try:
+        await buy_once(day)
+    except IntentRejected as err:
+        print(day, "refused:", err.rule or err.code, err.message)
+    except PolicyError as err:
+        if err.code != "limit_exceeded":
+            raise
+        print(day, "window exhausted:", err.rule)
+
+
+if __name__ == "__main__":
+    asyncio.run(tick(datetime.now(timezone.utc)))</code></pre></div>
+
+            <h3 id="example-checks">What this buys you</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Failure</th><th>What happens</th></tr></thead>
+                <tbody>
+                  <tr><td>The scheduler fires twice at 09:00</td><td>Second call replays the idempotency key and returns the first intent. One buy.</td></tr>
+                  <tr><td>The process crashes mid-intent</td><td>Restart re-submits with the same key, gets the in-flight intent back, resumes waiting.</td></tr>
+                  <tr><td>Someone widens the policy</td><td>Hash mismatch on the next tick: the agent is paused and the loop throws before submitting.</td></tr>
+                  <tr><td>The model is tricked into a larger buy</td><td>Not reachable — the amount is a constant in this process, and the policy caps it at $250 regardless.</td></tr>
+                  <tr><td>A thin market moves against the buy</td><td>Quote check skips above 40 bps; the 40 bps slippage bound is enforced onchain if it slips after quoting.</td></tr>
+                  <tr><td>The daily cap is already spent</td><td><code>limit_exceeded</code> on <code>limits.daily_usd</code>, logged and skipped. Nothing is broadcast.</td></tr>
+                  <tr><td>Nobody answers the approval</td><td>After 600 s <code>on_timeout: "reject"</code> fires. The intent is rejected, not silently executed.</td></tr>
+                  <tr><td>The session key leaks</td><td>It expires in 24 hours, is capped at $250 per transaction, and can only call the swap selectors on Base.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="dx-note">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>Test it before you fund it</b>
+                <p>Run the whole thing against a <code>strx_sk_test_</code> key on Base Sepolia first, then set
+                  <code>simulateOnly: true</code> on mainnet for a day and diff the quotes against what you
+                  expected. Only then remove the flag.</p></div>
+            </div>
+          </section>
+
+          <!-- ============================ INDEX ============================ -->
+          <section class="dx-sec" data-group="Reference">
+            <span class="dx-kicker">Lookup</span>
+            <h2 id="sdk-index" data-nav="Method index">Method index</h2>
+            <p class="dx-lead">Every method in the TypeScript client and the endpoint behind it. Python and Rust
+              expose the same list under their own naming conventions.</p>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Scope</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">ping()</td><td class="mono">GET /v1/health</td><td class="mono">any</td></tr>
+                  <tr><td class="mono">agents.create()</td><td class="mono">POST /v1/agents</td><td class="mono">agents:write</td></tr>
+                  <tr><td class="mono">agents.list() / listAll()</td><td class="mono">GET /v1/agents</td><td class="mono">agents:read</td></tr>
+                  <tr><td class="mono">agents.get()</td><td class="mono">GET /v1/agents/{id}</td><td class="mono">agents:read</td></tr>
+                  <tr><td class="mono">agents.update()</td><td class="mono">PATCH /v1/agents/{id}</td><td class="mono">agents:write</td></tr>
+                  <tr><td class="mono">agents.retire()</td><td class="mono">DELETE /v1/agents/{id}</td><td class="mono">agents:write</td></tr>
+                  <tr><td class="mono">agents.sessionKeys.issue()</td><td class="mono">POST /v1/agents/{id}/session-keys</td><td class="mono">agents:write</td></tr>
+                  <tr><td class="mono">agents.sessionKeys.revoke()</td><td class="mono">DELETE /v1/agents/{id}/session-keys/{keyId}</td><td class="mono">agents:write</td></tr>
+                  <tr><td class="mono">intents.create()</td><td class="mono">POST /v1/intents</td><td class="mono">intents:write</td></tr>
+                  <tr><td class="mono">intents.get()</td><td class="mono">GET /v1/intents/{id}</td><td class="mono">intents:read</td></tr>
+                  <tr><td class="mono">intents.list() / listAll()</td><td class="mono">GET /v1/intents</td><td class="mono">intents:read</td></tr>
+                  <tr><td class="mono">intents.cancel()</td><td class="mono">POST /v1/intents/{id}/cancel</td><td class="mono">intents:write</td></tr>
+                  <tr><td class="mono">intents.approve()</td><td class="mono">POST /v1/intents/{id}/approval</td><td class="mono">intents:write</td></tr>
+                  <tr><td class="mono">intents.waitFor()</td><td>stream + poll</td><td class="mono">intents:read</td></tr>
+                  <tr><td class="mono">policies.create()</td><td class="mono">POST /v1/policies</td><td class="mono">policies:write</td></tr>
+                  <tr><td class="mono">policies.get()</td><td class="mono">GET /v1/policies/{id}</td><td class="mono">policies:read</td></tr>
+                  <tr><td class="mono">policies.list()</td><td class="mono">GET /v1/policies</td><td class="mono">policies:read</td></tr>
+                  <tr><td class="mono">policies.update()</td><td class="mono">PATCH /v1/policies/{id}</td><td class="mono">policies:write</td></tr>
+                  <tr><td class="mono">policies.simulate()</td><td class="mono">POST /v1/policies/{id}/simulate</td><td class="mono">policies:read</td></tr>
+                  <tr><td class="mono">policies.hash()</td><td>local</td><td class="mono">—</td></tr>
+                  <tr><td class="mono">quotes.create()</td><td class="mono">POST /v1/quotes</td><td class="mono">quotes:read</td></tr>
+                  <tr><td class="mono">quotes.get()</td><td class="mono">GET /v1/quotes/{id}</td><td class="mono">quotes:read</td></tr>
+                  <tr><td class="mono">routes.list()</td><td class="mono">GET /v1/routes</td><td class="mono">quotes:read</td></tr>
+                  <tr><td class="mono">executions.get()</td><td class="mono">GET /v1/executions/{id}</td><td class="mono">intents:read</td></tr>
+                  <tr><td class="mono">executions.list() / listAll()</td><td class="mono">GET /v1/executions</td><td class="mono">intents:read</td></tr>
+                  <tr><td class="mono">executions.export()</td><td class="mono">GET /v1/executions?format=csv</td><td class="mono">intents:read</td></tr>
+                  <tr><td class="mono">executions.attestation()</td><td class="mono">GET /v1/executions/{id}/attestation</td><td class="mono">intents:read</td></tr>
+                  <tr><td class="mono">portfolio.get()</td><td class="mono">GET /v1/portfolio</td><td class="mono">portfolio:read</td></tr>
+                  <tr><td class="mono">portfolio.history()</td><td class="mono">GET /v1/portfolio/history</td><td class="mono">portfolio:read</td></tr>
+                  <tr><td class="mono">portfolio.transactionsAll()</td><td class="mono">GET /v1/portfolio/transactions</td><td class="mono">portfolio:read</td></tr>
+                  <tr><td class="mono">webhooks.create()</td><td class="mono">POST /v1/webhooks</td><td class="mono">webhooks:write</td></tr>
+                  <tr><td class="mono">webhooks.list()</td><td class="mono">GET /v1/webhooks</td><td class="mono">webhooks:write</td></tr>
+                  <tr><td class="mono">webhooks.delete()</td><td class="mono">DELETE /v1/webhooks/{id}</td><td class="mono">webhooks:write</td></tr>
+                  <tr><td class="mono">webhooks.replay()</td><td class="mono">POST /v1/webhooks/{id}/replay</td><td class="mono">webhooks:write</td></tr>
+                  <tr><td class="mono">webhooks.verify()</td><td>local</td><td class="mono">—</td></tr>
+                  <tr><td class="mono">stream.intents()</td><td class="mono">wss · channel intents</td><td class="mono">intents:read</td></tr>
+                  <tr><td class="mono">stream.executions()</td><td class="mono">wss · channel executions</td><td class="mono">intents:read</td></tr>
+                  <tr><td class="mono">stream.prices()</td><td class="mono">wss · channel prices</td><td class="mono">quotes:read</td></tr>
+                  <tr><td class="mono">stream.subscribe()</td><td class="mono">wss · multiplexed</td><td>per channel</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <nav class="dx-pager" aria-label="Continue reading">
+            <a href="api.html"><small>Back</small><b>← REST &amp; WebSocket API</b></a>
+            <a href="docs.html#security"><small>Read next</small><b>Security model →</b></a>
+          </nav>
+
+        </div>
+
+        <nav class="dx-toc" id="dx-toc" aria-label="On this page"></nav>
+      </div>
+    </div>
+  </main>
+  <div id="sx-footer-host"></div>
+  <script src="assets/strix.js"></script>
+  <script src="assets/strix-data.js"></script>
+  <script src="assets/wallet.js"></script>
+  <script src="assets/shell.js"></script>
+  <script src="assets/docs.js"></script>
+  <script>Strix.page({ smooth:false });</script>
+</body>
+</html>

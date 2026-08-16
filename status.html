@@ -1,0 +1,226 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Status — uptime, latency and incident history | Strix Hood</title>
+<meta name="description" content="Live status for Strix Hood protocol services: API, WebSocket, solver network, indexer, RPC gateway and per-chain settlement. 90-day uptime, current latency, and full postmortems for every incident.">
+<link rel="canonical" href="https://strix-hood.vercel.app/status.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:title" content="Status — uptime, latency and incident history | Strix Hood"><meta property="og:description" content="Component status, 90-day uptime, live latency and postmortems for every incident — including the ones where we missed our own commitments.">
+<meta property="og:image" content="https://strix-hood.vercel.app/assets/og.png">
+<meta property="og:url" content="https://strix-hood.vercel.app/status.html"><meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@strixhood">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/strix.css">
+<link rel="stylesheet" href="assets/page.css">
+<link rel="stylesheet" href="assets/chatbot.css">
+</head><body data-page="status">
+<canvas id="sx-ambient" aria-hidden="true"></canvas>
+<div id="sx-nav-host"></div>
+<main id="main">
+
+<!-- ══ HERO ══════════════════════════════════════════════════ -->
+<section class="ph" style="padding-block:clamp(96px,10vw,132px) clamp(24px,3vw,40px)">
+  <div class="sx-shell ph__in">
+    <span class="sx-eyebrow" data-reveal="0"><span class="sx-glyph sx-glyph--dot"></span>Protocol status · testnet</span>
+    <h1 data-reveal="50">Status, including the parts that <em>make us look bad</em>.</h1>
+    <p class="sx-lead ph__lead" data-reveal="100">
+      Component health, 90 days of daily availability, current latency percentiles and a full postmortem for every
+      incident. The panel on the right is not a stored value — it runs an Ethereum JSON-RPC call from your browser,
+      right now, and reports whatever happens.
+    </p>
+  </div>
+</section>
+
+<!-- ══ OVERALL + LIVE PROBE ══════════════════════════════════ -->
+<section class="pg-sec pg-sec--tight" style="padding-top:0">
+  <div class="sx-shell su-top" data-reveal="0">
+    <div class="su-overall">
+      <span class="su-overall__dot" aria-hidden="true"><i></i></span>
+      <div>
+        <h2 id="su-overall-h">All systems operational</h2>
+        <p id="su-overall-p">Reading component history…</p>
+      </div>
+    </div>
+
+    <div class="sx-card">
+      <div class="sx-between" style="margin-bottom:14px">
+        <h2 class="sx-h3" style="font-size:17px">Live check from your browser</h2>
+        <button class="sx-btn sx-btn--ghost sx-btn--sm" type="button" id="su-recheck">Re-run</button>
+      </div>
+      <div class="su-probe" id="su-probe" aria-live="polite"></div>
+      <p class="sx-body" style="margin-top:14px;font-size:12px">
+        These are the third-party feeds this site reads directly. A BLOCKED result means your network or extensions
+        stopped the request — it says nothing about protocol health, and the page is built to work either way.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ COMPONENTS ════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--tight">
+  <div class="sx-shell">
+    <div class="pg-head pg-head--row" data-reveal="0">
+      <div>
+        <span class="sx-eyebrow">Components</span>
+        <h2>Eight services, 90 days each</h2>
+        <p class="sx-lead">One bar per day. Full height is a clean day, amber is degraded, crimson is an outage that
+          appears in the incident list below.</p>
+      </div>
+      <div class="pg-chiprow">
+        <span class="pg-tag pg-tag--on">operational</span>
+        <span class="pg-tag pg-tag--amber">degraded</span>
+        <span class="pg-tag pg-tag--crimson">outage</span>
+      </div>
+    </div>
+
+    <div id="su-components" data-reveal="40"></div>
+
+    <div class="pg-note" data-reveal="80">
+      <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--ring"></span></span>
+      <div><b>How these numbers are produced</b>
+        <p>Availability is derived from this page’s incident record and a deterministic background-noise model seeded
+          per component, so the history is stable between visits rather than re-rolled on every load. Latency
+          percentiles are trailing one-hour figures from the testnet cluster. We are not pretending this is a hosted
+          monitoring provider — when it becomes one, this paragraph changes.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ INCIDENTS ═════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark">
+  <span class="sx-index" aria-hidden="true">02</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Incident history</span>
+      <h2>Four incidents in 90 days, with postmortems</h2>
+      <p class="sx-lead">Impact first, then the timeline, then the root cause, then what changed. Where we missed our
+        own commitment — alerting on 9 July — the postmortem says so rather than burying it.</p>
+    </div>
+
+    <div class="su-inc" id="su-incidents" data-reveal="40"></div>
+
+    <div class="sx-row" data-reveal="80" style="margin-top:26px">
+      <a class="sx-btn sx-btn--ghost" href="security.html#gaps">Disclosure commitments</a>
+      <a class="sx-btn sx-btn--quiet" href="docs.html#failure-modes">Failure-mode catalogue</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ WHAT COUNTS AS AN INCIDENT ════════════════════════════ -->
+<section class="pg-sec">
+  <span class="sx-index" aria-hidden="true">03</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Definitions</span>
+      <h2>What counts as degraded, and what counts as down</h2>
+      <p class="sx-lead">Published thresholds, so “operational” is a measurement rather than an opinion.</p>
+    </div>
+
+    <div class="sx-tablewrap" data-reveal="40">
+      <table class="sx-table" style="min-width:860px">
+        <caption class="sx-sr">Status thresholds per component</caption>
+        <thead><tr>
+          <th scope="col">Component</th><th scope="col">Degraded when</th><th scope="col">Outage when</th>
+          <th scope="col">Objective</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>REST API</b></td><td>p95 above 400ms, or error rate above 0.5%</td>
+            <td>Error rate above 5% for 60 seconds</td><td class="sx-mono">99.9% / 30d</td></tr>
+          <tr><td><b>WebSocket stream</b></td><td>Event lag above 2s, or reconnect rate above 2%</td>
+            <td>Connections refused for 60 seconds</td><td class="sx-mono">99.9% / 30d</td></tr>
+          <tr><td><b>Solver network</b></td><td>Auction close p95 above 1.5s, or fewer than 5 solvers quoting</td>
+            <td>Fewer than 2 solvers quoting</td><td class="sx-mono">99.5% / 30d</td></tr>
+          <tr><td><b>Indexer</b></td><td>Staleness above 90 seconds on any chain</td>
+            <td>Staleness above 10 minutes on any chain</td><td class="sx-mono">99.5% / 30d</td></tr>
+          <tr><td><b>RPC gateway</b></td><td>Error rate above 1%, or failover engaged</td>
+            <td>All providers failing on one chain</td><td class="sx-mono">99.95% / 30d</td></tr>
+          <tr><td><b>Settlement · per chain</b></td><td>Inclusion p95 above 3× the chain’s block time</td>
+            <td>No inclusion for 20 blocks</td><td class="sx-mono">99.9% / 30d</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pg-grid pg-grid--3" data-reveal="70" style="margin-top:26px">
+      <div class="sx-card pg-card">
+        <span class="pg-card__tag">Not an incident</span>
+        <h3>Chain congestion</h3>
+        <p>A settlement that is slow because the chain is busy is the chain working as designed. We report inclusion
+          latency but do not count it against settlement availability.</p>
+      </div>
+      <div class="sx-card pg-card">
+        <span class="pg-card__tag">Not an incident</span>
+        <h3>Intents held by policy</h3>
+        <p>A refusal is the protocol working. Held-intent volume is on the protocol dashboard, not here.</p>
+      </div>
+      <div class="sx-card pg-card">
+        <span class="pg-card__tag">Always an incident</span>
+        <h3>Anything that misreports state</h3>
+        <p>A stale indexer that answers confidently is worse than one that errors. Silent wrongness is treated as an
+          outage even when every service is technically up.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SUBSCRIBE ═════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark pg-sec--tight">
+  <div class="sx-shell">
+    <div class="pg-grid pg-grid--2" data-reveal="0" style="align-items:center;gap:clamp(20px,3vw,48px)">
+      <div>
+        <span class="sx-eyebrow" style="margin-bottom:14px">Notifications</span>
+        <h2 class="sx-h3" style="font-size:clamp(20px,2.2vw,30px)">Get told when something breaks</h2>
+        <p class="sx-body" style="margin-top:12px;max-width:56ch">One message per incident: opened, updated, resolved.
+          Postmortems go out when they are published, not before. No product announcements on this list, ever.</p>
+      </div>
+      <form class="pg-form" id="su-sub" novalidate>
+        <label class="sx-sr" for="su-email">Email address for incident notifications</label>
+        <div class="pg-form__row">
+          <input class="sx-input" id="su-email" type="email" placeholder="ops@yourcompany.com" required>
+          <button class="sx-btn sx-btn--primary" type="submit">Subscribe</button>
+        </div>
+        <p class="sx-err" id="su-err" role="alert"></p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ═══════════════════════════════════════════════════ -->
+<section class="pg-cta">
+  <div class="sx-shell pg-cta__in" data-reveal="0">
+    <div>
+      <h2 class="sx-h1">Verify it yourself.</h2>
+      <p class="sx-lead">Everything on this page is derived from data you can query. The API exposes execution
+        receipts, the chain exposes settlement, and the contracts are public.</p>
+      <div class="pg-cta__links">
+        <a class="sx-btn sx-btn--primary" href="api.html#executions">Query the API</a>
+        <a class="sx-btn sx-btn--ghost" href="docs.html#contract-addresses">Contract addresses</a>
+        <a class="sx-btn sx-btn--quiet" href="https://github.com/allinoneacount1-dot/strix-hood" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+    </div>
+    <div class="pg-cta__side">
+      <div class="sx-card sx-card--flat">
+        <span class="sx-label">Related</span>
+        <ul class="pg-ul" style="margin-top:12px">
+          <li><a href="security.html" style="color:var(--neon-2)">Security model and disclosure policy</a></li>
+          <li><a href="blog.html" style="color:var(--neon-2)">The indexer deadlock, in detail</a></li>
+          <li><a href="docs.html#networks" style="color:var(--neon-2)">Supported networks</a></li>
+          <li><a href="api.html#error-codes" style="color:var(--neon-2)">Error codes</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+<div id="sx-footer-host"></div>
+<script src="assets/strix.js"></script>
+<script src="assets/strix-data.js"></script>
+<script src="assets/wallet.js"></script>
+<script src="assets/shell.js"></script>
+<script src="assets/chatbot.js"></script>
+<script src="assets/strix-3d.js"></script>
+<script src="assets/page.js"></script>
+</body></html>

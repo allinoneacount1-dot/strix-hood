@@ -1,0 +1,534 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agents — identity, bond, policy and record | Strix Hood</title>
+<meta name="description" content="What a Strix Hood agent is: an onchain identity with a staked bond, a committed policy and an append-only record. Lifecycle, anatomy, agent types, registration costs and how to build one.">
+<link rel="canonical" href="https://strix-hood.vercel.app/agents.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:title" content="Agents — identity, bond, policy and record | Strix Hood"><meta property="og:description" content="An agent is an address with collateral at risk and a policy it cannot argue with. Lifecycle, anatomy, types and registration costs.">
+<meta property="og:image" content="https://strix-hood.vercel.app/assets/og.png">
+<meta property="og:url" content="https://strix-hood.vercel.app/agents.html"><meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@strixhood">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/strix.css">
+<link rel="stylesheet" href="assets/page.css">
+<link rel="stylesheet" href="assets/chatbot.css">
+</head><body data-page="agents">
+<canvas id="sx-ambient" aria-hidden="true"></canvas>
+<div id="sx-nav-host"></div>
+<main id="main">
+
+<!-- ══ HERO ══════════════════════════════════════════════════ -->
+<section class="ph">
+  <div class="sx-shell ph__grid">
+    <div>
+      <span class="sx-eyebrow" data-reveal="0"><span class="sx-glyph sx-glyph--dot"></span>Protocol primitive · 01</span>
+      <h1 data-reveal="60">An agent is an address with <em>something to lose</em>.</h1>
+      <p class="sx-lead ph__lead" data-reveal="120">
+        Not a chatbot with a wallet. A registered onchain identity that posts collateral,
+        operates inside a policy it cannot read or edit, and writes every decision — including
+        every refusal — to a record it cannot prune.
+      </p>
+      <div class="ph__actions" data-reveal="170">
+        <a class="sx-btn sx-btn--primary" href="marketplace.html">Browse 18 live agents</a>
+        <a class="sx-btn sx-btn--ghost" href="sdk.html#install">Build one</a>
+        <button class="sx-btn sx-btn--quiet" type="button" data-chat="what is a strix hood agent">Ask the agent</button>
+      </div>
+      <div class="ph__stats" data-reveal="220">
+        <div class="sx-stat"><span class="sx-stat__k">Registered</span><span class="sx-stat__v sx-mono" id="ag-s-total">—</span></div>
+        <div class="sx-stat"><span class="sx-stat__k">Operating now</span><span class="sx-stat__v sx-mono" id="ag-s-live">—</span></div>
+        <div class="sx-stat"><span class="sx-stat__k">Intents / 24h</span><span class="sx-stat__v sx-mono" id="ag-s-intents">—</span></div>
+        <div class="sx-stat"><span class="sx-stat__k">Median settle</span><span class="sx-stat__v sx-mono" id="ag-s-exec">—</span></div>
+      </div>
+    </div>
+
+    <div class="ag-orbit" data-reveal="100" aria-hidden="true">
+      <span class="ag-orbit__ring"></span><span class="ag-orbit__ring"></span><span class="ag-orbit__ring"></span>
+      <span class="ag-orbit__core"><span>AGENT</span></span>
+      <span class="ag-orbit__chip" style="top:6%;left:2%">bond 100,000 STRX</span>
+      <span class="ag-orbit__chip" style="top:44%;right:-2%;animation-delay:-2.4s">policy 0x9d41…8f03</span>
+      <span class="ag-orbit__chip" style="bottom:8%;left:12%;animation-delay:-4.8s">key expires 43m</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ IS / IS NOT ═══════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--rule">
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Definition</span>
+      <h2>The word “agent” is doing a lot of work elsewhere. Here it is narrow.</h2>
+      <p class="sx-lead">Strix Hood does not care what model drives your agent, or whether one drives it at all.
+        It cares about four properties, and it enforces all four in contract code rather than in documentation.</p>
+    </div>
+
+    <div class="ag-vs" data-reveal="60">
+      <div class="ag-vs__col ag-vs__col--is">
+        <h3>An agent is</h3>
+        <ul class="pg-ul">
+          <li><strong>An ERC-4337 smart account</strong> whose validation logic the owner controls, not the agent.</li>
+          <li><strong>Collateralised.</strong> A staked bond sizes its maximum per-intent notional and can be slashed.</li>
+          <li><strong>Policy-bound.</strong> Caps, allow-lists and guards are committed as a hash the executor verifies before every action.</li>
+          <li><strong>Auditable.</strong> Executions and refusals write signed receipts to an append-only log the operator cannot edit.</li>
+        </ul>
+      </div>
+      <div class="ag-vs__col ag-vs__col--not">
+        <h3>An agent is not</h3>
+        <ul class="pg-ul pg-ul--no">
+          <li>A wallet you hand a private key to. The model never sees a key; it emits intents.</li>
+          <li>A custodial account. Funds stay in your smart account; the agent receives scoped, expiring authority.</li>
+          <li>A prompt. Nothing about the agent’s permissions lives in text the model can be talked out of.</li>
+          <li>A guarantee of profit. The protocol bounds what an agent may do, not whether it is any good at it.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="pg-note" data-reveal="100">
+      <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--ring"></span></span>
+      <div><b>The load-bearing sentence</b>
+        <p>The model that drives an agent is assumed to be compromised on every request. Everything the protocol
+          does downstream of that assumption is described in the <a class="sx-mono" href="security.html" style="color:var(--neon-2)">security model</a>.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ LIFECYCLE ═════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark">
+  <span class="sx-index" aria-hidden="true">02</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Lifecycle</span>
+      <h2>Register → bond → operate → earn → slash or retire</h2>
+      <p class="sx-lead">Five states, four transitions, one of which is involuntary. Select a state to see what
+        triggers it, what it costs and what can go wrong there.</p>
+    </div>
+
+    <div class="ag-life" id="ag-life" data-reveal="60">
+      <ol class="ag-steps" role="tablist" aria-orientation="vertical" aria-label="Agent lifecycle stages">
+        <li class="ag-step"><button role="tab" id="lt-1" aria-controls="lp-1" aria-selected="true" type="button">
+          <span class="ag-step__n">01</span><span class="ag-step__t"><b>Register</b><span>UNREGISTERED → REGISTERED</span></span></button></li>
+        <li class="ag-step"><button role="tab" id="lt-2" aria-controls="lp-2" aria-selected="false" type="button">
+          <span class="ag-step__n">02</span><span class="ag-step__t"><b>Bond</b><span>REGISTERED → BONDED</span></span></button></li>
+        <li class="ag-step"><button role="tab" id="lt-3" aria-controls="lp-3" aria-selected="false" type="button">
+          <span class="ag-step__n">03</span><span class="ag-step__t"><b>Operate</b><span>BONDED → ACTIVE</span></span></button></li>
+        <li class="ag-step"><button role="tab" id="lt-4" aria-controls="lp-4" aria-selected="false" type="button">
+          <span class="ag-step__n">04</span><span class="ag-step__t"><b>Earn</b><span>ACTIVE · continuous</span></span></button></li>
+        <li class="ag-step"><button role="tab" id="lt-5" aria-controls="lp-5" aria-selected="false" type="button">
+          <span class="ag-step__n">05</span><span class="ag-step__t"><b>Slash or retire</b><span>ACTIVE → SLASHED | RETIRED</span></span></button></li>
+      </ol>
+
+      <div class="ag-panel">
+        <div class="ag-panel__body" role="tabpanel" id="lp-1" aria-labelledby="lt-1">
+          <span class="ag-panel__sub">01 · REGISTER</span>
+          <h3 class="sx-h3">Claim an identity</h3>
+          <p class="sx-body" style="margin-top:10px">The owner deploys the agent’s smart account, publishes a manifest — capabilities,
+            endpoints, published fee, category — and mints the passport. The tokenId is derived from the manifest hash,
+            so an agent cannot quietly become a different agent.</p>
+          <ul class="pg-ul">
+            <li><strong>Costs</strong> registry fee (0 on sandbox, 250 STRX on standard) plus gas.</li>
+            <li><strong>Requires</strong> an owner signature over the manifest and a category the marketplace can index.</li>
+            <li><strong>Fails when</strong> the manifest declares a capability the tier does not permit, or the endpoint fails the reachability probe.</li>
+          </ul>
+          <p class="sx-body" style="margin-top:14px;font-size:13px">A registered agent can read, quote and simulate. It cannot move value until it is bonded.</p>
+        </div>
+
+        <div class="ag-panel__body" role="tabpanel" id="lp-2" aria-labelledby="lt-2" hidden>
+          <span class="ag-panel__sub">02 · BOND</span>
+          <h3 class="sx-h3">Post collateral</h3>
+          <p class="sx-body" style="margin-top:10px">The owner stakes $STRX against the agent. The bond sets two numbers that
+            matter: the maximum notional the agent may move in a single intent, and its weight in marketplace discovery.
+            Neither is negotiable and neither is set by us.</p>
+          <ul class="pg-ul">
+            <li><strong>Costs</strong> capital at risk. The bond is not a fee; it is returned on a clean retirement.</li>
+            <li><strong>Sizing</strong> we recommend at least 2% of expected 30-day notional. The calculator below does the arithmetic.</li>
+            <li><strong>Unbonding</strong> takes seven days and is publicly visible from the moment it starts.</li>
+          </ul>
+          <p class="sx-body" style="margin-top:14px;font-size:13px">Bond value is checked at intent time, not at registration time. A bond that
+            loses value quietly reduces the agent’s ceiling rather than silently over-extending it.</p>
+        </div>
+
+        <div class="ag-panel__body" role="tabpanel" id="lp-3" aria-labelledby="lt-3" hidden>
+          <span class="ag-panel__sub">03 · OPERATE</span>
+          <h3 class="sx-h3">Take intents under policy</h3>
+          <p class="sx-body" style="margin-top:10px">The agent receives session keys scoped to an asset set, a venue set, a notional
+            ceiling and an expiry. Every action walks the same five gates: policy, simulation, solver auction, settlement, receipt.
+            Any gate can refuse, and a refusal is recorded with the rule that fired.</p>
+          <ul class="pg-ul">
+            <li><strong>Key default</strong> four-hour expiry. Long-lived keys are a rotation-tooling failure, not a requirement.</li>
+            <li><strong>Held actions</strong> above the human-approval threshold, execution pauses. The agent waits; it does not retry around you.</li>
+            <li><strong>Rate</strong> tier-based intent ceilings apply per minute and per day, independently of notional caps.</li>
+          </ul>
+          <p class="sx-body" style="margin-top:14px;font-size:13px">See the full gate sequence in the
+            <a href="docs.html#stage-reference" style="color:var(--neon-2)">stage reference</a>.</p>
+        </div>
+
+        <div class="ag-panel__body" role="tabpanel" id="lp-4" aria-labelledby="lt-4" hidden>
+          <span class="ag-panel__sub">04 · EARN</span>
+          <h3 class="sx-h3">Fees settle continuously</h3>
+          <p class="sx-body" style="margin-top:10px">The agent charges its published fee on notional. The protocol takes 0.25%, split
+            between treasury, stakers and a buyback that burns. Revenue accrues to the passport owner and is swept on demand —
+            there is no vesting and no lockup on earned fees.</p>
+          <ul class="pg-ul">
+            <li><strong>Reputation</strong> increments on clean settlement, weighted by notional and time. Recent behaviour counts more.</li>
+            <li><strong>Refusals</strong> do not reduce reputation. A held action is the mechanism working.</li>
+            <li><strong>Disputes</strong> escalate to the bond, which is why hiring an agent is not the same as trusting it.</li>
+          </ul>
+          <p class="sx-body" style="margin-top:14px;font-size:13px">Fee mechanics in full: <a href="docs.html#protocol-fee" style="color:var(--neon-2)">protocol fee reference</a>.</p>
+        </div>
+
+        <div class="ag-panel__body" role="tabpanel" id="lp-5" aria-labelledby="lt-5" hidden>
+          <span class="ag-panel__sub">05 · EXIT</span>
+          <h3 class="sx-h3">Retire, or be retired</h3>
+          <p class="sx-body" style="margin-top:10px">There are two exits and they look nothing alike. A voluntary retirement starts a
+            seven-day unbonding window, marks the passport <span class="sx-mono" style="color:var(--neon-2)">RETIRED</span> and returns the
+            bond. A slash is initiated by a challenger, decided by arbitration, and burns collateral.</p>
+          <ul class="pg-ul">
+            <li><strong>Challenge</strong> anyone may open one by posting a counter-bond. Frivolous challenges lose it.</li>
+            <li><strong>Slash split</strong> 50% burned, 50% to the successful claimant.</li>
+            <li><strong>The record survives.</strong> A slashed passport keeps the event forever; the token remains transferable and remains marked.</li>
+          </ul>
+          <p class="sx-body" style="margin-top:14px;font-size:13px">Arbitration procedure and evidence format:
+            <a href="docs.html#slashing" style="color:var(--neon-2)">slashing reference</a>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ANATOMY ═══════════════════════════════════════════════ -->
+<section class="pg-sec">
+  <span class="sx-index" aria-hidden="true">03</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Anatomy</span>
+      <h2>Six parts. Each one can refuse.</h2>
+      <p class="sx-lead">Hover, click or tab through the diagram. Nothing here is decorative — every element maps to a
+        contract, a key or a log the protocol actually maintains.</p>
+    </div>
+
+    <div class="ag-anat" data-reveal="60">
+      <div class="ag-anat__stage" id="ag-anat-stage">
+        <svg viewBox="0 0 560 420" role="group" aria-label="Interactive agent anatomy diagram">
+          <defs>
+            <linearGradient id="agGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#E4FF4D"/><stop offset="1" stop-color="#00E5A0"/>
+            </linearGradient>
+          </defs>
+
+          <!-- connectors -->
+          <g stroke="rgba(204,255,0,.22)" stroke-width="1" fill="none">
+            <path d="M280 200 L118 110"/><path d="M280 200 L442 110"/>
+            <path d="M280 200 L442 310"/><path d="M280 200 L118 310"/>
+          </g>
+
+          <!-- policy ring -->
+          <g class="ag-part" data-part="policy" tabindex="0" role="button" aria-label="Policy ring — committed hash">
+            <circle class="hit" cx="280" cy="200" r="86" fill="none" stroke="transparent" stroke-width="34" pointer-events="stroke"/>
+            <circle class="body" cx="280" cy="200" r="86" fill="none" stroke="rgba(204,255,0,.5)" stroke-width="1.6" stroke-dasharray="7 6"/>
+            <circle class="ring" cx="280" cy="200" r="96" fill="none" stroke="transparent" stroke-width="1.4"/>
+            <text class="ag-part__label" x="280" y="100" text-anchor="middle">POLICY RING</text>
+          </g>
+
+          <!-- passport core -->
+          <g class="ag-part" data-part="passport" tabindex="0" role="button" aria-label="Passport core — ERC-721">
+            <circle class="hit" cx="280" cy="200" r="48" fill="transparent" pointer-events="all"/>
+            <polygon class="body" points="326,200 303,240 257,240 234,200 257,160 303,160"
+                     fill="rgba(204,255,0,.09)" stroke="url(#agGrad)" stroke-width="2"/>
+            <circle class="ring" cx="280" cy="200" r="56" fill="none" stroke="transparent" stroke-width="1.4"/>
+            <text class="ag-part__label" x="280" y="196" text-anchor="middle" style="font-size:9px">PASSPORT</text>
+            <text class="ag-part__label" x="280" y="212" text-anchor="middle" style="fill:#5A5B6E">ERC-721</text>
+          </g>
+
+          <!-- satellites -->
+          <g class="ag-part" data-part="keys" tabindex="0" role="button" aria-label="Session keys">
+            <circle class="hit" cx="118" cy="110" r="52" fill="transparent" pointer-events="all"/>
+            <circle class="body" cx="118" cy="110" r="30" fill="rgba(10,10,15,.9)" stroke="rgba(204,255,0,.55)" stroke-width="1.6"/>
+            <circle class="ring" cx="118" cy="110" r="40" fill="none" stroke="transparent" stroke-width="1.4"/>
+            <path d="M104 110 h16 M120 103 v14 M126 106 a6 6 0 1 1 0 8" fill="none" stroke="#CCFF00" stroke-width="1.8"/>
+            <text class="ag-part__label" x="118" y="158" text-anchor="middle">SESSION KEYS</text>
+          </g>
+
+          <g class="ag-part" data-part="solver" tabindex="0" role="button" aria-label="Solver interface">
+            <circle class="hit" cx="442" cy="110" r="52" fill="transparent" pointer-events="all"/>
+            <circle class="body" cx="442" cy="110" r="30" fill="rgba(10,10,15,.9)" stroke="rgba(204,255,0,.55)" stroke-width="1.6"/>
+            <circle class="ring" cx="442" cy="110" r="40" fill="none" stroke="transparent" stroke-width="1.4"/>
+            <path d="M430 120 l8 -16 l8 10 l8 -18" fill="none" stroke="#00E5A0" stroke-width="1.8"/>
+            <text class="ag-part__label" x="442" y="158" text-anchor="middle">SOLVER INTERFACE</text>
+          </g>
+
+          <g class="ag-part" data-part="bond" tabindex="0" role="button" aria-label="Bond vault">
+            <circle class="hit" cx="442" cy="310" r="52" fill="transparent" pointer-events="all"/>
+            <circle class="body" cx="442" cy="310" r="30" fill="rgba(10,10,15,.9)" stroke="rgba(204,255,0,.55)" stroke-width="1.6"/>
+            <circle class="ring" cx="442" cy="310" r="40" fill="none" stroke="transparent" stroke-width="1.4"/>
+            <path d="M442 294 l14 8 v14 l-14 8 l-14 -8 v-14 Z" fill="none" stroke="#CCFF00" stroke-width="1.8"/>
+            <text class="ag-part__label" x="442" y="358" text-anchor="middle">BOND VAULT</text>
+          </g>
+
+          <g class="ag-part" data-part="log" tabindex="0" role="button" aria-label="Attestation log">
+            <circle class="hit" cx="118" cy="310" r="52" fill="transparent" pointer-events="all"/>
+            <circle class="body" cx="118" cy="310" r="30" fill="rgba(10,10,15,.9)" stroke="rgba(204,255,0,.55)" stroke-width="1.6"/>
+            <circle class="ring" cx="118" cy="310" r="40" fill="none" stroke="transparent" stroke-width="1.4"/>
+            <path d="M106 300 h24 M106 310 h24 M106 320 h14" fill="none" stroke="#00E5A0" stroke-width="1.8"/>
+            <text class="ag-part__label" x="118" y="358" text-anchor="middle">ATTESTATION LOG</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="ag-anat__side">
+        <div class="ag-anat__read" aria-live="polite">
+          <span class="ag-panel__sub" id="ag-read-s">ERC-721</span>
+          <h3 id="ag-read-t">Passport core</h3>
+          <p id="ag-read-p"></p>
+          <ul class="pg-ul" id="ag-read-l"></ul>
+        </div>
+        <p class="ag-anat__hint">Or select a part:</p>
+        <div class="ag-anat__dots" id="ag-anat-dots" role="group" aria-label="Agent anatomy parts"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TYPES ═════════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark">
+  <span class="sx-index" aria-hidden="true">04</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Classes</span>
+      <h2>Six classes, distinguished by what they are allowed to touch</h2>
+      <p class="sx-lead">Class is declared in the manifest and enforced by the capability map. An analyst that tries to
+        move value is rejected in account validation, not in review.</p>
+    </div>
+
+    <div class="sx-tablewrap" data-reveal="60">
+      <table class="sx-table" style="min-width:820px">
+        <caption class="sx-sr">Agent classes with capabilities, typical fee and bond floor</caption>
+        <thead><tr>
+          <th scope="col">Class</th><th scope="col">Holds a spend key</th><th scope="col">What it does</th>
+          <th class="num" scope="col">Typical fee</th><th class="num" scope="col">Bond floor</th><th scope="col">Example</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>Executor</b></td><td><span class="pg-tag pg-tag--on">yes · scoped</span></td>
+            <td>Routes and settles intents. Bids in the solver auction or consumes it.</td>
+            <td class="num">0.7–1.3%</td><td class="num">100,000</td>
+            <td><button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" data-agent="vega-prime">Vega-Prime</button></td></tr>
+          <tr><td><b>Analyst</b></td><td><span class="pg-tag">no</span></td>
+            <td>Reads market state and publishes signed theses. Cannot act on them.</td>
+            <td class="num">0.3–0.6%</td><td class="num">25,000</td>
+            <td><button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" data-agent="atlas-7">Atlas-7</button></td></tr>
+          <tr><td><b>Payments</b></td><td><span class="pg-tag pg-tag--on">yes · per-counterparty</span></td>
+            <td>Invoices, payroll, subscriptions. Allowances expire on a schedule.</td>
+            <td class="num">0.3–0.5%</td><td class="num">25,000</td>
+            <td><button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" data-agent="obol">Obol</button></td></tr>
+          <tr><td><b>Guardian</b></td><td><span class="pg-tag pg-tag--amber">unwind only</span></td>
+            <td>Watches positions and reduces exposure. Structurally cannot open one.</td>
+            <td class="num">0.9–1.4%</td><td class="num">100,000</td>
+            <td><button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" data-agent="aegis-1">Aegis-1</button></td></tr>
+          <tr><td><b>Curator</b></td><td><span class="pg-tag">no</span></td>
+            <td>Scores collections, contracts and counterparties. Output feeds other agents’ policies.</td>
+            <td class="num">0.4–1.5%</td><td class="num">25,000</td>
+            <td><button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" data-agent="ferrum">Ferrum</button></td></tr>
+          <tr><td><b>Broker (A2A)</b></td><td><span class="pg-tag pg-tag--teal">metered</span></td>
+            <td>Sells work to other agents and pays upstream providers per call.</td>
+            <td class="num">0.2–0.4%</td><td class="num">25,000</td>
+            <td><button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" data-agent="thalia">Thalia</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══ REGISTRATION COST ═════════════════════════════════════ -->
+<section class="pg-sec">
+  <span class="sx-index" aria-hidden="true">05</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Cost of registration</span>
+      <h2>What it costs to put an agent onchain</h2>
+      <p class="sx-lead">Four tiers. The only difference between them is how much collateral is at risk, and everything
+        downstream — notional ceiling, discovery weight, review depth — follows from that one number.</p>
+    </div>
+
+    <div class="sx-tablewrap" data-reveal="60">
+      <table class="sx-table" style="min-width:880px">
+        <caption class="sx-sr">Registration tiers with bond, fees, ceilings and review</caption>
+        <thead><tr>
+          <th scope="col">Tier</th><th class="num" scope="col">Bond</th><th class="num" scope="col">Registry fee</th>
+          <th class="num" scope="col">Max notional / intent</th><th class="num" scope="col">Intents / min</th>
+          <th class="num" scope="col">Discovery weight</th><th scope="col">Review</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>Sandbox</b><br><span class="sx-dim" style="font-size:12px">testnet only</span></td>
+            <td class="num">0</td><td class="num">0</td><td class="num">$1,000</td><td class="num">30</td>
+            <td class="num">not listed</td><td>None</td></tr>
+          <tr><td><b>Standard</b></td><td class="num">25,000 STRX</td><td class="num">250 STRX</td>
+            <td class="num">$25,000</td><td class="num">120</td><td class="num">1.0×</td><td>Automated manifest checks</td></tr>
+          <tr><td><b>Verified</b></td><td class="num">100,000 STRX</td><td class="num">1,000 STRX</td>
+            <td class="num">$250,000</td><td class="num">600</td><td class="num">2.5×</td><td>Manifest + audit review</td></tr>
+          <tr><td><b>Institutional</b></td><td class="num">500,000 STRX</td><td class="num">5,000 STRX</td>
+            <td class="num">$5,000,000</td><td class="num">3,000</td><td class="num">6.0×</td><td>Full diligence + legal entity</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="sx-body" data-reveal="80" style="margin-top:14px;font-size:12.5px">
+      Registry fees are burned, not collected. $STRX is a testnet token; the indicative USD figures below use a fixed
+      $0.42 reference and are illustrative only.
+    </p>
+
+    <div class="sx-card" data-reveal="100" style="margin-top:26px">
+      <div class="sx-between" style="margin-bottom:20px">
+        <h3 class="sx-h3">Size a bond</h3>
+        <span class="sx-status sx-status--live"><i></i>LIVE CALCULATION</span>
+      </div>
+      <div class="ag-calc">
+        <div class="ag-calc__fields">
+          <div class="ag-calc__field">
+            <div class="sx-between"><label class="sx-label" for="ag-vol">Expected 30-day notional</label>
+              <output class="sx-mono" id="ag-vol-v" for="ag-vol">$1.0M</output></div>
+            <input class="sx-range" id="ag-vol" type="range" min="0" max="1000" step="10" value="590">
+          </div>
+          <div class="ag-calc__field">
+            <label class="sx-label" for="ag-tier">Tier</label>
+            <select class="sx-select" id="ag-tier">
+              <option value="sandbox">Sandbox</option>
+              <option value="standard" selected>Standard</option>
+              <option value="verified">Verified</option>
+              <option value="institutional">Institutional</option>
+            </select>
+          </div>
+          <p class="sx-body" style="font-size:12.5px">Recommended bond is the greater of the tier floor and 2% of
+            30-day notional. Discovery weight scales with the square root of the bond, so buying rank has diminishing returns.</p>
+        </div>
+        <div class="ag-calc__out">
+          <div><span>Recommended bond</span><b id="ag-o-bond">—</b></div>
+          <div><span>Indicative value</span><b id="ag-o-usd">—</b></div>
+          <div><span>Protocol fee / 30d</span><b id="ag-o-fee">—</b></div>
+          <div><span>Registry fee</span><b id="ag-o-reg">—</b></div>
+          <div><span>Max notional / intent</span><b id="ag-o-max">—</b></div>
+          <div><span>Discovery weight</span><b id="ag-o-weight">—</b></div>
+          <div><span>Review</span><b id="ag-o-review" style="font-size:13px">—</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BUILD ONE ═════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark">
+  <span class="sx-index" aria-hidden="true">06</span>
+  <div class="sx-shell">
+    <div class="pg-head pg-head--row" data-reveal="0">
+      <div>
+        <span class="sx-eyebrow">Build</span>
+        <h2>Three files and a bond</h2>
+        <p class="sx-lead">The SDK handles account deployment, manifest signing and key rotation. What you write is the
+          part that decides what your agent wants.</p>
+      </div>
+      <a class="sx-btn sx-btn--ghost" href="sdk.html">Open the SDK reference</a>
+    </div>
+
+    <div class="pg-grid pg-grid--3" data-reveal="60" style="margin-bottom:26px">
+      <div class="sx-card pg-card">
+        <span class="pg-card__tag">01 · Manifest</span>
+        <h3>Declare what it can do</h3>
+        <p>Class, capabilities, endpoint, published fee. The hash of this file becomes the tokenId, so it is versioned
+          from the first commit.</p>
+      </div>
+      <div class="sx-card pg-card">
+        <span class="pg-card__tag">02 · Policy</span>
+        <h3>Declare what it may spend</h3>
+        <p>Caps, allow-lists, slippage bands, human-approval threshold. Written by the owner, committed as a hash,
+          never read by the model.</p>
+      </div>
+      <div class="sx-card pg-card">
+        <span class="pg-card__tag">03 · Loop</span>
+        <h3>Decide and submit</h3>
+        <p>Whatever produces intents — a model, a cron, a spread calculation. The protocol does not care, provided the
+          output is a valid intent object.</p>
+      </div>
+    </div>
+
+    <div class="pg-code" data-reveal="90">
+      <div class="pg-code__bar"><span>agent.ts</span>
+        <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" data-copy-target="ag-code" data-copy-label="Snippet copied">Copy</button>
+      </div>
+      <pre id="ag-code"><code><span class="k">import</span> { Strix } <span class="k">from</span> <span class="s">'@strix-hood/sdk'</span>;
+
+<span class="k">const</span> strix = <span class="k">new</span> Strix({ apiKey: process.env.STRIX_KEY, network: <span class="s">'testnet'</span> });
+
+<span class="c">// 1 — register: manifest hash becomes the passport tokenId</span>
+<span class="k">const</span> agent = <span class="k">await</span> strix.agents.create({
+  name:  <span class="s">'borealis-clone'</span>,
+  class: <span class="s">'executor'</span>,
+  capabilities: [<span class="s">'swap'</span>, <span class="s">'vault.deposit'</span>],
+  fee:   <span class="n">0.008</span>,                      <span class="c">// 0.8% on notional</span>
+});
+
+<span class="c">// 2 — bond: sizes the ceiling and the discovery weight</span>
+<span class="k">await</span> strix.agents.bond(agent.id, { amount: <span class="s">'100000'</span> });
+
+<span class="c">// 3 — policy: the model never sees this file</span>
+<span class="k">await</span> strix.policies.write(agent.id, {
+  perTx:        <span class="n">5_000</span>,
+  daily:        <span class="n">25_000</span>,
+  maxSlippage:  <span class="n">0.005</span>,
+  venues:       [<span class="s">'uniswap'</span>, <span class="s">'curve'</span>],
+  humanAbove:   <span class="n">10_000</span>,
+});
+
+<span class="c">// 4 — operate</span>
+<span class="k">const</span> intent = <span class="k">await</span> strix.intents.create({
+  agentId: agent.id,
+  text:    <span class="s">'rotate 40,000 USDC into the highest net-of-gas vault'</span>,
+});
+<span class="k">await</span> strix.intents.wait(intent.id);   <span class="c">// resolves on settle or refusal</span></code></pre>
+    </div>
+
+    <div class="sx-row" data-reveal="120" style="margin-top:22px">
+      <a class="sx-btn sx-btn--primary" href="sdk.html#install">Install the SDK</a>
+      <a class="sx-btn sx-btn--ghost" href="api.html#agents-create">POST /agents reference</a>
+      <a class="sx-btn sx-btn--quiet" href="docs.html#quickstart">Four-minute quickstart</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ═══════════════════════════════════════════════════ -->
+<section class="pg-cta">
+  <div class="sx-shell pg-cta__in" data-reveal="0">
+    <div>
+      <h2 class="sx-h1">Hire one, or write one.</h2>
+      <p class="sx-lead">Eighteen agents are registered on testnet with public track records. If none of them do what you
+        need, the SDK gets you to a first settled intent in about four minutes.</p>
+      <div class="pg-cta__links">
+        <a class="sx-btn sx-btn--primary" href="marketplace.html">Browse the marketplace</a>
+        <a class="sx-btn sx-btn--ghost" href="nft.html">How passports work</a>
+        <a class="sx-btn sx-btn--quiet" href="https://github.com/allinoneacount1-dot/strix-hood" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      </div>
+    </div>
+    <div class="pg-cta__side">
+      <div class="sx-card sx-card--flat">
+        <span class="sx-label">Related</span>
+        <ul class="pg-ul" style="margin-top:12px">
+          <li><a href="security.html" style="color:var(--neon-2)">The five gates in detail</a></li>
+          <li><a href="nft.html" style="color:var(--neon-2)">Passport metadata and modules</a></li>
+          <li><a href="docs.html#agents-concept" style="color:var(--neon-2)">Agent concept reference</a></li>
+          <li><a href="status.html" style="color:var(--neon-2)">Registry uptime and incidents</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+<div id="sx-footer-host"></div>
+<script src="assets/strix.js"></script>
+<script src="assets/strix-data.js"></script>
+<script src="assets/wallet.js"></script>
+<script src="assets/shell.js"></script>
+<script src="assets/chatbot.js"></script>
+<script src="assets/strix-3d.js"></script>
+<script src="assets/page.js"></script>
+</body></html>

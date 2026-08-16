@@ -1,0 +1,303 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>About — why Strix Hood exists | Strix Hood</title>
+<meta name="description" content="The problem Strix Hood was built for, how it started, the six principles we design against, the team building it, who backs us and how to get in touch.">
+<link rel="canonical" href="https://strix-hood.vercel.app/about.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:title" content="About — why Strix Hood exists"><meta property="og:description" content="AI agents can reason but cannot spend. We built the settlement layer that lets them, inside a policy you wrote and can revoke.">
+<meta property="og:image" content="https://strix-hood.vercel.app/assets/og.png">
+<meta property="og:url" content="https://strix-hood.vercel.app/about.html"><meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@strixhood">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/strix.css">
+<link rel="stylesheet" href="assets/page.css">
+<link rel="stylesheet" href="assets/chatbot.css">
+</head><body data-page="about">
+<canvas id="sx-ambient" aria-hidden="true"></canvas>
+<div id="sx-nav-host"></div>
+<main id="main">
+
+<!-- ══ HERO ══════════════════════════════════════════════════ -->
+<section class="ph">
+  <div class="sx-shell ph__grid">
+    <div>
+      <span class="sx-eyebrow" data-reveal="0"><span class="sx-glyph sx-glyph--dot"></span>Strix Hood Labs · founded 2025</span>
+      <h1 data-reveal="50">Agents can reason. They still <em>cannot spend</em>.</h1>
+      <p class="sx-lead ph__lead" data-reveal="110">
+        We are building the settlement layer that closes that gap without handing a language model a private key.
+        Twelve people, one protocol, and a strong preference for saying what does not work yet.
+      </p>
+      <div class="ph__actions" data-reveal="160">
+        <a class="sx-btn sx-btn--primary" href="careers.html">Open roles</a>
+        <a class="sx-btn sx-btn--ghost" href="#team">Meet the team</a>
+        <a class="sx-btn sx-btn--quiet" href="#contact">Contact</a>
+      </div>
+    </div>
+    <div data-reveal="120">
+      <blockquote class="ab-quote">
+        <p>A promise is worth the collateral standing behind it. Everything else in the protocol is machinery for
+          making that sentence enforceable.</p>
+        <cite>— Rhea Andersen, co-founder · from the first design memo, March 2025</cite>
+      </blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- ══ THE PROBLEM ═══════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--rule">
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">The problem</span>
+      <h2>Every existing answer is a bad trade</h2>
+    </div>
+
+    <div class="pg-grid pg-grid--2" data-reveal="50" style="align-items:start;gap:clamp(24px,4vw,52px)">
+      <div class="pg-prose">
+        <p>An agent that can read a market, price a trade and write the calldata still has to stop at the last step and
+          ask a human to sign. The workarounds all share a shape: they move the risk somewhere you cannot see it.</p>
+        <p><strong>Give the agent a hot key.</strong> Now a prompt injection is a wire transfer. <strong>Put it behind a
+          custodian.</strong> Now you have re-invented a broker with worse uptime and no deposit protection.
+          <strong>Approve every action manually.</strong> Now it is not an agent; it is a very slow trading terminal
+          with extra steps.</p>
+        <p>What is missing is not intelligence. It is a place to put the authority — bounded, revocable, and enforced
+          somewhere the model cannot reach.</p>
+        <h3>What we decided to build</h3>
+        <p>A commerce layer where the unit of work is an <em>intent</em>, not a transaction. The agent states what it
+          wants. The protocol decides whether it is allowed, simulates whether it works, auctions how it should be
+          routed, and writes down what happened — including when the answer was no.</p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="sx-card pg-card">
+          <span class="pg-card__tag">Consequence</span>
+          <h3>The model is never trusted</h3>
+          <p>It is assumed compromised on every request. That single assumption produced the policy engine, the
+            simulation gate and the session-key design.</p>
+        </div>
+        <div class="sx-card pg-card">
+          <span class="pg-card__tag">Consequence</span>
+          <h3>Agents need collateral, not permission</h3>
+          <p>Sybil resistance priced in capital rather than detected with heuristics. It is the only mechanism that
+            works against an adversary who can spin up identities for free.</p>
+        </div>
+        <div class="sx-card pg-card">
+          <span class="pg-card__tag">Consequence</span>
+          <h3>Refusals are a first-class output</h3>
+          <p>An intent that is held is not an error. It is the system doing its job, and it produces a receipt of the
+            same weight as a settlement.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ORIGIN ════════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark">
+  <span class="sx-index" aria-hidden="true">02</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Origin</span>
+      <h2>Eighteen months, in order</h2>
+      <p class="sx-lead">Including the six weeks we spent building the wrong thing, because leaving it out would make
+        the rest of the timeline dishonest.</p>
+    </div>
+
+    <ol class="ab-tl" data-reveal="50">
+      <li>
+        <time datetime="2025-03">March 2025</time>
+        <h3>A design memo about clearing, not about AI</h3>
+        <p>Rhea and Tobias had both spent years on settlement systems — one in equities clearing, one in a crypto
+          matching engine. The memo asked a narrow question: what would it take for a non-human counterparty to be
+          creditworthy? The answer was collateral, and the rest followed.</p>
+      </li>
+      <li>
+        <time datetime="2025-05">May 2025</time>
+        <h3>Six weeks building a permissioned relayer</h3>
+        <p>The first prototype was a relayer that co-signed agent transactions after checking them. It worked, and it
+          was wrong: it made us the counterparty for every action, which is exactly the custodial trade we were trying
+          to avoid. We deleted it.</p>
+      </li>
+      <li>
+        <time datetime="2025-07">July 2025</time>
+        <h3>Policy moves onchain, off the relayer</h3>
+        <p>The rebuild put policy enforcement in the user’s own smart account and reduced us to an executor that can be
+          replaced. The moment the policy hash was committed onchain, the security model stopped depending on us being
+          honest.</p>
+      </li>
+      <li>
+        <time datetime="2025-09">September 2025</time>
+        <h3>First external settlement on testnet</h3>
+        <p>An agent belonging to someone outside the company swapped 200 USDC for ETH under a policy we could not
+          modify. It took 41 seconds and was, in retrospect, the day the company started.</p>
+      </li>
+      <li>
+        <time datetime="2026-01">January 2026</time>
+        <h3>The solver auction is sealed</h3>
+        <p>Six weeks of open-book data showed solvers competing on tick size rather than execution. Sealing the bids
+          cost 40 milliseconds and returned 11 basis points of median price improvement.</p>
+      </li>
+      <li>
+        <time datetime="2026-04">April 2026</time>
+        <h3>Tokenized equities, and the second clock</h3>
+        <p>Adding an equity leg forced the hardest product decision so far: a token that settles in a block against a
+          register that settles T+1. We shipped it with the gap documented rather than hidden.</p>
+      </li>
+      <li>
+        <time datetime="2026-08">August 2026</time>
+        <h3>Public testnet, 18 agents, one honest status page</h3>
+        <p>Where we are now. Three audits complete, one component still unaudited and labelled as such, and four
+          incidents with postmortems in the last ninety days.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ══ PRINCIPLES ════════════════════════════════════════════ -->
+<section class="pg-sec">
+  <span class="sx-index" aria-hidden="true">03</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Principles</span>
+      <h2>Six rules we actually enforce in review</h2>
+      <p class="sx-lead">Not values on a wall. Each of these has killed a feature or a piece of copy in the last year.</p>
+    </div>
+
+    <ol class="pg-ol" data-reveal="50" style="max-width:78ch">
+      <li><b>Publish the gap.</b> Anything the system does not protect against goes on the same page as what it does.
+        The security page’s honest-limits section is not a footnote; it is a section.</li>
+      <li><b>Enforce in code, document second.</b> If a rule lives only in documentation, it is a suggestion. The
+        capability map, the policy hash and the allow-list gate all exist because a doc was not enough.</li>
+      <li><b>A number without a source is a lie.</b> Every figure on this site says where it came from. Simulated data
+        is labelled simulated, on the page, next to the number.</li>
+      <li><b>The user’s account, not ours.</b> Anything we can unilaterally change is a thing we can be compelled to
+        change. Policy enforcement lives in the user’s smart account for that reason.</li>
+      <li><b>Refusal is a feature.</b> Held intents are recorded, surfaced and never penalised in reputation. A system
+        that hides its refusals teaches operators to widen their limits.</li>
+      <li><b>Write it down before you build it.</b> Every meaningful decision has a memo with the alternatives we
+        rejected. The relayer we deleted is still in the repository history with the reasoning attached.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ══ TEAM ══════════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark" id="team">
+  <span class="sx-index" aria-hidden="true">04</span>
+  <div class="sx-shell">
+    <div class="pg-head pg-head--row" data-reveal="0">
+      <div>
+        <span class="sx-eyebrow">Team</span>
+        <h2>Twelve people. Eight of them are here.</h2>
+        <p class="sx-lead">No headshots — the marks are generated deterministically from each name, the same way agent
+          portraits are. Select anyone for what they did before this.</p>
+      </div>
+      <a class="sx-btn sx-btn--ghost" href="careers.html">We are hiring six roles</a>
+    </div>
+
+    <div class="ab-team" id="ab-team" data-reveal="50"></div>
+
+    <p class="sx-body" data-reveal="90" style="margin-top:22px;font-size:12.5px;max-width:70ch">
+      Four colleagues in infrastructure, operations and finance are not listed here at their own request. Everyone is
+      remote across UTC−8 to UTC+3; we meet in person twice a year and write everything down in between.
+    </p>
+  </div>
+</section>
+
+<!-- ══ BACKERS ═══════════════════════════════════════════════ -->
+<section class="pg-sec">
+  <span class="sx-index" aria-hidden="true">05</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Backers</span>
+      <h2>Who funded this, and on what terms</h2>
+      <p class="sx-lead">$14M seed closed October 2025. No token warrants attached to the equity, because a backer who
+        profits from token velocity is a backer arguing for the wrong roadmap.</p>
+    </div>
+
+    <div class="ab-backers" id="ab-backers" data-reveal="50"></div>
+
+    <div class="pg-note" data-reveal="90">
+      <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--ring"></span></span>
+      <div><b>What the money is for</b>
+        <p>Audits, the solver network’s early liquidity, and enough runway to say no to a mainnet launch that is not
+          ready. Roughly 40% of the raise is allocated to security work — three completed audits, a standing bounty
+          and a fourth engagement in progress.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CONTACT ═══════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark" id="contact">
+  <span class="sx-index" aria-hidden="true">06</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Contact</span>
+      <h2>Four ways in, all of them read by a person</h2>
+    </div>
+
+    <div class="ab-contact" data-reveal="50">
+      <a href="mailto:hello@strix-hood.xyz">
+        <b>General</b><span>hello@strix-hood.xyz</span>
+        <small>Partnerships, integrations, anything that does not fit the other three. Replies within two working days.</small>
+      </a>
+      <a href="mailto:security@strix-hood.xyz?subject=Security%20report">
+        <b>Security</b><span>security@strix-hood.xyz</span>
+        <small>Vulnerability reports. Critical findings get a human reply within four hours. PGP key in the repository.</small>
+      </a>
+      <a href="mailto:press@strix-hood.xyz">
+        <b>Press</b><span>press@strix-hood.xyz</span>
+        <small>We will not confirm partnerships before they ship, and we do not do embargoed announcements.</small>
+      </a>
+      <a href="https://x.com/strixhood" target="_blank" rel="noopener noreferrer">
+        <b>Public</b><span>@strixhood</span>
+        <small>Protocol updates and incident notices. Technical arguments welcome; we lose some of them in public.</small>
+      </a>
+    </div>
+
+    <div class="sx-row" data-reveal="90" style="margin-top:24px">
+      <a class="sx-btn sx-btn--ghost" href="https://github.com/allinoneacount1-dot/strix-hood" target="_blank" rel="noopener noreferrer">Source and issues on GitHub</a>
+      <a class="sx-btn sx-btn--quiet" href="brand.html">Brand assets for press</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ═══════════════════════════════════════════════════ -->
+<section class="pg-cta">
+  <div class="sx-shell pg-cta__in" data-reveal="0">
+    <div>
+      <h2 class="sx-h1">Come and argue with us.</h2>
+      <p class="sx-lead">Six roles open, all remote, all with a written take-home you get paid for. The interview is
+        mostly us asking what you built and what broke.</p>
+      <div class="pg-cta__links">
+        <a class="sx-btn sx-btn--primary" href="careers.html">See open roles</a>
+        <a class="sx-btn sx-btn--ghost" href="blog.html">Read what we write</a>
+        <a class="sx-btn sx-btn--quiet" href="docs.html">Protocol documentation</a>
+      </div>
+    </div>
+    <div class="pg-cta__side">
+      <div class="sx-card sx-card--flat">
+        <span class="sx-label">Company facts</span>
+        <ul class="pg-ul" style="margin-top:12px">
+          <li>Strix Hood Labs — incorporated 2025, remote-first</li>
+          <li>12 people across UTC−8 to UTC+3</li>
+          <li>$14M seed · October 2025 · no token warrants</li>
+          <li>Testnet public since August 2026 · mainnet unscheduled</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+<div id="sx-footer-host"></div>
+<script src="assets/strix.js"></script>
+<script src="assets/strix-data.js"></script>
+<script src="assets/wallet.js"></script>
+<script src="assets/shell.js"></script>
+<script src="assets/chatbot.js"></script>
+<script src="assets/strix-3d.js"></script>
+<script src="assets/page.js"></script>
+</body></html>

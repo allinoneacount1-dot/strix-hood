@@ -1,0 +1,368 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Passport — the ERC-721 an agent cannot leave behind | Strix Hood</title>
+<meta name="description" content="The Strix Hood Agent Passport: ERC-721 metadata schema, the four-slot module system, rarity tiers, and exactly how reputation is written by the settlement contract.">
+<link rel="canonical" href="https://strix-hood.vercel.app/nft.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:title" content="Agent Passport — reputation you cannot fake or leave behind"><meta property="og:description" content="ERC-721 metadata schema, equipment modules that change real stats, rarity tiers and how reputation is written onchain.">
+<meta property="og:image" content="https://strix-hood.vercel.app/assets/og.png">
+<meta property="og:url" content="https://strix-hood.vercel.app/nft.html"><meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@strixhood">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/strix.css">
+<link rel="stylesheet" href="assets/page.css">
+<link rel="stylesheet" href="assets/chatbot.css">
+</head><body data-page="nft">
+<canvas id="sx-ambient" aria-hidden="true"></canvas>
+<div id="sx-nav-host"></div>
+<main id="main">
+
+<!-- ══ HERO ══════════════════════════════════════════════════ -->
+<section class="ph">
+  <div class="sx-shell ph__grid">
+    <div>
+      <span class="sx-eyebrow" data-reveal="0"><span class="sx-glyph sx-glyph--dot"></span>ERC-721 · Agent Passport</span>
+      <h1 data-reveal="50">A record the operator <em>cannot curate</em>.</h1>
+      <p class="sx-lead ph__lead" data-reveal="110">
+        Every agent mints a passport at registration. Executions, refusals, slashing events and equipped
+        modules are written to it by the settlement contract. Sell the agent and the record travels with
+        it — which is the only reason reading it is worth anything.
+      </p>
+      <div class="ph__actions" data-reveal="160">
+        <button class="sx-btn sx-btn--primary" type="button" id="nf-mint">Mint a passport</button>
+        <a class="sx-btn sx-btn--ghost" href="#modules">Try the module system</a>
+        <a class="sx-btn sx-btn--quiet" href="https://opensea.io/" target="_blank" rel="noopener noreferrer">View on OpenSea</a>
+      </div>
+      <div class="ph__meta" data-reveal="200">
+        <span>standard <b>ERC-721</b></span>
+        <span>metadata <b>on-chain + IPFS</b></span>
+        <span>slots <b>4</b></span>
+        <span>modules <b>8</b></span>
+        <span>rarity tiers <b>5</b></span>
+      </div>
+    </div>
+
+    <div class="nf-visual" data-reveal="120">
+      <canvas id="nf-card" aria-label="Rotating three-dimensional agent passport card" role="img"></canvas>
+      <div class="nf-fallback" aria-hidden="true">
+        <span class="nf-fallback__id">AGENT #1842</span>
+        <span class="nf-fallback__art"></span>
+        <span class="nf-fallback__rows">
+          <span><i>CLASS</i><i>EXECUTOR</i></span>
+          <span><i>REPUTATION</i><i>968</i></span>
+          <span><i>EXECUTIONS</i><i>128,904</i></span>
+          <span><i>BOND</i><i>100,000 STRX</i></span>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ WHY ═══════════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--rule">
+  <div class="sx-shell">
+    <div class="pg-grid pg-grid--2" style="align-items:start;gap:clamp(24px,4vw,56px)">
+      <div class="pg-prose" data-reveal="0">
+        <span class="sx-eyebrow" style="margin-bottom:14px">Why a token at all</span>
+        <h2 class="sx-h2" style="font-size:clamp(25px,2.7vw,40px);margin-bottom:16px">Reputation that can be abandoned is not reputation.</h2>
+        <p>An agent’s track record is only useful to a counterparty if the agent cannot walk away from it. A database
+          row can be deleted. A score on our servers can be recalculated. A token that carries the record, and that
+          must be transferred to transfer the agent, cannot.</p>
+        <p>That is the whole argument for the passport. It is not a collectible and it is not a membership pass. It is
+          the object that makes “this agent has settled 128,904 intents without a policy breach” into a claim you can
+          check rather than a line of marketing.</p>
+        <h3>What is written, and by whom</h3>
+        <p>The settlement contract writes executions and refusals. The registry writes class, tier and bond. The
+          arbitration contract writes slashes. The <strong>owner writes almost nothing</strong> — a display name and a
+          description, both clearly separated from protocol-written fields in the metadata below.</p>
+        <p>Modules are the exception: the owner equips them, and equipping one changes the agent’s real operating
+          parameters, not just its picture. That is what the lab below demonstrates.</p>
+      </div>
+
+      <div data-reveal="60" style="display:flex;flex-direction:column;gap:12px">
+        <div class="sx-card pg-card">
+          <span class="pg-card__tag">Consequence 01</span>
+          <h3>Selling an agent sells its liabilities</h3>
+          <p>Open challenges and pending slashes follow the token. A buyer who does not read the log inherits it
+            anyway, which is why the log is public and free to query.</p>
+        </div>
+        <div class="sx-card pg-card">
+          <span class="pg-card__tag">Consequence 02</span>
+          <h3>A bad month lasts forever</h3>
+          <p>We do not prune. Reputation is time-weighted so recent behaviour dominates, but the underlying events
+            never disappear from the token.</p>
+        </div>
+        <div class="sx-card pg-card">
+          <span class="pg-card__tag">Consequence 03</span>
+          <h3>Refusals are as expensive to forge as settlements</h3>
+          <p>Both are signed attestations of the same weight. “This agent has never breached a policy” is therefore
+            a verifiable statement rather than a slogan.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ METADATA SCHEMA ═══════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark">
+  <span class="sx-index" aria-hidden="true">02</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Token spec</span>
+      <h2>ERC-721 metadata schema</h2>
+      <p class="sx-lead">Standard OpenSea-compatible fields plus a <span class="sx-mono" style="color:var(--neon-2)">strix:</span>
+        namespace for protocol state. Every mutable field names the contract allowed to mutate it.</p>
+    </div>
+
+    <div class="sx-tablewrap" data-reveal="60">
+      <table class="sx-table" style="min-width:880px">
+        <caption class="sx-sr">Agent passport ERC-721 metadata fields</caption>
+        <thead><tr>
+          <th scope="col">Field</th><th scope="col">Type</th><th scope="col">Mutable</th>
+          <th scope="col">Written by</th><th scope="col">Notes</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="sx-mono">tokenId</td><td class="sx-mono sx-dim">uint256</td><td><span class="pg-tag">never</span></td>
+            <td>Registry</td><td>Derived from the manifest hash. Changing the manifest mints a new token, it does not edit this one.</td></tr>
+          <tr><td class="sx-mono">name</td><td class="sx-mono sx-dim">string</td><td><span class="pg-tag pg-tag--teal">owner</span></td>
+            <td>Owner</td><td>Display name. Not unique and not used for resolution anywhere in the protocol.</td></tr>
+          <tr><td class="sx-mono">description</td><td class="sx-mono sx-dim">string</td><td><span class="pg-tag pg-tag--teal">owner</span></td>
+            <td>Owner</td><td>Free text. Shown in wallets and on marketplaces; never parsed.</td></tr>
+          <tr><td class="sx-mono">image</td><td class="sx-mono sx-dim">URI</td><td><span class="pg-tag pg-tag--on">derived</span></td>
+            <td>Renderer</td><td>Deterministic SVG generated from tokenId plus equipped modules. Re-renders when the loadout changes.</td></tr>
+          <tr><td class="sx-mono">external_url</td><td class="sx-mono sx-dim">URI</td><td><span class="pg-tag">never</span></td>
+            <td>Registry</td><td>Resolves to the agent’s marketplace listing.</td></tr>
+          <tr><td class="sx-mono">attributes[Class]</td><td class="sx-mono sx-dim">string</td><td><span class="pg-tag">never</span></td>
+            <td>Registry</td><td>executor · analyst · payments · guardian · curator · broker.</td></tr>
+          <tr><td class="sx-mono">attributes[Tier]</td><td class="sx-mono sx-dim">string</td><td><span class="pg-tag pg-tag--on">derived</span></td>
+            <td>Registry</td><td>Follows bond and clean-execution count. Cannot be purchased directly.</td></tr>
+          <tr><td class="sx-mono">attributes[Reputation]</td><td class="sx-mono sx-dim">uint16</td><td><span class="pg-tag pg-tag--on">protocol</span></td>
+            <td>Settlement</td><td>0–1000. Recomputed on every settlement and every resolved dispute.</td></tr>
+          <tr><td class="sx-mono">attributes[Executions]</td><td class="sx-mono sx-dim">uint256</td><td><span class="pg-tag pg-tag--on">protocol</span></td>
+            <td>Settlement</td><td>Monotonic. Refusals are counted separately and are not netted off.</td></tr>
+          <tr><td class="sx-mono">attributes[Bond]</td><td class="sx-mono sx-dim">uint256</td><td><span class="pg-tag pg-tag--on">protocol</span></td>
+            <td>Bond vault</td><td>Live staked amount, not the amount at registration.</td></tr>
+          <tr><td class="sx-mono">modules[]</td><td class="sx-mono sx-dim">string[]</td><td><span class="pg-tag pg-tag--teal">owner</span></td>
+            <td>Owner</td><td>Maximum four slots. Equipping is a transaction and re-renders the image.</td></tr>
+          <tr><td class="sx-mono">strix:policyHash</td><td class="sx-mono sx-dim">bytes32</td><td><span class="pg-tag pg-tag--teal">owner</span></td>
+            <td>Owner</td><td>Commitment to the active policy. The executor refuses to act if the loaded policy disagrees.</td></tr>
+          <tr><td class="sx-mono">strix:manifest</td><td class="sx-mono sx-dim">CID</td><td><span class="pg-tag">never</span></td>
+            <td>Registry</td><td>IPFS CID of the signed manifest this tokenId was derived from.</td></tr>
+          <tr><td class="sx-mono">strix:slashCount</td><td class="sx-mono sx-dim">uint16</td><td><span class="pg-tag pg-tag--on">protocol</span></td>
+            <td>Arbitration</td><td>Permanent. A slashed passport carries the count for the life of the token.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sx-row" data-reveal="90" style="margin-top:20px">
+      <a class="sx-btn sx-btn--ghost sx-btn--sm" href="docs.html#agent-passport">Full token reference</a>
+      <a class="sx-btn sx-btn--quiet sx-btn--sm" href="api.html#executions-attestation">Attestation format</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ MODULE LAB ════════════════════════════════════════════ -->
+<section class="pg-sec" id="modules">
+  <span class="sx-index" aria-hidden="true">03</span>
+  <div class="sx-shell">
+    <div class="pg-head pg-head--row" data-reveal="0">
+      <div>
+        <span class="sx-eyebrow">Equipment</span>
+        <h2>Four slots. Eight modules. Every one changes a real number.</h2>
+        <p class="sx-lead">Modules are not cosmetic traits. Equipping one alters the agent’s operating parameters and
+          rewrites the token metadata. Try a loadout — the JSON on the right is what the tokenURI would return.</p>
+      </div>
+      <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="nf-reset">Reset loadout</button>
+    </div>
+
+    <div class="nf-lab" data-reveal="60">
+      <div>
+        <div class="sx-between" style="margin-bottom:14px">
+          <div class="nf-slots" id="nf-slots" aria-hidden="true"></div>
+          <span class="sx-mono sx-dim" id="nf-slot-label" role="status" aria-live="polite" style="font-size:12px">3 of 4 slots used</span>
+        </div>
+
+        <div class="nf-mods" id="nf-mods" role="group" aria-label="Equipment modules"></div>
+
+        <div class="sx-card" style="margin-top:22px">
+          <div class="sx-between" style="margin-bottom:18px">
+            <h3 class="sx-h3" style="font-size:18px">Resulting parameters</h3>
+            <span class="sx-status sx-status--live" id="nf-tier"><i></i>Verified</span>
+          </div>
+          <dl class="nf-stats" id="nf-stats"></dl>
+          <p class="sx-body" style="margin-top:18px;font-size:12.5px">Settle latency is the median across the agent’s
+            allowed venues. Safety score is the fraction of the audited attack corpus refused at simulation. Fee rebate
+            is returned from solver competition, not from the protocol fee.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="nf-json" id="nf-json-wrap">
+          <div class="pg-code__bar" style="border-radius:0">
+            <span>tokenURI → application/json</span>
+            <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="nf-copy-json">Copy</button>
+          </div>
+          <div id="nf-json"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ RARITY ════════════════════════════════════════════════ -->
+<section class="pg-sec pg-sec--dark">
+  <span class="sx-index" aria-hidden="true">04</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Rarity</span>
+      <h2>Tiers are earned or lost, never bought</h2>
+      <p class="sx-lead">Tier is derived from bond and clean-execution history at read time. There is no mint that
+        grants a tier and no way to buy one directly — though buying an agent that already has one is exactly what the
+        secondary market is for.</p>
+    </div>
+
+    <div class="sx-tablewrap" data-reveal="60">
+      <table class="sx-table" style="min-width:840px">
+        <caption class="sx-sr">Passport rarity tiers with supply, requirement and effect</caption>
+        <thead><tr>
+          <th scope="col">Tier</th><th class="num" scope="col">Supply cap</th><th scope="col">Requirement</th>
+          <th scope="col">Effect</th><th scope="col">Loss condition</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><span class="nf-rar"><i style="background:var(--gray)"></i><b>Standard</b></span></td>
+            <td class="num">uncapped</td><td>Bond ≥ 25,000 STRX</td>
+            <td>Listed in the marketplace at 1.0× discovery weight.</td><td>Unbonding below the floor.</td></tr>
+          <tr><td><span class="nf-rar"><i style="background:var(--teal)"></i><b>Verified</b></span></td>
+            <td class="num">4,096</td><td>Bond ≥ 100,000 STRX and 5,000 clean settlements</td>
+            <td>2.5× discovery weight; eligible for institutional counterparties.</td><td>Any resolved slash.</td></tr>
+          <tr><td><span class="nf-rar"><i style="background:var(--neon)"></i><b>Elite</b></span></td>
+            <td class="num">512</td><td>Bond ≥ 250,000 STRX, reputation ≥ 970, zero slashes</td>
+            <td>6.0× weight; priority in the solver auction tie-break.</td><td>Reputation falling below 950 for 30 days.</td></tr>
+          <tr><td><span class="nf-rar"><i style="background:var(--neon-2)"></i><b>Founding</b></span></td>
+            <td class="num">128</td><td>Registered in the genesis window, still bonded</td>
+            <td>Permanent trait. No mechanical advantage beyond Elite.</td><td>Cannot be lost; cannot be re-issued.</td></tr>
+          <tr><td><span class="nf-rar"><i style="background:var(--crimson)"></i><b>Slashed</b></span></td>
+            <td class="num">variable</td><td>One or more resolved slashes</td>
+            <td>Marked in metadata and in every marketplace surface. Still tradeable.</td><td>Permanent.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pg-note pg-note--warn" data-reveal="90">
+      <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--dash"></span></span>
+      <div><b>The Slashed tier is deliberate</b>
+        <p>We were asked to let slashed agents burn their passport and re-register clean. That would make every other
+          tier meaningless, because the absence of a slash would no longer be evidence of anything. The mark stays.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ REPUTATION ════════════════════════════════════════════ -->
+<section class="pg-sec">
+  <span class="sx-index" aria-hidden="true">05</span>
+  <div class="sx-shell">
+    <div class="pg-head" data-reveal="0">
+      <span class="sx-eyebrow">Reputation</span>
+      <h2>How the number is actually computed</h2>
+      <p class="sx-lead">Reputation is a bounded score in [0, 1000] recomputed on every settlement and every resolved
+        dispute. It is written by the settlement contract; no operator, and no part of our team, can set it.</p>
+    </div>
+
+    <div class="pg-grid pg-grid--2" data-reveal="60" style="align-items:start;gap:clamp(20px,3vw,44px)">
+      <div>
+        <div class="pg-code">
+          <div class="pg-code__bar"><span>reputation.sol — simplified</span>
+            <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" data-copy-target="nf-rep-code" data-copy-label="Formula copied">Copy</button>
+          </div>
+          <pre id="nf-rep-code"><code><span class="c">// weight decays with age: 30-day half-life</span>
+w(e)   = <span class="n">0.5</span> ** (age(e) / <span class="n">30 days</span>)
+
+<span class="c">// notional weighting is logarithmic, not linear —</span>
+<span class="c">// one large settlement cannot buy a reputation</span>
+n(e)   = ln(<span class="n">1</span> + usd(e) / <span class="n">1000</span>)
+
+score  = <span class="n">1000</span> * Σ w(e)·n(e)·outcome(e)
+                  ─────────────────────
+                       Σ w(e)·n(e)
+
+outcome(settled)   = <span class="n">+1.0</span>
+outcome(refused)   = <span class="n">null</span>   <span class="c">// excluded, not penalised</span>
+outcome(disputed)  = <span class="n">-2.5</span>   <span class="c">// resolved against the agent</span>
+outcome(slashed)   = <span class="n">-12.0</span>  <span class="c">// plus a permanent tier mark</span></code></pre>
+        </div>
+        <p class="sx-body" style="margin-top:14px;font-size:12.5px">
+          A slash is roughly twelve times heavier than a good settlement and never ages out of the event log, though its
+          weight decays. Recovering from one takes months of clean volume, which is the intended cost.
+        </p>
+      </div>
+
+      <div class="sx-tablewrap">
+        <table class="sx-table" style="min-width:0">
+          <caption class="sx-sr">Events that write to the passport</caption>
+          <thead><tr><th scope="col">Event</th><th scope="col">Written by</th><th class="num" scope="col">Effect</th></tr></thead>
+          <tbody>
+            <tr><td>Settlement</td><td class="sx-dim">Settlement</td><td class="num sx-up">+1.0 × weight</td></tr>
+            <tr><td>Refusal (policy)</td><td class="sx-dim">Policy engine</td><td class="num sx-dim">excluded</td></tr>
+            <tr><td>Refusal (simulation)</td><td class="sx-dim">Simulator</td><td class="num sx-dim">excluded</td></tr>
+            <tr><td>Held for approval</td><td class="sx-dim">Policy engine</td><td class="num sx-dim">excluded</td></tr>
+            <tr><td>Expired intent</td><td class="sx-dim">Settlement</td><td class="num sx-dim">excluded</td></tr>
+            <tr><td>Dispute · agent wins</td><td class="sx-dim">Arbitration</td><td class="num sx-dim">no change</td></tr>
+            <tr><td>Dispute · agent loses</td><td class="sx-dim">Arbitration</td><td class="num sx-down">−2.5 × weight</td></tr>
+            <tr><td>Slash</td><td class="sx-dim">Arbitration</td><td class="num sx-down">−12.0 + tier mark</td></tr>
+            <tr><td>Idle 30 days</td><td class="sx-dim">Registry</td><td class="num sx-dim">weights decay only</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="pg-note" data-reveal="100">
+      <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--ring"></span></span>
+      <div><b>Why refusals are excluded rather than penalised</b>
+        <p>An agent that refuses an intent is doing its job. Penalising refusals would teach operators to write loose
+          policies so their agents look busy, which is precisely the behaviour the score exists to discourage. Refusals
+          are counted and displayed — they simply do not move the number.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ═══════════════════════════════════════════════════ -->
+<section class="pg-cta">
+  <div class="sx-shell pg-cta__in" data-reveal="0">
+    <div>
+      <h2 class="sx-h1">Mint one, or read one first.</h2>
+      <p class="sx-lead">Testnet passports mint free against the sandbox registry. Every agent in the marketplace has a
+        passport you can inspect before hiring it — including the refusals.</p>
+      <div class="pg-cta__links">
+        <a class="sx-btn sx-btn--primary" href="marketplace.html">Inspect a live passport</a>
+        <a class="sx-btn sx-btn--ghost" href="agents.html">Registration and bonds</a>
+        <a class="sx-btn sx-btn--quiet" href="https://opensea.io/" target="_blank" rel="noopener noreferrer">OpenSea collection</a>
+      </div>
+    </div>
+    <div class="pg-cta__side">
+      <div class="sx-card sx-card--flat">
+        <span class="sx-label">Token references</span>
+        <ul class="pg-ul" style="margin-top:12px">
+          <li><a href="docs.html#agent-passport" style="color:var(--neon-2)">Passport contract reference</a></li>
+          <li><a href="docs.html#reputation-concept" style="color:var(--neon-2)">Reputation concept</a></li>
+          <li><a href="docs.html#slashing" style="color:var(--neon-2)">Slashing and arbitration</a></li>
+          <li><a href="docs.html#contract-addresses" style="color:var(--neon-2)">Deployed addresses</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+<div id="sx-footer-host"></div>
+<script src="assets/strix.js"></script>
+<script src="assets/strix-data.js"></script>
+<script src="assets/wallet.js"></script>
+<script src="assets/shell.js"></script>
+<script src="assets/chatbot.js"></script>
+<script src="assets/strix-3d.js"></script>
+<script src="assets/page.js"></script>
+</body></html>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://strix-hood.vercel.app/sitemap.xml

@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>API Reference — Strix Hood Protocol</title>
+  <meta name="description" content="Strix Hood REST and WebSocket API reference: authentication, agents, intents, policies, quotes, executions, portfolio, webhooks and realtime channels.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta property="og:title" content="API Reference — Strix Hood Protocol"><meta property="og:description" content="Every REST endpoint and WebSocket channel: parameters, examples, error codes, idempotency and pagination.">
+  <meta property="og:image" content="assets/og.png"><meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@strixhood">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/strix.css">
+  <link rel="stylesheet" href="assets/docs.css">
+</head>
+<body>
+  <div id="sx-nav-host"></div>
+  <main id="main" class="dx">
+
+    <div class="dx-bar">
+      <div class="dx-wrap dx-bar__in">
+        <button class="sx-btn sx-btn--ghost sx-btn--icon dx-menubtn" id="dx-menubtn" type="button"
+                aria-expanded="false" aria-controls="dx-rail" aria-label="Open API navigation">
+          <span class="sx-burger__bars"><i></i><i></i><i></i></span>
+        </button>
+        <p class="dx-crumb"><b>API</b><i>/</i><span id="dx-crumb-sec">Overview</span></p>
+        <span class="dx-bar__spacer"></span>
+        <button class="dx-searchbtn" type="button" aria-label="Search the documentation">
+          <span class="sx-glyph sx-glyph--ring" aria-hidden="true"></span>
+          <span>Search docs</span><kbd>⌘K</kbd>
+        </button>
+      </div>
+    </div>
+
+    <div class="dx-wrap">
+      <div class="dx-grid">
+        <aside class="dx-rail" id="dx-rail" aria-label="API reference navigation"></aside>
+
+        <div class="dx-body">
+
+          <header class="dx-hero">
+            <span class="sx-eyebrow">REST &amp; WebSocket</span>
+            <h1>API reference</h1>
+            <p>A resource-oriented HTTP API over JSON, plus a WebSocket surface for everything that changes.
+              Predictable URLs, standard verbs, standard status codes, and one error envelope everywhere.</p>
+            <p class="dx-hero__meta">
+              <span>Base <b>https://api.strixhood.xyz/v1</b></span>
+              <span>Version <b>2026-07-01</b></span>
+              <span>Endpoints <b>34</b></span>
+              <span>Channels <b>3</b></span>
+            </p>
+          </header>
+
+          <!-- ============================ OVERVIEW ============================ -->
+          <section class="dx-sec" data-group="Getting started">
+            <span class="dx-kicker">Base</span>
+            <h2 id="overview" data-nav="Overview">Overview</h2>
+            <p class="dx-lead">Every endpoint is served over TLS 1.3 from
+              <code>https://api.strixhood.xyz</code>. HTTP is refused, not redirected. Request and response bodies are
+              UTF-8 <code>application/json</code> unless an endpoint says otherwise.</p>
+
+            <h3 id="versioning">Versioning</h3>
+            <p>The path carries the major version (<code>/v1</code>); the <code>Strix-Api-Version</code> header
+              carries the dated minor version. Omitting the header pins you to the version that was current when
+              your API key was created, so existing integrations do not move under you.</p>
+            <div class="dx-code" data-lang="bash" data-title="pinning a version"><pre><code>curl -sS https://api.strixhood.xyz/v1/agents \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  -H "Strix-Api-Version: 2026-07-01"</code></pre></div>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Version</th><th>Released</th><th>Breaking changes</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">2026-07-01</td><td class="mono">2026-07-01</td><td><code>intent.estimated</code> replaces <code>intent.preview</code>; <code>equity_order</code> requires <code>venue</code>.</td></tr>
+                  <tr><td class="mono">2026-03-14</td><td class="mono">2026-03-14</td><td>Cursor pagination replaces offset pagination on every list endpoint.</td></tr>
+                  <tr><td class="mono">2025-11-20</td><td class="mono">2025-11-20</td><td>Initial public version.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="environments">Environments</h3>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Environment</th><th>Key prefix</th><th>Chains</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td>Test</td><td class="mono">strx_sk_test_</td><td>Base Sepolia, Arbitrum Sepolia, Solana devnet</td><td>No $STRX bond, faucet available, same schemas.</td></tr>
+                  <tr><td>Live</td><td class="mono">strx_sk_live_</td><td>All seven production networks</td><td>Real value. Bonds and fees apply.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>A test key against a live chain returns <code>403 environment_mismatch</code>, and the reverse is
+              also true. There is no flag that lets one key straddle both.</p>
+          </section>
+
+          <!-- ============================ AUTH ============================ -->
+          <section class="dx-sec" data-group="Getting started">
+            <span class="dx-kicker">Access</span>
+            <h2 id="authentication" data-nav="Authentication">Authentication</h2>
+            <p class="dx-lead">Bearer tokens on every request. There are no cookies, no sessions and no
+              request signing for REST — signing happens onchain with session keys, not at the API boundary.</p>
+
+            <h3 id="auth-header">Bearer authentication</h3>
+            <div class="dx-code" data-lang="http" data-title="every request"><pre><code>Authorization: Bearer strx_sk_live_9f2c41bd7a084e6cb35d0e17
+Content-Type: application/json
+Strix-Api-Version: 2026-07-01
+Idempotency-Key: 6f1c0d9a-8b52-4a1e-9f77-2c3d4e5f6a7b</code></pre></div>
+            <p>A missing or malformed header returns <code>401 authentication_error</code>. A well-formed key
+              that lacks the required scope returns <code>403 permission_error</code> and names the scope it
+              wanted.</p>
+
+            <h3 id="auth-scopes">Scopes</h3>
+            <p>Scopes are assigned at key creation and cannot be widened afterwards — create a new key instead.
+              Every endpoint on this page states the scope it requires.</p>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Scope</th><th>Grants</th><th>Safe for an agent runtime</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">agents:read</td><td>Read agents, session-key metadata, reputation.</td><td>Yes</td></tr>
+                  <tr><td class="mono">agents:write</td><td>Create, update, retire agents; issue and revoke session keys.</td><td>No</td></tr>
+                  <tr><td class="mono">intents:read</td><td>Read intents and executions.</td><td>Yes</td></tr>
+                  <tr><td class="mono">intents:write</td><td>Submit, cancel and approve intents.</td><td>Only with a tightly scoped policy</td></tr>
+                  <tr><td class="mono">policies:read</td><td>Read policies and their commitments.</td><td>Yes</td></tr>
+                  <tr><td class="mono">policies:write</td><td>Create and update policies.</td><td><strong>Never</strong> — this is authority over authority.</td></tr>
+                  <tr><td class="mono">portfolio:read</td><td>Balances, history, transactions.</td><td>Yes</td></tr>
+                  <tr><td class="mono">webhooks:write</td><td>Manage webhook endpoints.</td><td>No</td></tr>
+                  <tr><td class="mono">quotes:read</td><td>Quotes and prices. The only scope on <code>pk_</code> keys.</td><td>Yes</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="dx-note dx-note--warn">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>Scope your keys per process, not per team</b>
+                <p>The blast radius of a leaked key is exactly its scope set. One key with everything is one
+                  compromise away from a rewritten policy.</p></div>
+            </div>
+
+            <h3 id="auth-rotation">Rotation and revocation</h3>
+            <p>Keys support overlapping rotation: create the replacement, deploy it, then revoke the old key.
+              Revocation is immediate and global — there is no propagation window. Keys unused for 90 consecutive
+              days are automatically disabled and must be re-enabled from the console.</p>
+            <div class="dx-code" data-lang="bash" data-title="revoke"><pre><code>curl -sS -X DELETE https://api.strixhood.xyz/v1/api-keys/key_01JQ8ZV9R2T4W6Y8A0C2E4G6J8 \
+  -H "Authorization: Bearer $STRIX_ADMIN_KEY"</code></pre></div>
+
+            <h3 id="auth-ip">IP allowlists</h3>
+            <p>Secret keys accept an optional CIDR allowlist. Requests from outside it return
+              <code>403 ip_not_allowed</code> and are logged with the source address. Publishable
+              <code>pk_</code> keys cannot be IP-restricted, because they are meant to be public.</p>
+          </section>
+
+          <!-- ============================ CONVENTIONS ============================ -->
+          <section class="dx-sec" data-group="Conventions">
+            <span class="dx-kicker">Shape</span>
+            <h2 id="conventions" data-nav="Conventions">Requests &amp; responses</h2>
+            <p class="dx-lead">These rules hold for every endpoint. They are stated once here and not repeated
+              per resource.</p>
+
+            <h3 id="conv-idempotency">Idempotency</h3>
+            <p>Every <code>POST</code> accepts an <code>Idempotency-Key</code> header. Replaying a key inside 24
+              hours returns the original response — same status, same body, plus
+              <code>Idempotency-Replayed: true</code>. Replaying a key with a <em>different</em> body returns
+              <code>409 idempotency_conflict</code>; the protocol will not guess which one you meant.</p>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Situation</th><th>Result</th></tr></thead>
+                <tbody>
+                  <tr><td>Same key, same body, inside 24 h</td><td><code>200</code>/<code>202</code> with the original object and <code>Idempotency-Replayed: true</code></td></tr>
+                  <tr><td>Same key, different body</td><td><code>409 idempotency_conflict</code></td></tr>
+                  <tr><td>Same key, original request still in flight</td><td><code>409 idempotency_in_progress</code>, retry after <code>Retry-After</code></td></tr>
+                  <tr><td>Key older than 24 h</td><td>Treated as new</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="conv-pagination">Pagination</h3>
+            <p>All list endpoints are cursor-paginated. Because object IDs are ULIDs they sort by creation time,
+              so the cursor is just an ID.</p>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">limit</td><td class="ty">integer</td><td class="mono">25</td><td>1–100.</td></tr>
+                  <tr><td class="mono">starting_after</td><td class="ty">string</td><td class="mono">null</td><td>Return objects created after this ID. Forward pagination.</td></tr>
+                  <tr><td class="mono">ending_before</td><td class="ty">string</td><td class="mono">null</td><td>Return objects created before this ID. Backward pagination.</td></tr>
+                  <tr><td class="mono">order</td><td class="ty">enum</td><td class="mono">desc</td><td><code>asc</code> or <code>desc</code> by <code>created_at</code>.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="dx-code" data-lang="json" data-title="list envelope"><pre><code>{
+  "object": "list",
+  "data": [ { "id": "int_01JQ8ZP1V6C3MD8R0YF2WKGSTA", "object": "intent" } ],
+  "has_more": true,
+  "next_cursor": "int_01JQ8ZP1V6C3MD8R0YF2WKGSTA",
+  "total_estimated": 1284
+}</code></pre></div>
+            <p><code>total_estimated</code> is exactly that — an estimate from the index, cheap to compute and
+              never used for correctness. Loop on <code>has_more</code>, not on a count.</p>
+
+            <h3 id="conv-types">Timestamps, amounts and identifiers</h3>
+            <ul>
+              <li><strong>Timestamps</strong> are RFC 3339 UTC strings with millisecond precision:
+                <code>2026-08-16T09:00:00.412Z</code>. Never Unix epochs, never local time.</li>
+              <li><strong>Token amounts</strong> are decimal <em>strings</em> in human units, not integers in base
+                units: <code>"1500.000000"</code> USDC, not <code>1500000000</code>. This avoids float
+                truncation in JavaScript and ambiguity about decimals.</li>
+              <li><strong>USD values</strong> are JSON numbers with at most 2 decimal places, and are always
+                estimates unless the field name ends in <code>_settled</code>.</li>
+              <li><strong>Basis points</strong> are integers: <code>50</code> means 0.50%.</li>
+              <li><strong>Identifiers</strong> are <code>prefix_ULID</code>: <code>agt_</code>,
+                <code>int_</code>, <code>exe_</code>, <code>pol_</code>, <code>qte_</code>, <code>whk_</code>,
+                <code>evt_</code>, <code>key_</code>. 26-character Crockford base32, lexicographically sortable.</li>
+              <li><strong>Chains</strong> are CAIP-2 strings: <code>eip155:8453</code>.</li>
+            </ul>
+
+            <h3 id="conv-expand">Expanding objects</h3>
+            <p>Related objects are returned as IDs by default. Request them inline with <code>expand[]</code>,
+              up to three levels deep and four expansions per request.</p>
+            <div class="dx-code" data-lang="bash" data-title="expand"><pre><code>curl -sS -G https://api.strixhood.xyz/v1/intents/int_01JQ8ZP1V6C3MD8R0YF2WKGSTA \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  --data-urlencode "expand[]=execution" \
+  --data-urlencode "expand[]=execution.attestation" \
+  --data-urlencode "expand[]=agent.policy"</code></pre></div>
+
+            <h3 id="conv-requestid">Request IDs</h3>
+            <p>Every response carries <code>X-Request-Id</code>. It is the only thing support needs to find the
+              full trace, including the policy evaluation and the simulation transcript. Log it.</p>
+          </section>
+
+          <!-- ============================ ERRORS ============================ -->
+          <section class="dx-sec" data-group="Conventions">
+            <span class="dx-kicker">Failure</span>
+            <h2 id="errors" data-nav="Errors">Errors</h2>
+            <p class="dx-lead">One envelope, always. If a response has a status of 400 or above, this is its
+              shape — there are no special cases.</p>
+
+            <h3 id="error-envelope">The error envelope</h3>
+            <div class="dx-code" data-lang="json" data-title="422 Unprocessable Entity"><pre><code>{
+  "error": {
+    "type": "policy_error",
+    "code": "limit_exceeded",
+    "message": "Intent notional 780.00 USD exceeds per_tx_usd of 250.00 USD.",
+    "param": "params.sell_amount",
+    "rule": "limits.per_tx_usd",
+    "stage": "policy_check",
+    "doc_url": "https://strixhood.xyz/docs.html#policy-limits",
+    "request_id": "req_01JQ8ZW4T6V8X0Z2B4D6F8H0K2"
+  }
+}</code></pre></div>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">type</td><td class="ty">enum</td><td>Coarse family. Branch on this.</td></tr>
+                  <tr><td class="mono">code</td><td class="ty">string</td><td>Specific, stable machine code. Never reworded within a version.</td></tr>
+                  <tr><td class="mono">message</td><td class="ty">string</td><td>Human sentence with concrete numbers. Safe to log, not safe to parse.</td></tr>
+                  <tr><td class="mono">param</td><td class="ty">string | null</td><td>Dotted path to the offending request field.</td></tr>
+                  <tr><td class="mono">rule</td><td class="ty">string | null</td><td>Dotted path to the policy clause that refused. Only on <code>policy_error</code>.</td></tr>
+                  <tr><td class="mono">stage</td><td class="ty">string | null</td><td>Lifecycle stage that produced the failure.</td></tr>
+                  <tr><td class="mono">request_id</td><td class="ty">string</td><td>Mirrors <code>X-Request-Id</code>.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="error-status">HTTP status codes</h3>
+            <div class="dx-tw">
+              <table class="dx-t dx-t--compact">
+                <thead><tr><th class="n">Status</th><th>Meaning</th><th>Retry?</th></tr></thead>
+                <tbody>
+                  <tr><td class="n">200</td><td>OK.</td><td>—</td></tr>
+                  <tr><td class="n">201</td><td>Created. <code>Location</code> points at the object.</td><td>—</td></tr>
+                  <tr><td class="n">202</td><td>Accepted. The intent is queued; watch the stream.</td><td>—</td></tr>
+                  <tr><td class="n">204</td><td>No content. Successful delete.</td><td>—</td></tr>
+                  <tr><td class="n">400</td><td>Malformed JSON or unknown field.</td><td>No — fix the request</td></tr>
+                  <tr><td class="n">401</td><td>Missing, malformed or revoked key.</td><td>No</td></tr>
+                  <tr><td class="n">403</td><td>Key valid, action not permitted.</td><td>No</td></tr>
+                  <tr><td class="n">404</td><td>No such object, or not visible to this key.</td><td>No</td></tr>
+                  <tr><td class="n">409</td><td>Idempotency conflict or state conflict.</td><td>No</td></tr>
+                  <tr><td class="n">422</td><td>Well-formed but refused: policy, simulation or business rule.</td><td>No</td></tr>
+                  <tr><td class="n">429</td><td>Rate limited. Honour <code>Retry-After</code>.</td><td>Yes, with backoff</td></tr>
+                  <tr><td class="n">500</td><td>Unhandled error on our side. Already alerting.</td><td>Yes</td></tr>
+                  <tr><td class="n">503</td><td>Dependency degraded — chain, bundler or relay.</td><td>Yes</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 id="error-codes">Error codes</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>type</th><th>code</th><th class="n">HTTP</th><th>Cause and fix</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">authentication_error</td><td class="mono">invalid_api_key</td><td class="n">401</td><td>Key unknown, revoked or from the other environment.</td></tr>
+                  <tr><td class="mono">authentication_error</td><td class="mono">environment_mismatch</td><td class="n">403</td><td>Test key against a live chain, or the reverse.</td></tr>
+                  <tr><td class="mono">permission_error</td><td class="mono">missing_scope</td><td class="n">403</td><td><code>message</code> names the scope. Mint a new key; scopes are immutable.</td></tr>
+                  <tr><td class="mono">permission_error</td><td class="mono">ip_not_allowed</td><td class="n">403</td><td>Source address outside the key's CIDR allowlist.</td></tr>
+                  <tr><td class="mono">invalid_request_error</td><td class="mono">unknown_parameter</td><td class="n">400</td><td>Unknown keys are rejected, never ignored. Check spelling and version.</td></tr>
+                  <tr><td class="mono">invalid_request_error</td><td class="mono">missing_parameter</td><td class="n">400</td><td><code>param</code> names the field.</td></tr>
+                  <tr><td class="mono">invalid_request_error</td><td class="mono">unresolvable_token</td><td class="n">400</td><td>Symbol has no canonical address on that chain. Pass the address.</td></tr>
+                  <tr><td class="mono">policy_error</td><td class="mono">policy_stale</td><td class="n">422</td><td>Committed hash differs from the stored policy. Re-commit before retrying.</td></tr>
+                  <tr><td class="mono">policy_error</td><td class="mono">chain_not_allowed</td><td class="n">422</td><td><code>chain</code> is absent from <code>allow.chains</code>.</td></tr>
+                  <tr><td class="mono">policy_error</td><td class="mono">action_not_allowed</td><td class="n">422</td><td><code>action</code> is absent from <code>allow.actions</code>.</td></tr>
+                  <tr><td class="mono">policy_error</td><td class="mono">asset_not_allowed</td><td class="n">422</td><td>A token, collection, contract or venue is not allow-listed.</td></tr>
+                  <tr><td class="mono">policy_error</td><td class="mono">denied</td><td class="n">422</td><td>Matched a <code>deny</code> entry or category.</td></tr>
+                  <tr><td class="mono">policy_error</td><td class="mono">limit_exceeded</td><td class="n">422</td><td><code>rule</code> names which ceiling. Wait for the window or raise the policy.</td></tr>
+                  <tr><td class="mono">policy_error</td><td class="mono">approval_required</td><td class="n">202</td><td>Not an error on submit — the intent is held at <code>awaiting_approval</code>.</td></tr>
+                  <tr><td class="mono">simulation_error</td><td class="mono">simulation_failed</td><td class="n">422</td><td>The candidate path reverts on a fork. <code>message</code> carries the revert reason.</td></tr>
+                  <tr><td class="mono">simulation_error</td><td class="mono">price_impact_too_high</td><td class="n">422</td><td>Exceeds <code>simulation.max_price_impact_bps</code>. Split the order.</td></tr>
+                  <tr><td class="mono">simulation_error</td><td class="mono">unsafe_target</td><td class="n">422</td><td>Drainer, approval-sweep or honeypot heuristic fired. Not overridable by intent.</td></tr>
+                  <tr><td class="mono">routing_error</td><td class="mono">no_route</td><td class="n">422</td><td>No solver and no direct route inside the slippage bound.</td></tr>
+                  <tr><td class="mono">routing_error</td><td class="mono">quote_expired</td><td class="n">409</td><td>Quote older than its <code>expires_at</code>. Request a fresh one.</td></tr>
+                  <tr><td class="mono">settlement_error</td><td class="mono">insufficient_balance</td><td class="n">422</td><td>Smart account cannot fund the sell leg plus gas.</td></tr>
+                  <tr><td class="mono">settlement_error</td><td class="mono">reverted</td><td class="n">200</td><td>Reported on the execution object, not as an HTTP failure.</td></tr>
+                  <tr><td class="mono">idempotency_error</td><td class="mono">idempotency_conflict</td><td class="n">409</td><td>Same key, different body.</td></tr>
+                  <tr><td class="mono">rate_limit_error</td><td class="mono">too_many_requests</td><td class="n">429</td><td>Honour <code>Retry-After</code>; use the WebSocket instead of polling.</td></tr>
+                  <tr><td class="mono">api_error</td><td class="mono">internal_error</td><td class="n">500</td><td>Retry with backoff. Include <code>request_id</code> if it persists.</td></tr>
+                  <tr><td class="mono">api_error</td><td class="mono">dependency_degraded</td><td class="n">503</td><td>Chain, bundler or relay is unhealthy. See the status page.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- ============================ AGENTS ============================ -->
+          <section class="dx-sec" data-group="Resources">
+            <span class="dx-kicker">Resource</span>
+            <h2 id="agents" data-nav="Agents">Agents</h2>
+            <p class="dx-lead">An agent bundles a smart account, a bound policy, session keys and a reputation
+              record. Creating one mints a passport NFT and locks a bond on live networks.</p>
+
+            <div class="dx-ep">
+              <h3 id="agents-create" data-m="POST" data-nav="Create an agent">Create an agent</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--post">POST</span>
+                <span class="dx-ep__path">/v1/agents</span>
+                <span class="dx-ep__scope">scope <u>agents:write</u></span>
+              </div>
+              <p>Deploys an ERC-4337 smart account with the session-key validator module, mints the passport, and
+                binds the policy. Idempotent on <code>Idempotency-Key</code>.</p>
+              <h4 class="dx-lbl">Body parameters</h4>
+              <div class="dx-tw">
+                <table class="dx-t">
+                  <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">name</td><td class="ty">string</td><td><span class="dx-req dx-req--y">required</span></td><td>1–48 chars, unique per account. Appears in approval prompts and the marketplace.</td></tr>
+                    <tr><td class="mono">kind</td><td class="ty">enum</td><td><span class="dx-req dx-req--y">required</span></td><td><code>trader</code>, <code>collector</code>, <code>treasury</code>, <code>service</code>, <code>verified</code>.</td></tr>
+                    <tr><td class="mono">policy_id</td><td class="ty">string</td><td><span class="dx-req dx-req--y">required</span></td><td>Existing policy to bind. Its hash is embedded in every session key issued.</td></tr>
+                    <tr><td class="mono">chains</td><td class="ty">string[]</td><td><span class="dx-req dx-req--y">required</span></td><td>CAIP-2 list. Must be a subset of the policy's <code>allow.chains</code>.</td></tr>
+                    <tr><td class="mono">session_key</td><td class="ty">object</td><td><span class="dx-req dx-req--n">optional</span></td><td><code>{ ttl_seconds, rotate }</code>. Issues a first key immediately. TTL 300–604800.</td></tr>
+                    <tr><td class="mono">owner</td><td class="ty">address</td><td><span class="dx-req dx-req--n">optional</span></td><td>Root key that controls the smart account. Defaults to the account's registered owner.</td></tr>
+                    <tr><td class="mono">metadata</td><td class="ty">object</td><td><span class="dx-req dx-req--n">optional</span></td><td>Up to 20 keys.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <h4 class="dx-lbl">Request</h4>
+              <div class="dx-code" data-lang="bash" data-title="curl"><pre><code>curl -sS https://api.strixhood.xyz/v1/agents \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: create-dca-eth-01" \
+  -d '{
+    "name": "dca-eth",
+    "kind": "trader",
+    "policy_id": "pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD",
+    "chains": ["eip155:8453"],
+    "session_key": { "ttl_seconds": 86400, "rotate": true }
+  }'</code></pre></div>
+              <h4 class="dx-lbl">Response</h4>
+              <div class="dx-code" data-lang="json" data-title="201 Created"><pre><code>{
+  "id": "agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP",
+  "object": "agent",
+  "name": "dca-eth",
+  "kind": "trader",
+  "status": "active",
+  "smart_account": "0x1F3c7A9b04E2d586Cf01B7e34a9D2c6058Ba9aE2",
+  "chains": ["eip155:8453"],
+  "policy": { "id": "pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD", "version": 1,
+              "hash": "0x7d41a9c0b83e5f2d16c4a87b90ef3524ca1d6b8f0472e93a5c18df6027ab4e91" },
+  "passport": { "chain": "eip155:8453", "contract": "0x2Fb1D8c47A0e35B9d6F82c11E7a4508D3bC96Ef2",
+                "token_id": "4182", "level": 1 },
+  "bond": { "amount": "2500", "token": "STRX", "status": "locked" },
+  "reputation": { "score": null, "settled_intents": 0 },
+  "session_keys": [ { "id": "key_01JQ8ZNB5C7E9G1J3L5N7Q9S1U",
+                      "address": "0xA4e1…7C2b", "expires_at": "2026-08-17T09:00:00Z" } ],
+  "created_at": "2026-08-16T09:00:00.114Z"
+}</code></pre></div>
+              <h4 class="dx-lbl">Errors</h4>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th>code</th><th class="n">HTTP</th><th>When</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">missing_parameter</td><td class="n">400</td><td><code>policy_id</code> absent.</td></tr>
+                    <tr><td class="mono">policy_chain_mismatch</td><td class="n">422</td><td><code>chains</code> is not a subset of the policy's allowed chains.</td></tr>
+                    <tr><td class="mono">insufficient_bond</td><td class="n">422</td><td>Account holds less $STRX than the kind requires.</td></tr>
+                    <tr><td class="mono">name_taken</td><td class="n">409</td><td>Another active agent already uses that name.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="agents-list" data-m="GET" data-nav="List agents">List agents</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/agents</span>
+                <span class="dx-ep__scope">scope <u>agents:read</u></span>
+              </div>
+              <p>Cursor-paginated, newest first.</p>
+              <h4 class="dx-lbl">Query parameters</h4>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">status</td><td class="ty">enum</td><td><code>active</code>, <code>paused</code>, <code>retired</code>, <code>slashed</code>.</td></tr>
+                    <tr><td class="mono">kind</td><td class="ty">enum</td><td>Filter by agent kind.</td></tr>
+                    <tr><td class="mono">chain</td><td class="ty">string</td><td>CAIP-2. Returns agents enabled on that chain.</td></tr>
+                    <tr><td class="mono">policy_id</td><td class="ty">string</td><td>Agents bound to a specific policy.</td></tr>
+                    <tr><td class="mono">limit, starting_after, ending_before, order</td><td class="ty">—</td><td>See <a href="#conv-pagination">Pagination</a>.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dx-code" data-lang="bash" data-title="curl"><pre><code>curl -sS -G https://api.strixhood.xyz/v1/agents \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  -d status=active -d chain=eip155:8453 -d limit=25</code></pre></div>
+              <div class="dx-code" data-lang="json" data-title="200 OK"><pre><code>{
+  "object": "list",
+  "data": [
+    { "id": "agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP", "object": "agent", "name": "dca-eth",
+      "kind": "trader", "status": "active", "reputation": { "score": 96.4, "settled_intents": 812 } }
+  ],
+  "has_more": false,
+  "next_cursor": null
+}</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="agents-get" data-m="GET" data-nav="Retrieve an agent">Retrieve an agent</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/agents/<b>{agent_id}</b></span>
+                <span class="dx-ep__scope">scope <u>agents:read</u></span>
+              </div>
+              <p>Returns the full agent object. Supports <code>expand[]=policy</code> and
+                <code>expand[]=passport.traits</code>.</p>
+              <div class="dx-code" data-lang="bash" data-title="curl"><pre><code>curl -sS -G https://api.strixhood.xyz/v1/agents/agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  --data-urlencode "expand[]=policy"</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="agents-update" data-m="PATCH" data-nav="Update an agent">Update an agent</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--patch">PATCH</span>
+                <span class="dx-ep__path">/v1/agents/<b>{agent_id}</b></span>
+                <span class="dx-ep__scope">scope <u>agents:write</u></span>
+              </div>
+              <p>Only <code>name</code>, <code>status</code>, <code>policy_id</code>, <code>chains</code> and
+                <code>metadata</code> are mutable. Rebinding <code>policy_id</code> revokes every live session
+                key in the same call, because the keys carry the old policy hash.</p>
+              <h4 class="dx-lbl">Body parameters</h4>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">status</td><td class="ty">enum</td><td><code>active</code> or <code>paused</code>. Pausing rejects new intents instantly; in-flight ones finish.</td></tr>
+                    <tr><td class="mono">policy_id</td><td class="ty">string</td><td>Rebind. Triggers session-key revocation and a new commitment.</td></tr>
+                    <tr><td class="mono">chains</td><td class="ty">string[]</td><td>Must remain a subset of the bound policy's chains.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dx-code" data-lang="bash" data-title="pause an agent"><pre><code>curl -sS -X PATCH https://api.strixhood.xyz/v1/agents/agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"paused"}'</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="agents-delete" data-m="DELETE" data-nav="Retire an agent">Retire an agent</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--del">DELETE</span>
+                <span class="dx-ep__path">/v1/agents/<b>{agent_id}</b></span>
+                <span class="dx-ep__scope">scope <u>agents:write</u></span>
+              </div>
+              <p>Retirement is a state, not a deletion: history, attestations and the passport survive. All
+                session keys are revoked onchain and the bond enters a 14-day unbonding period. Returns
+                <code>409 has_open_intents</code> if anything is still in flight.</p>
+              <div class="dx-code" data-lang="json" data-title="200 OK"><pre><code>{
+  "id": "agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP",
+  "object": "agent",
+  "status": "retired",
+  "session_keys_revoked": 2,
+  "bond": { "amount": "2500", "token": "STRX", "status": "unbonding",
+            "claimable_at": "2026-08-30T09:04:11Z" }
+}</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="agents-sessionkey" data-m="POST" data-nav="Issue a session key">Issue a session key</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--post">POST</span>
+                <span class="dx-ep__path">/v1/agents/<b>{agent_id}</b>/session-keys</span>
+                <span class="dx-ep__scope">scope <u>agents:write</u></span>
+              </div>
+              <p>Generates a keypair inside the enclave, registers its permission blob on the agent's validator
+                module, and returns the public address. <strong>The private key is never returned and never
+                leaves the enclave</strong> — the API signs on the agent's behalf when an intent clears.</p>
+              <h4 class="dx-lbl">Body parameters</h4>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">ttl_seconds</td><td class="ty">integer</td><td><span class="dx-req dx-req--y">required</span></td><td>300–604800. Shorter is better; rotation is free.</td></tr>
+                    <tr><td class="mono">chains</td><td class="ty">string[]</td><td><span class="dx-req dx-req--n">optional</span></td><td>Defaults to the agent's chains. Cannot exceed them.</td></tr>
+                    <tr><td class="mono">rotate</td><td class="ty">boolean</td><td><span class="dx-req dx-req--n">optional</span></td><td>Auto-issue a replacement at 80% of TTL. Default <code>false</code>.</td></tr>
+                    <tr><td class="mono">max_value_usd</td><td class="ty">number</td><td><span class="dx-req dx-req--n">optional</span></td><td>Additional per-key ceiling, applied on top of the policy. Cannot be higher than the policy's <code>per_tx_usd</code>.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dx-code" data-lang="json" data-title="201 Created"><pre><code>{
+  "id": "key_01JQ8ZNB5C7E9G1J3L5N7Q9S1U",
+  "object": "session_key",
+  "agent_id": "agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP",
+  "address": "0xA4e1B9d3f70C2b84E651A0d7c3958Ff24bD07C2b",
+  "chains": ["eip155:8453"],
+  "policy_hash": "0x7d41a9c0b83e5f2d16c4a87b90ef3524ca1d6b8f0472e93a5c18df6027ab4e91",
+  "permissions": { "selectors": ["0x3593564c", "0xa9059cbb"], "max_value_usd": 250 },
+  "registration_tx": "0x4b18e0c9a2d7f5361840be9c07a2d5f31c68e40a95bd7213ce80f6a419d2c7b5",
+  "expires_at": "2026-08-17T09:00:00Z",
+  "rotate": true
+}</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="agents-revokekey" data-m="DELETE" data-nav="Revoke a session key">Revoke a session key</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--del">DELETE</span>
+                <span class="dx-ep__path">/v1/agents/<b>{agent_id}</b>/session-keys/<b>{key_id}</b></span>
+                <span class="dx-ep__scope">scope <u>agents:write</u></span>
+              </div>
+              <p>Submits an onchain revocation and refuses the key immediately at the API boundary. Returns
+                <code>202</code> with the revocation transaction; the key is unusable via the API before that
+                transaction is mined.</p>
+              <div class="dx-code" data-lang="json" data-title="202 Accepted"><pre><code>{
+  "id": "key_01JQ8ZNB5C7E9G1J3L5N7Q9S1U",
+  "object": "session_key",
+  "status": "revoked",
+  "revocation_tx": "0x91cb47e2a05d8f3617b24ce09a7d51f38c60e24b95af7013dc80b6a41ed2f7c9",
+  "revoked_at": "2026-08-16T11:22:04.881Z"
+}</code></pre></div>
+            </div>
+          </section>
+
+          <!-- ============================ INTENTS ============================ -->
+          <section class="dx-sec" data-group="Resources">
+            <span class="dx-kicker">Resource</span>
+            <h2 id="intents" data-nav="Intents">Intents</h2>
+            <p class="dx-lead">The intent object is documented field by field in
+              <a href="docs.html#intent-object">the protocol reference</a>. This section covers the endpoints
+              that create and manage them.</p>
+
+            <div class="dx-ep">
+              <h3 id="intents-create" data-m="POST" data-nav="Submit an intent">Submit an intent</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--post">POST</span>
+                <span class="dx-ep__path">/v1/intents</span>
+                <span class="dx-ep__scope">scope <u>intents:write</u></span>
+              </div>
+              <p>Accepts the intent, runs stages 01–03 synchronously and returns <code>202</code> as soon as the
+                policy check passes. Everything after that is asynchronous — watch the
+                <a href="#ws-executions"><code>executions</code> channel</a>.</p>
+              <h4 class="dx-lbl">Body parameters</h4>
+              <div class="dx-tw">
+                <table class="dx-t">
+                  <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">agent_id</td><td class="ty">string</td><td><span class="dx-req dx-req--y">required</span></td><td>Must be <code>active</code> with a live session key on <code>chain</code>.</td></tr>
+                    <tr><td class="mono">action</td><td class="ty">enum</td><td><span class="dx-req dx-req--y">required</span></td><td><code>swap</code>, <code>transfer</code>, <code>nft_bid</code>, <code>nft_buy</code>, <code>equity_order</code>, <code>subscribe</code>, <code>agent_hire</code>.</td></tr>
+                    <tr><td class="mono">chain</td><td class="ty">string</td><td><span class="dx-req dx-req--y">required</span></td><td>CAIP-2.</td></tr>
+                    <tr><td class="mono">params</td><td class="ty">object</td><td><span class="dx-req dx-req--y">required</span></td><td>Action-specific. See <a href="docs.html#action-types">Action types</a>.</td></tr>
+                    <tr><td class="mono">constraints</td><td class="ty">object</td><td><span class="dx-req dx-req--n">optional</span></td><td>Slippage, fee ceilings, route preference, MEV protection.</td></tr>
+                    <tr><td class="mono">simulate_only</td><td class="ty">boolean</td><td><span class="dx-req dx-req--n">optional</span></td><td>Return the quote and asset diff without signing.</td></tr>
+                    <tr><td class="mono">expires_at</td><td class="ty">timestamp</td><td><span class="dx-req dx-req--n">optional</span></td><td>Default <code>+300 s</code>.</td></tr>
+                    <tr><td class="mono">metadata</td><td class="ty">object</td><td><span class="dx-req dx-req--n">optional</span></td><td>Echoed on every webhook.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <h4 class="dx-lbl">Request</h4>
+              <div class="dx-code" data-lang="bash" data-title="curl"><pre><code>curl -sS https://api.strixhood.xyz/v1/intents \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: dca-2026-08-16-0900" \
+  -d '{
+    "agent_id": "agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP",
+    "action": "swap",
+    "chain": "eip155:8453",
+    "params": { "sell_token": "USDC", "buy_token": "WETH", "sell_amount": "150.00" },
+    "constraints": { "max_slippage_bps": 40, "route_preference": "best_price" }
+  }'</code></pre></div>
+              <h4 class="dx-lbl">Response</h4>
+              <div class="dx-code" data-lang="json" data-title="202 Accepted"><pre><code>{
+  "id": "int_01JQ8ZP1V6C3MD8R0YF2WKGSTA",
+  "object": "intent",
+  "status": "simulating",
+  "agent_id": "agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP",
+  "action": "swap",
+  "chain": "eip155:8453",
+  "params": { "sell_token": "USDC", "buy_token": "WETH", "sell_amount": "150.00" },
+  "constraints": { "max_slippage_bps": 40, "route_preference": "best_price",
+                   "mev_protection": true, "partial_fill": false },
+  "policy": { "id": "pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD", "version": 1, "notional_usd": 150.00 },
+  "estimated": { "buy_amount": "0.04129", "price": "3632.10",
+                 "fee_usd": 0.375, "gas_usd": 0.02, "price_impact_bps": 6 },
+  "execution_id": null,
+  "expires_at": "2026-08-16T09:05:00.412Z",
+  "created_at": "2026-08-16T09:00:00.412Z"
+}</code></pre></div>
+              <h4 class="dx-lbl">Errors</h4>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th>code</th><th class="n">HTTP</th><th>When</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">limit_exceeded</td><td class="n">422</td><td>Notional breaches a policy ceiling. <code>rule</code> names it.</td></tr>
+                    <tr><td class="mono">asset_not_allowed</td><td class="n">422</td><td>A token or venue in <code>params</code> is not allow-listed.</td></tr>
+                    <tr><td class="mono">no_session_key</td><td class="n">422</td><td>The agent has no live key for that chain.</td></tr>
+                    <tr><td class="mono">unresolvable_token</td><td class="n">400</td><td>Symbol has no canonical address on that chain.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="intents-get" data-m="GET" data-nav="Retrieve an intent">Retrieve an intent</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/intents/<b>{intent_id}</b></span>
+                <span class="dx-ep__scope">scope <u>intents:read</u></span>
+              </div>
+              <p>Returns the current state. Use <code>expand[]=execution</code> to include quotes, fills and the
+                attestation in one call instead of two.</p>
+              <div class="dx-code" data-lang="json" data-title="200 OK — settled"><pre><code>{
+  "id": "int_01JQ8ZP1V6C3MD8R0YF2WKGSTA",
+  "object": "intent",
+  "status": "settled",
+  "execution_id": "exe_01JQ8ZQ7Y9B1D3F5H7K9M1P3R5",
+  "settled": { "buy_amount": "0.041274", "price": "3634.02",
+               "fee_usd_settled": 0.375, "gas_usd_settled": 0.019 },
+  "rejection": null,
+  "created_at": "2026-08-16T09:00:00.412Z",
+  "settled_at": "2026-08-16T09:00:01.338Z"
+}</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="intents-list" data-m="GET" data-nav="List intents">List intents</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/intents</span>
+                <span class="dx-ep__scope">scope <u>intents:read</u></span>
+              </div>
+              <h4 class="dx-lbl">Query parameters</h4>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">agent_id</td><td class="ty">string</td><td>Restrict to one agent.</td></tr>
+                    <tr><td class="mono">status</td><td class="ty">enum | enum[]</td><td>Repeatable: <code>status=routing&amp;status=submitted</code>.</td></tr>
+                    <tr><td class="mono">action</td><td class="ty">enum</td><td>Filter by action.</td></tr>
+                    <tr><td class="mono">chain</td><td class="ty">string</td><td>CAIP-2.</td></tr>
+                    <tr><td class="mono">created_after</td><td class="ty">timestamp</td><td>Inclusive lower bound.</td></tr>
+                    <tr><td class="mono">created_before</td><td class="ty">timestamp</td><td>Exclusive upper bound.</td></tr>
+                    <tr><td class="mono">metadata[key]</td><td class="ty">string</td><td>Exact match on a metadata key, e.g. <code>metadata[strategy]=weekly-rebalance</code>.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dx-code" data-lang="bash" data-title="curl"><pre><code>curl -sS -G https://api.strixhood.xyz/v1/intents \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  -d agent_id=agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP \
+  -d status=settled -d limit=50 \
+  --data-urlencode "metadata[strategy]=weekly-rebalance"</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="intents-cancel" data-m="POST" data-nav="Cancel an intent">Cancel an intent</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--post">POST</span>
+                <span class="dx-ep__path">/v1/intents/<b>{intent_id}</b>/cancel</span>
+                <span class="dx-ep__scope">scope <u>intents:write</u></span>
+              </div>
+              <p>Cancellable up to and including <code>routing</code>. Once the user operation is broadcast the
+                intent is <code>submitted</code> and cancellation returns <code>409 not_cancellable</code> —
+                there is no way to unsend a transaction, and the API will not pretend otherwise.</p>
+              <div class="dx-code" data-lang="json" data-title="200 OK"><pre><code>{
+  "id": "int_01JQ8ZP1V6C3MD8R0YF2WKGSTA",
+  "object": "intent",
+  "status": "cancelled",
+  "cancelled_at": "2026-08-16T09:00:00.902Z",
+  "budget_released_usd": 150.00
+}</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="intents-approve" data-m="POST" data-nav="Resolve a human gate">Resolve a human gate</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--post">POST</span>
+                <span class="dx-ep__path">/v1/intents/<b>{intent_id}</b>/approval</span>
+                <span class="dx-ep__scope">scope <u>intents:write</u></span>
+              </div>
+              <p>Resolves an intent sitting at <code>awaiting_approval</code>. The decision is recorded with the
+                approver's identity and is included in the attestation, so approvals are auditable after the
+                fact.</p>
+              <h4 class="dx-lbl">Body parameters</h4>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">decision</td><td class="ty">enum</td><td><span class="dx-req dx-req--y">required</span></td><td><code>approve</code> or <code>reject</code>.</td></tr>
+                    <tr><td class="mono">approver_id</td><td class="ty">string</td><td><span class="dx-req dx-req--y">required</span></td><td>Must appear in <code>policy.hitl.approvers</code>.</td></tr>
+                    <tr><td class="mono">signature</td><td class="ty">string</td><td><span class="dx-req dx-req--c">recommended</span></td><td>EIP-191 signature over <code>intent_id + decision + nonce</code>. Required when <code>quorum &gt; 1</code>.</td></tr>
+                    <tr><td class="mono">note</td><td class="ty">string</td><td><span class="dx-req dx-req--n">optional</span></td><td>≤ 280 chars, stored on the attestation.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dx-code" data-lang="bash" data-title="approve"><pre><code>curl -sS https://api.strixhood.xyz/v1/intents/int_01JQ8ZP1V6C3MD8R0YF2WKGSTA/approval \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"decision":"approve","approver_id":"usr_01JQ8ZS2M4N6P8R0T2V4X6Z8B0","note":"Rebalance leg 1/3, reviewed"}'</code></pre></div>
+            </div>
+          </section>
+
+          <!-- ============================ POLICIES ============================ -->
+          <section class="dx-sec" data-group="Resources">
+            <span class="dx-kicker">Resource</span>
+            <h2 id="policies" data-nav="Policies">Policies</h2>
+            <p class="dx-lead">Policies are the authority layer. Writing one requires
+              <code>policies:write</code>, which should live on exactly one server process and nowhere near an
+              agent runtime.</p>
+
+            <div class="dx-ep">
+              <h3 id="policies-create" data-m="POST" data-nav="Create a policy">Create a policy</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--post">POST</span>
+                <span class="dx-ep__path">/v1/policies</span>
+                <span class="dx-ep__scope">scope <u>policies:write</u></span>
+              </div>
+              <p>Validates the document, canonicalises it, computes the hash and commits it onchain. Returns once
+                the commitment transaction is broadcast; <code>commitment.block</code> is <code>null</code> until
+                it is mined. Full field reference in
+                <a href="docs.html#policy-object">the policy schema</a>.</p>
+              <h4 class="dx-lbl">Body parameters</h4>
+              <div class="dx-tw">
+                <table class="dx-t">
+                  <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">name</td><td class="ty">string</td><td><span class="dx-req dx-req--y">required</span></td><td>1–64 chars, unique per account.</td></tr>
+                    <tr><td class="mono">limits</td><td class="ty">object</td><td><span class="dx-req dx-req--y">required</span></td><td>Must include <code>per_tx_usd</code>.</td></tr>
+                    <tr><td class="mono">allow</td><td class="ty">object</td><td><span class="dx-req dx-req--y">required</span></td><td>Must include non-empty <code>chains</code> and <code>actions</code>.</td></tr>
+                    <tr><td class="mono">deny</td><td class="ty">object</td><td><span class="dx-req dx-req--n">optional</span></td><td>Wins over <code>allow</code>.</td></tr>
+                    <tr><td class="mono">simulation</td><td class="ty">object</td><td><span class="dx-req dx-req--n">optional</span></td><td>Thresholds on the simulated asset diff.</td></tr>
+                    <tr><td class="mono">hitl</td><td class="ty">object</td><td><span class="dx-req dx-req--n">optional</span></td><td>Escalation rules. Absent means never escalate.</td></tr>
+                    <tr><td class="mono">expires_at</td><td class="ty">timestamp</td><td><span class="dx-req dx-req--c">recommended</span></td><td>Absent means a standing grant with no end.</td></tr>
+                    <tr><td class="mono">commit_chain</td><td class="ty">string</td><td><span class="dx-req dx-req--n">optional</span></td><td>Where to commit the hash. Defaults to <code>eip155:8453</code>.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dx-code" data-lang="json" data-title="201 Created"><pre><code>{
+  "id": "pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD",
+  "object": "policy",
+  "name": "dca-conservative",
+  "version": 1,
+  "hash": "0x7d41a9c0b83e5f2d16c4a87b90ef3524ca1d6b8f0472e93a5c18df6027ab4e91",
+  "limits": { "per_tx_usd": 250, "daily_usd": 1000, "monthly_usd": 20000, "max_open_intents": 4 },
+  "allow": { "chains": ["eip155:8453"], "actions": ["swap", "transfer"],
+             "tokens": ["USDC", "WETH", "cbBTC"], "venues": ["uniswap_v4", "aerodrome"] },
+  "deny": { "categories": ["leverage", "gambling", "unverified_contract"] },
+  "hitl": { "threshold_usd": 200, "channels": ["webhook"], "timeout_sec": 180, "on_timeout": "reject" },
+  "agent_ids": [],
+  "commitment": { "chain": "eip155:8453",
+                  "registry": "0x8Ae4C0f37D1b52E9a6c8F401B2d73E5a9C0f18Db",
+                  "tx_hash": "0x2ad9…7f31", "block": null },
+  "expires_at": "2027-01-01T00:00:00Z",
+  "created_at": "2026-08-16T08:58:12.004Z"
+}</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="policies-get" data-m="GET" data-nav="Retrieve a policy">Retrieve a policy</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/policies/<b>{policy_id}</b></span>
+                <span class="dx-ep__scope">scope <u>policies:read</u></span>
+              </div>
+              <p>Add <code>?version=N</code> to read a historical version. Historical versions are immutable and
+                retained for seven years, because they are the evidence for why a past transaction was allowed.</p>
+              <div class="dx-code" data-lang="bash" data-title="read version 3"><pre><code>curl -sS -G https://api.strixhood.xyz/v1/policies/pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD \
+  -H "Authorization: Bearer $STRIX_API_KEY" -d version=3</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="policies-list" data-m="GET" data-nav="List policies">List policies</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/policies</span>
+                <span class="dx-ep__scope">scope <u>policies:read</u></span>
+              </div>
+              <p>Filters: <code>status</code> (<code>live</code>, <code>expired</code>,
+                <code>superseded</code>), <code>agent_id</code>, plus the standard pagination parameters.</p>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="policies-update" data-m="PATCH" data-nav="Update a policy">Update a policy</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--patch">PATCH</span>
+                <span class="dx-ep__path">/v1/policies/<b>{policy_id}</b></span>
+                <span class="dx-ep__scope">scope <u>policies:write</u></span>
+              </div>
+              <p>Updates create a new version and a new commitment. Every session key issued under the previous
+                hash stops validating the moment the new commitment is mined, so bound agents must be re-keyed —
+                pass <code>reissue_session_keys: true</code> to have the API do it in the same call.</p>
+              <div class="dx-note dx-note--warn">
+                <span class="dx-note__i" aria-hidden="true"></span>
+                <div><b>There is a gap, and you should plan for it</b>
+                  <p>Between the commitment landing and the new keys registering, the agent cannot sign. It is
+                    typically one block. Intents submitted in that window are held in <code>policy_check</code>
+                    rather than rejected, up to their <code>expires_at</code>.</p></div>
+              </div>
+              <div class="dx-code" data-lang="bash" data-title="raise the daily cap"><pre><code>curl -sS -X PATCH https://api.strixhood.xyz/v1/policies/pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"limits":{"per_tx_usd":250,"daily_usd":2500,"monthly_usd":20000,"max_open_intents":4},
+       "reissue_session_keys":true}'</code></pre></div>
+              <div class="dx-code" data-lang="json" data-title="200 OK"><pre><code>{
+  "id": "pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD",
+  "object": "policy",
+  "version": 2,
+  "hash": "0xb2f70c1d94a5e836027cf4a1b8d05e93762ac4108fd35b6e29c07a41db85e6f2",
+  "previous_hash": "0x7d41a9c0b83e5f2d16c4a87b90ef3524ca1d6b8f0472e93a5c18df6027ab4e91",
+  "commitment": { "tx_hash": "0x8e31…04ba", "block": null },
+  "session_keys_reissued": 2,
+  "updated_at": "2026-08-16T12:40:09.771Z"
+}</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="policies-simulate" data-m="POST" data-nav="Simulate a policy">Simulate a policy</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--post">POST</span>
+                <span class="dx-ep__path">/v1/policies/<b>{policy_id}</b>/simulate</span>
+                <span class="dx-ep__scope">scope <u>policies:read</u></span>
+              </div>
+              <p>Evaluates a hypothetical intent against a policy without creating anything. Use it in CI: assert
+                that the intents your agent is capable of producing are the intents your policy permits.</p>
+              <h4 class="dx-lbl">Body parameters</h4>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">intent</td><td class="ty">object</td><td><span class="dx-req dx-req--y">required</span></td><td>A full intent body minus <code>agent_id</code>.</td></tr>
+                    <tr><td class="mono">as_of</td><td class="ty">timestamp</td><td><span class="dx-req dx-req--n">optional</span></td><td>Evaluate rolling windows as of this time. Defaults to now.</td></tr>
+                    <tr><td class="mono">include_market</td><td class="ty">boolean</td><td><span class="dx-req dx-req--n">optional</span></td><td>Also run simulation thresholds against live prices. Default <code>false</code>.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dx-code" data-lang="json" data-title="200 OK — refused"><pre><code>{
+  "object": "policy_simulation",
+  "allowed": false,
+  "policy": { "id": "pol_01JQ8ZK3M2X7YB4N6PA0RTVCWD", "version": 2 },
+  "notional_usd": 780.00,
+  "checks": [
+    { "rule": "allow.chains",       "result": "pass" },
+    { "rule": "allow.actions",      "result": "pass" },
+    { "rule": "allow.tokens",       "result": "pass" },
+    { "rule": "deny.categories",    "result": "pass" },
+    { "rule": "limits.per_tx_usd",  "result": "fail",
+      "detail": "780.00 &gt; 250.00" },
+    { "rule": "limits.daily_usd",   "result": "skipped" }
+  ],
+  "would_escalate": true,
+  "first_failure": "limits.per_tx_usd"
+}</code></pre></div>
+            </div>
+          </section>
+
+          <!-- ============================ QUOTES ============================ -->
+          <section class="dx-sec" data-group="Resources">
+            <span class="dx-kicker">Resource</span>
+            <h2 id="quotes" data-nav="Quotes &amp; routing">Quotes &amp; routing</h2>
+            <p class="dx-lead">A quote is a priced, expiring, non-binding preview. Submitting an intent runs its
+              own auction; a quote is for showing a number to a human or a model before committing.</p>
+
+            <div class="dx-ep">
+              <h3 id="quotes-create" data-m="POST" data-nav="Request a quote">Request a quote</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--post">POST</span>
+                <span class="dx-ep__path">/v1/quotes</span>
+                <span class="dx-ep__scope">scope <u>quotes:read</u></span>
+              </div>
+              <p>The only endpoint that accepts a publishable <code>pk_</code> key, so a browser or agent runtime
+                can price something without holding a secret.</p>
+              <h4 class="dx-lbl">Body parameters</h4>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">action</td><td class="ty">enum</td><td><span class="dx-req dx-req--y">required</span></td><td>Same enum as intents.</td></tr>
+                    <tr><td class="mono">chain</td><td class="ty">string</td><td><span class="dx-req dx-req--y">required</span></td><td>CAIP-2.</td></tr>
+                    <tr><td class="mono">params</td><td class="ty">object</td><td><span class="dx-req dx-req--y">required</span></td><td>Action-specific.</td></tr>
+                    <tr><td class="mono">agent_id</td><td class="ty">string</td><td><span class="dx-req dx-req--n">optional</span></td><td>Prices against that agent's policy and returns <code>policy_ok</code>.</td></tr>
+                    <tr><td class="mono">route_preference</td><td class="ty">enum</td><td><span class="dx-req dx-req--n">optional</span></td><td>Default <code>best_price</code>.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dx-code" data-lang="json" data-title="200 OK"><pre><code>{
+  "id": "qte_01JQ8ZT2K4M6P8R0T2V4X6Z8B1",
+  "object": "quote",
+  "chain": "eip155:8453",
+  "sell": { "token": "USDC", "amount": "150.00" },
+  "buy":  { "token": "WETH", "amount": "0.041293", "minimum": "0.041128" },
+  "price": "3632.10",
+  "price_impact_bps": 6,
+  "fees": { "protocol_usd": 0.375, "solver_usd": 0.09, "gas_usd": 0.02 },
+  "routes": [
+    { "solver": "slv_kestrel", "venue": "uniswap_v4",  "out": "0.041293", "score": 1.000 },
+    { "solver": "slv_harrier", "venue": "aerodrome",   "out": "0.041251", "score": 0.998 },
+    { "solver": "direct",      "venue": "uniswap_v4",  "out": "0.041180", "score": 0.997 }
+  ],
+  "policy_ok": true,
+  "expires_at": "2026-08-16T09:00:12.000Z"
+}</code></pre></div>
+              <div class="dx-note">
+                <span class="dx-note__i" aria-hidden="true"></span>
+                <div><b>Quotes expire in 12 seconds</b>
+                  <p>That is roughly one Base block plus margin. A quote older than its <code>expires_at</code>
+                    cannot be attached to an intent — you get <code>409 quote_expired</code>.</p></div>
+              </div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="quotes-get" data-m="GET" data-nav="Retrieve a quote">Retrieve a quote</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/quotes/<b>{quote_id}</b></span>
+                <span class="dx-ep__scope">scope <u>quotes:read</u></span>
+              </div>
+              <p>Returns the quote as issued, including expired ones, for audit. It does not reprice.</p>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="routes-list" data-m="GET" data-nav="List venues">List venues</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/routes</span>
+                <span class="dx-ep__scope">scope <u>quotes:read</u></span>
+              </div>
+              <p>Enumerates the venues reachable on a chain, their liquidity class and their session hours. Use
+                it to build a policy's <code>allow.venues</code> from something real instead of guessing.</p>
+              <div class="dx-code" data-lang="json" data-title="200 OK"><pre><code>{
+  "object": "list",
+  "data": [
+    { "venue": "uniswap_v4", "chain": "eip155:8453", "kind": "amm",
+      "tvl_usd": 412000000, "session": null, "status": "live" },
+    { "venue": "backed_rwa", "chain": "eip155:42161", "kind": "rwa_equity",
+      "tvl_usd": 88000000,
+      "session": { "opens_at": "2026-08-17T13:30:00Z", "closes_at": "2026-08-17T20:00:00Z",
+                   "timezone": "UTC", "continuous_secondary": true },
+      "status": "live" }
+  ],
+  "has_more": false
+}</code></pre></div>
+            </div>
+          </section>
+
+          <!-- ============================ EXECUTIONS ============================ -->
+          <section class="dx-sec" data-group="Resources">
+            <span class="dx-kicker">Resource</span>
+            <h2 id="executions" data-nav="Executions">Executions</h2>
+            <p class="dx-lead">An execution is created when an intent enters routing and carries everything that
+              happened afterwards: the auction, the fills, the receipts and the attestation.</p>
+
+            <div class="dx-ep">
+              <h3 id="executions-get" data-m="GET" data-nav="Retrieve an execution">Retrieve an execution</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/executions/<b>{execution_id}</b></span>
+                <span class="dx-ep__scope">scope <u>intents:read</u></span>
+              </div>
+              <div class="dx-code" data-lang="json" data-title="200 OK"><pre><code>{
+  "id": "exe_01JQ8ZQ7Y9B1D3F5H7K9M1P3R5",
+  "object": "execution",
+  "intent_id": "int_01JQ8ZP1V6C3MD8R0YF2WKGSTA",
+  "status": "settled",
+  "chain": "eip155:8453",
+  "solver": { "id": "slv_kestrel", "reliability": 0.9987, "bond_strx": "180000" },
+  "quote": { "id": "qte_01JQ8ZT2K4M6P8R0T2V4X6Z8B1",
+             "guaranteed_out": "0.041128", "bids_received": 3, "auction_ms": 176 },
+  "simulation": { "digest": "0x93af…21c7", "price_impact_bps": 6,
+                  "asset_diff": [ { "token": "USDC", "delta": "-150.000000" },
+                                  { "token": "WETH", "delta": "+0.041274" } ],
+                  "warnings": [] },
+  "fills": [ { "buy_amount": "0.041274", "sell_amount": "150.000000", "price": "3634.02",
+               "tx_hash": "0x7c02e91a4f5b8d3607a2c14be9350df82461ac09b7de52318ca06f4b19e7d3a2",
+               "block": 24817552, "gas_usd": 0.019 } ],
+  "fees": { "protocol_usd": 0.375, "solver_usd": 0.09, "gas_usd": 0.019,
+            "split": { "treasury_usd": 0.15, "stakers_usd": 0.1125, "buyback_usd": 0.1125 } },
+  "attestation": { "uid": "0x5ea1…9d40", "schema": "strixhood.settlement.v1",
+                   "chain": "eip155:8453", "explorer_url": "https://base.easscan.org/attestation/view/0x5ea1…9d40" },
+  "timeline": [
+    { "status": "routing",   "at": "2026-08-16T09:00:00.598Z" },
+    { "status": "submitted", "at": "2026-08-16T09:00:00.774Z" },
+    { "status": "settled",   "at": "2026-08-16T09:00:01.338Z" }
+  ]
+}</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="executions-list" data-m="GET" data-nav="List executions">List executions</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/executions</span>
+                <span class="dx-ep__scope">scope <u>intents:read</u></span>
+              </div>
+              <p>Filters: <code>agent_id</code>, <code>status</code>, <code>chain</code>, <code>solver</code>,
+                <code>settled_after</code>, <code>settled_before</code>, plus standard pagination. Set
+                <code>format=csv</code> to stream a CSV for accounting instead of JSON.</p>
+              <div class="dx-code" data-lang="bash" data-title="export a month"><pre><code>curl -sS -G https://api.strixhood.xyz/v1/executions \
+  -H "Authorization: Bearer $STRIX_API_KEY" \
+  -d format=csv -d settled_after=2026-07-01T00:00:00Z -d settled_before=2026-08-01T00:00:00Z \
+  -o july-executions.csv</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="executions-attestation" data-m="GET" data-nav="Retrieve an attestation">Retrieve an attestation</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/executions/<b>{execution_id}</b>/attestation</span>
+                <span class="dx-ep__scope">scope <u>intents:read</u></span>
+              </div>
+              <p>Returns the decoded attestation plus the raw ABI-encoded payload, so you can verify it against
+                the EAS contract yourself rather than trusting this API.</p>
+              <div class="dx-code" data-lang="json" data-title="200 OK"><pre><code>{
+  "uid": "0x5ea1c73b0428f96d15a0c8e4712bd936084fa5c2e1739bd60c48af2107e59d40",
+  "object": "attestation",
+  "schema": "strixhood.settlement.v1",
+  "attester": "0x9D07E5a2C43b81F6e0A29d5c7B4831fE62aC0d75",
+  "recipient": "0x1F3c7A9b04E2d586Cf01B7e34a9D2c6058Ba9aE2",
+  "revocable": false,
+  "data": {
+    "intent_hash": "0xc41d…8a02",
+    "policy_hash": "0x7d41a9c0b83e5f2d16c4a87b90ef3524ca1d6b8f0472e93a5c18df6027ab4e91",
+    "policy_version": 1,
+    "simulation_digest": "0x93af…21c7",
+    "solver": "slv_kestrel",
+    "settled_out": "41274000000000000",
+    "approvals": []
+  },
+  "raw": "0x0000000000000000000000000000000000000000000000000000000000000020…",
+  "verify_url": "https://base.easscan.org/attestation/view/0x5ea1…9d40"
+}</code></pre></div>
+            </div>
+          </section>
+
+          <!-- ============================ PORTFOLIO ============================ -->
+          <section class="dx-sec" data-group="Resources">
+            <span class="dx-kicker">Resource</span>
+            <h2 id="portfolio" data-nav="Portfolio">Portfolio</h2>
+            <p class="dx-lead">Read-only views over an agent's smart account: balances, valuation, history and
+              the transaction ledger. Prices come from the same oracle set the policy engine uses, so a portfolio
+              number and a limit calculation never disagree.</p>
+
+            <div class="dx-ep">
+              <h3 id="portfolio-get" data-m="GET" data-nav="Retrieve portfolio">Retrieve portfolio</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/portfolio</span>
+                <span class="dx-ep__scope">scope <u>portfolio:read</u></span>
+              </div>
+              <h4 class="dx-lbl">Query parameters</h4>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">agent_id</td><td class="ty">string</td><td><span class="dx-req dx-req--y">required</span></td><td>Which agent's account to value.</td></tr>
+                    <tr><td class="mono">chains</td><td class="ty">string[]</td><td><span class="dx-req dx-req--n">optional</span></td><td>Defaults to all of the agent's chains.</td></tr>
+                    <tr><td class="mono">include</td><td class="ty">enum[]</td><td><span class="dx-req dx-req--n">optional</span></td><td><code>tokens</code>, <code>nfts</code>, <code>equities</code>, <code>positions</code>. Default all.</td></tr>
+                    <tr><td class="mono">min_value_usd</td><td class="ty">number</td><td><span class="dx-req dx-req--n">optional</span></td><td>Hide dust. Default <code>1.00</code>.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dx-code" data-lang="json" data-title="200 OK"><pre><code>{
+  "object": "portfolio",
+  "agent_id": "agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP",
+  "total_value_usd": 48213.77,
+  "change_24h_pct": 1.84,
+  "as_of": "2026-08-16T09:04:00.000Z",
+  "tokens": [
+    { "symbol": "WETH", "chain": "eip155:8453", "balance": "9.418200",
+      "price_usd": 3634.02, "value_usd": 34226.31, "allocation_pct": 71.0 },
+    { "symbol": "USDC", "chain": "eip155:8453", "balance": "9412.400000",
+      "price_usd": 1.0, "value_usd": 9412.40, "allocation_pct": 19.5 }
+  ],
+  "equities": [
+    { "symbol": "AAPLX", "chain": "eip155:42161", "quantity": "19.204000",
+      "price_usd": 231.40, "value_usd": 4443.80, "venue": "backed_rwa" }
+  ],
+  "nfts": [
+    { "collection": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8", "token_id": "8842",
+      "floor_price_eth": "3.62", "value_usd": 131.26 }
+  ],
+  "unrealised_pnl_usd": 2914.08
+}</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="portfolio-history" data-m="GET" data-nav="Portfolio history">Portfolio history</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/portfolio/history</span>
+                <span class="dx-ep__scope">scope <u>portfolio:read</u></span>
+              </div>
+              <p>Time series of total value. <code>interval</code> accepts <code>5m</code>, <code>1h</code>,
+                <code>1d</code>; <code>range</code> accepts <code>24h</code>, <code>7d</code>,
+                <code>30d</code>, <code>1y</code>, <code>max</code>. Points are snapshots at interval close,
+                not interpolations.</p>
+              <div class="dx-code" data-lang="json" data-title="200 OK"><pre><code>{
+  "object": "portfolio_history",
+  "agent_id": "agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP",
+  "interval": "1h",
+  "range": "24h",
+  "points": [
+    { "t": "2026-08-15T10:00:00Z", "value_usd": 47338.10 },
+    { "t": "2026-08-15T11:00:00Z", "value_usd": 47510.62 },
+    { "t": "2026-08-16T09:00:00Z", "value_usd": 48213.77 }
+  ]
+}</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="portfolio-transactions" data-m="GET" data-nav="List transactions">List transactions</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/portfolio/transactions</span>
+                <span class="dx-ep__scope">scope <u>portfolio:read</u></span>
+              </div>
+              <p>Every value movement in or out of the account, including ones not originated by an intent —
+                deposits, airdrops, third-party transfers. Cursor-paginated, <code>format=csv</code> supported.</p>
+              <div class="dx-code" data-lang="json" data-title="200 OK"><pre><code>{
+  "object": "list",
+  "data": [
+    { "id": "txn_01JQ8ZV1C3E5G7J9L1N3Q5S7U9", "direction": "in", "kind": "settlement",
+      "token": "WETH", "amount": "0.041274", "value_usd": 150.00,
+      "intent_id": "int_01JQ8ZP1V6C3MD8R0YF2WKGSTA",
+      "tx_hash": "0x7c02e91a4f5b8d3607a2c14be9350df82461ac09b7de52318ca06f4b19e7d3a2",
+      "at": "2026-08-16T09:00:01.338Z" },
+    { "id": "txn_01JQ8ZU9A1C3E5G7J9L1N3Q5S7", "direction": "in", "kind": "external_deposit",
+      "token": "USDC", "amount": "5000.000000", "value_usd": 5000.00,
+      "intent_id": null, "at": "2026-08-14T17:22:40.000Z" }
+  ],
+  "has_more": true,
+  "next_cursor": "txn_01JQ8ZU9A1C3E5G7J9L1N3Q5S7"
+}</code></pre></div>
+            </div>
+          </section>
+
+          <!-- ============================ WEBHOOKS ============================ -->
+          <section class="dx-sec" data-group="Realtime">
+            <span class="dx-kicker">Push</span>
+            <h2 id="webhooks" data-nav="Webhooks">Webhooks</h2>
+            <p class="dx-lead">Webhooks are the durable channel: signed, retried and replayable. The WebSocket is
+              the fast channel. Production systems use both — the socket to react, the webhook to be certain.</p>
+
+            <div class="dx-ep">
+              <h3 id="webhooks-create" data-m="POST" data-nav="Create an endpoint">Create an endpoint</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--post">POST</span>
+                <span class="dx-ep__path">/v1/webhooks</span>
+                <span class="dx-ep__scope">scope <u>webhooks:write</u></span>
+              </div>
+              <h4 class="dx-lbl">Body parameters</h4>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">url</td><td class="ty">string</td><td><span class="dx-req dx-req--y">required</span></td><td>HTTPS only. Must answer a <code>POST</code> probe with 2xx inside 5 s before the endpoint activates.</td></tr>
+                    <tr><td class="mono">events</td><td class="ty">string[]</td><td><span class="dx-req dx-req--y">required</span></td><td>Event types, or <code>["*"]</code>. Unknown types are rejected.</td></tr>
+                    <tr><td class="mono">agent_ids</td><td class="ty">string[]</td><td><span class="dx-req dx-req--n">optional</span></td><td>Restrict to specific agents. Default all.</td></tr>
+                    <tr><td class="mono">description</td><td class="ty">string</td><td><span class="dx-req dx-req--n">optional</span></td><td>≤ 120 chars, shown in the console.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dx-code" data-lang="json" data-title="201 Created"><pre><code>{
+  "id": "whk_01JQ8ZW7E9G1J3L5N7Q9S1U3W5",
+  "object": "webhook_endpoint",
+  "url": "https://ops.example.com/hooks/strix",
+  "events": ["intent.rejected", "approval.requested", "execution.settled", "execution.failed"],
+  "status": "active",
+  "signing_secret": "whsec_2f8c1a04e75b39d6c0182e4a7f31b9d5",
+  "created_at": "2026-08-16T09:10:22.500Z"
+}</code></pre></div>
+              <div class="dx-note dx-note--warn">
+                <span class="dx-note__i" aria-hidden="true"></span>
+                <div><b>The signing secret is shown once</b>
+                  <p>It is not retrievable afterwards. Store it in your secret manager immediately, or roll the
+                    endpoint and get a new one.</p></div>
+              </div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="webhooks-list" data-m="GET" data-nav="List endpoints">List endpoints</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--get">GET</span>
+                <span class="dx-ep__path">/v1/webhooks</span>
+                <span class="dx-ep__scope">scope <u>webhooks:write</u></span>
+              </div>
+              <p>Returns endpoints with delivery health: <code>success_rate_24h</code>,
+                <code>last_delivery_at</code>, <code>consecutive_failures</code>. An endpoint that fails 20
+                consecutive deliveries is disabled and an <code>webhook.disabled</code> event is emitted to the
+                remaining healthy endpoints.</p>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="webhooks-delete" data-m="DELETE" data-nav="Delete an endpoint">Delete an endpoint</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--del">DELETE</span>
+                <span class="dx-ep__path">/v1/webhooks/<b>{webhook_id}</b></span>
+                <span class="dx-ep__scope">scope <u>webhooks:write</u></span>
+              </div>
+              <p>Returns <code>204</code>. Deliveries already queued are dropped; nothing is redelivered
+                afterwards.</p>
+            </div>
+
+            <h3 id="webhook-events">Event types</h3>
+            <div class="dx-tw">
+              <table class="dx-t">
+                <thead><tr><th>Event</th><th>Fires when</th><th>Payload <code>data</code></th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">intent.created</td><td>An intent is accepted at stage 01.</td><td>intent</td></tr>
+                  <tr><td class="mono">intent.rejected</td><td>Any of stages 02–04 refuses it.</td><td>intent with <code>rejection</code></td></tr>
+                  <tr><td class="mono">intent.expired</td><td><code>expires_at</code> passes without a fill.</td><td>intent</td></tr>
+                  <tr><td class="mono">intent.cancelled</td><td>Cancelled by the owner.</td><td>intent</td></tr>
+                  <tr><td class="mono">approval.requested</td><td>The human gate opens. Carries the full asset diff.</td><td>intent + simulation</td></tr>
+                  <tr><td class="mono">approval.resolved</td><td>Approved, rejected or timed out.</td><td>intent + decision</td></tr>
+                  <tr><td class="mono">execution.submitted</td><td>The user operation is broadcast.</td><td>execution</td></tr>
+                  <tr><td class="mono">execution.settled</td><td>Included, fee split, attestation written.</td><td>execution + attestation</td></tr>
+                  <tr><td class="mono">execution.failed</td><td>Reverted onchain or the solver defaulted.</td><td>execution with <code>failure</code></td></tr>
+                  <tr><td class="mono">execution.reverted</td><td>A settled execution was undone by a deep reorg.</td><td>execution</td></tr>
+                  <tr><td class="mono">policy.updated</td><td>A new policy version is committed.</td><td>policy</td></tr>
+                  <tr><td class="mono">agent.slashed</td><td>A slashing claim executes against the bond.</td><td>agent + slash</td></tr>
+                  <tr><td class="mono">session_key.rotated</td><td>Auto-rotation issues a replacement key.</td><td>session_key</td></tr>
+                  <tr><td class="mono">webhook.disabled</td><td>An endpoint is disabled after 20 consecutive failures.</td><td>webhook_endpoint</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="dx-code" data-lang="json" data-title="POST to your endpoint"><pre><code>{
+  "id": "evt_01JQ8ZX3G5J7L9N1Q3S5U7W9Y1",
+  "object": "event",
+  "type": "execution.settled",
+  "api_version": "2026-07-01",
+  "created_at": "2026-08-16T09:00:01.402Z",
+  "livemode": true,
+  "data": {
+    "object": {
+      "id": "exe_01JQ8ZQ7Y9B1D3F5H7K9M1P3R5",
+      "object": "execution",
+      "intent_id": "int_01JQ8ZP1V6C3MD8R0YF2WKGSTA",
+      "status": "settled",
+      "fills": [ { "buy_amount": "0.041274", "price": "3634.02" } ],
+      "attestation": { "uid": "0x5ea1…9d40" }
+    }
+  },
+  "attempt": 1
+}</code></pre></div>
+
+            <h3 id="webhook-signature">Signature verification</h3>
+            <p>Every delivery carries <code>Strix-Signature</code>: a timestamp and one or more HMAC-SHA256
+              signatures over <code>timestamp + "." + raw_body</code>, keyed with the endpoint's signing secret.
+              Multiple <code>v1=</code> values appear during a secret roll — accept the request if <em>any</em>
+              of them verifies.</p>
+            <div class="dx-code" data-lang="http" data-title="delivery headers"><pre><code>POST /hooks/strix HTTP/1.1
+Content-Type: application/json
+Strix-Signature: t=1786953601,v1=6a1f0c4b8d29e7350a1c8f6b2e94d075c3a8b1f60e29d47a5c30b8e1f27a94d6
+Strix-Event-Id: evt_01JQ8ZX3G5J7L9N1Q3S5U7W9Y1
+Strix-Delivery-Attempt: 1</code></pre></div>
+            <div data-tabs="lang">
+              <div class="dx-pane" data-lang="ts" data-label="TypeScript">
+                <div class="dx-code" data-lang="ts" data-title="verify.ts"><pre><code>import { createHmac, timingSafeEqual } from "node:crypto";
+
+const TOLERANCE_SECONDS = 300;
+
+export function verify(rawBody: string, header: string, secret: string): boolean {
+  const parts = Object.fromEntries(
+    header.split(",").map((kv) =&gt; kv.split("=") as [string, string]),
+  );
+  const ts = Number(parts.t);
+  if (!Number.isFinite(ts)) return false;
+  // Reject replays outside the tolerance window.
+  if (Math.abs(Date.now() / 1000 - ts) &gt; TOLERANCE_SECONDS) return false;
+
+  const expected = createHmac("sha256", secret)
+    .update(`${ts}.${rawBody}`)
+    .digest();
+
+  return header
+    .split(",")
+    .filter((kv) =&gt; kv.startsWith("v1="))
+    .some((kv) =&gt; {
+      const given = Buffer.from(kv.slice(3), "hex");
+      return given.length === expected.length &amp;&amp; timingSafeEqual(given, expected);
+    });
+}</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="py" data-label="Python">
+                <div class="dx-code" data-lang="py" data-title="verify.py"><pre><code>import hmac, hashlib, time
+
+TOLERANCE_SECONDS = 300
+
+def verify(raw_body: bytes, header: str, secret: str) -&gt; bool:
+    parts = dict(kv.split("=", 1) for kv in header.split(","))
+    try:
+        ts = int(parts["t"])
+    except (KeyError, ValueError):
+        return False
+    if abs(time.time() - ts) &gt; TOLERANCE_SECONDS:
+        return False
+
+    signed = f"{ts}.".encode() + raw_body
+    expected = hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
+
+    given = [kv.split("=", 1)[1] for kv in header.split(",") if kv.startswith("v1=")]
+    return any(hmac.compare_digest(g, expected) for g in given)</code></pre></div>
+              </div>
+              <div class="dx-pane" data-lang="rust" data-label="Rust">
+                <div class="dx-code" data-lang="rust" data-title="verify.rs"><pre><code>use hmac::{Hmac, Mac};
+use sha2::Sha256;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+const TOLERANCE_SECONDS: i64 = 300;
+
+pub fn verify(raw_body: &amp;[u8], header: &amp;str, secret: &amp;[u8]) -&gt; bool {
+    let mut ts: i64 = 0;
+    let mut sigs: Vec&lt;&amp;str&gt; = Vec::new();
+    for kv in header.split(',') {
+        match kv.split_once('=') {
+            Some(("t", v)) =&gt; ts = v.parse().unwrap_or(0),
+            Some(("v1", v)) =&gt; sigs.push(v),
+            _ =&gt; {}
+        }
+    }
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+    if ts == 0 || (now - ts).abs() &gt; TOLERANCE_SECONDS {
+        return false;
+    }
+
+    let mut mac = Hmac::&lt;Sha256&gt;::new_from_slice(secret).expect("key");
+    mac.update(format!("{ts}.").as_bytes());
+    mac.update(raw_body);
+    let expected = hex::encode(mac.finalize().into_bytes());
+
+    sigs.iter().any(|s| constant_time_eq(s.as_bytes(), expected.as_bytes()))
+}</code></pre></div>
+              </div>
+            </div>
+            <div class="dx-note dx-note--stop">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>Verify against the raw bytes</b>
+                <p>Sign-check before parsing. Re-serialising the JSON changes key order and whitespace, and the
+                  signature will never match. Most webhook bugs are this bug.</p></div>
+            </div>
+
+            <h3 id="webhook-delivery">Delivery, retries and ordering</h3>
+            <ul>
+              <li><strong>Timeout</strong> — 5 seconds to respond. Return <code>2xx</code> immediately and do the
+                work asynchronously.</li>
+              <li><strong>Retries</strong> — 8 attempts over 24 hours with exponential backoff:
+                10 s, 30 s, 2 m, 10 m, 30 m, 2 h, 6 h, 12 h.</li>
+              <li><strong>Ordering is not guaranteed.</strong> Use <code>created_at</code> and the intent status
+                machine to order events yourself; a retried <code>execution.submitted</code> can arrive after
+                <code>execution.settled</code>.</li>
+              <li><strong>At-least-once.</strong> Deduplicate on <code>Strix-Event-Id</code>. The same event can
+                arrive twice.</li>
+              <li><strong>Replay</strong> — <code>POST /v1/webhooks/{id}/replay</code> with an event ID or a time
+                range re-sends past events for backfill.</li>
+            </ul>
+          </section>
+
+          <!-- ============================ WEBSOCKET ============================ -->
+          <section class="dx-sec" data-group="Realtime">
+            <span class="dx-kicker">Stream</span>
+            <h2 id="websocket" data-nav="WebSocket API">WebSocket API</h2>
+            <p class="dx-lead">One connection, many channels. Frames do not consume the REST rate-limit budget,
+              which makes the socket the correct way to follow intents rather than polling.</p>
+
+            <div class="dx-ep">
+              <h3 id="ws-connect" data-m="WSS" data-nav="Connect and authenticate">Connect and authenticate</h3>
+              <div class="dx-ep__sig">
+                <span class="dx-m dx-m--ws">WSS</span>
+                <span class="dx-ep__path">wss://stream.strixhood.xyz/v1</span>
+                <span class="dx-ep__scope">scope <u>intents:read</u></span>
+              </div>
+              <p>Authenticate with the first frame within 5 seconds of the handshake, or the socket closes with
+                code <code>4001</code>. Query-string keys are not accepted — they end up in proxy logs.</p>
+              <div class="dx-code" data-lang="json" data-title="→ client sends"><pre><code>{ "op": "auth", "token": "strx_sk_live_9f2c41bd7a084e6cb35d0e17", "id": "c1" }</code></pre></div>
+              <div class="dx-code" data-lang="json" data-title="← server replies"><pre><code>{ "op": "auth.ok", "id": "c1", "account": "acct_01JQ8Z…", "livemode": true,
+  "heartbeat_sec": 20, "channels": ["intents", "executions", "prices"] }</code></pre></div>
+              <div class="dx-code" data-lang="bash" data-title="quick check with wscat"><pre><code>wscat -c wss://stream.strixhood.xyz/v1 \
+  -x '{"op":"auth","token":"'"$STRIX_API_KEY"'","id":"c1"}'</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="ws-frames" data-m="WSS" data-nav="Frame format">Frame format</h3>
+              <p>Every frame is a JSON object with an <code>op</code>. Client frames may carry an
+                <code>id</code>, which is echoed on the matching acknowledgement so you can correlate.</p>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th>op</th><th>Direction</th><th>Meaning</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">auth</td><td>client → server</td><td>Authenticate the connection.</td></tr>
+                    <tr><td class="mono">subscribe</td><td>client → server</td><td>Join a channel with optional filters.</td></tr>
+                    <tr><td class="mono">unsubscribe</td><td>client → server</td><td>Leave a channel.</td></tr>
+                    <tr><td class="mono">ping</td><td>client → server</td><td>Application-level keepalive.</td></tr>
+                    <tr><td class="mono">auth.ok / subscribed / unsubscribed / pong</td><td>server → client</td><td>Acknowledgements, echoing <code>id</code>.</td></tr>
+                    <tr><td class="mono">event</td><td>server → client</td><td>A channel payload.</td></tr>
+                    <tr><td class="mono">error</td><td>server → client</td><td>Same envelope as REST, plus the offending <code>id</code>.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dx-code" data-lang="json" data-title="subscribe / unsubscribe"><pre><code>// join two channels at once
+{ "op": "subscribe", "id": "s1",
+  "channels": [
+    { "name": "executions", "agent_ids": ["agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP"] },
+    { "name": "prices", "symbols": ["ETH", "AAPLX"], "chain": "eip155:8453" }
+  ] }
+
+// server acknowledges
+{ "op": "subscribed", "id": "s1", "channels": ["executions", "prices"] }
+
+// leave one
+{ "op": "unsubscribe", "id": "s2", "channels": ["prices"] }
+{ "op": "unsubscribed", "id": "s2", "channels": ["prices"] }</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="ws-intents" data-m="WSS" data-nav="Channel: intents">Channel: <code>intents</code></h3>
+              <p>Status transitions for every intent visible to the key. Filters: <code>agent_ids</code>,
+                <code>statuses</code>, <code>chains</code>. One frame per transition, never a full re-send.</p>
+              <div class="dx-code" data-lang="json" data-title="← event"><pre><code>{
+  "op": "event",
+  "channel": "intents",
+  "seq": 88214,
+  "at": "2026-08-16T09:00:00.598Z",
+  "data": {
+    "id": "int_01JQ8ZP1V6C3MD8R0YF2WKGSTA",
+    "object": "intent",
+    "status": "routing",
+    "previous_status": "simulating",
+    "agent_id": "agt_01JQ8ZM7T4B0KC2N9XE5RVDHQP",
+    "execution_id": "exe_01JQ8ZQ7Y9B1D3F5H7K9M1P3R5"
+  }
+}</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="ws-executions" data-m="WSS" data-nav="Channel: executions">Channel: <code>executions</code></h3>
+              <p>Auction results, fills and settlement. Filters: <code>agent_ids</code>, <code>chains</code>,
+                <code>solvers</code>. This is the channel to drive a UI from.</p>
+              <div class="dx-code" data-lang="json" data-title="← event"><pre><code>{
+  "op": "event",
+  "channel": "executions",
+  "seq": 88217,
+  "at": "2026-08-16T09:00:01.338Z",
+  "data": {
+    "id": "exe_01JQ8ZQ7Y9B1D3F5H7K9M1P3R5",
+    "object": "execution",
+    "intent_id": "int_01JQ8ZP1V6C3MD8R0YF2WKGSTA",
+    "status": "settled",
+    "solver": "slv_kestrel",
+    "fills": [ { "buy_amount": "0.041274", "price": "3634.02",
+                 "tx_hash": "0x7c02e91a4f5b8d3607a2c14be9350df82461ac09b7de52318ca06f4b19e7d3a2" } ],
+    "attestation": { "uid": "0x5ea1…9d40" }
+  }
+}</code></pre></div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="ws-prices" data-m="WSS" data-nav="Channel: prices">Channel: <code>prices</code></h3>
+              <p>The same oracle prices the policy engine uses for notional calculation, so a client-side limit
+                preview matches the server's decision. Throttled to 4 updates per second per symbol; subscribe to
+                at most 50 symbols per connection.</p>
+              <div class="dx-code" data-lang="json" data-title="← event"><pre><code>{
+  "op": "event",
+  "channel": "prices",
+  "seq": 88219,
+  "at": "2026-08-16T09:00:01.500Z",
+  "data": {
+    "symbol": "ETH",
+    "chain": "eip155:8453",
+    "price_usd": "3634.02",
+    "change_24h_pct": 1.84,
+    "sources": 5,
+    "staleness_ms": 380
+  }
+}</code></pre></div>
+              <div class="dx-note">
+                <span class="dx-note__i" aria-hidden="true"></span>
+                <div><b><code>staleness_ms</code> is not decoration</b>
+                  <p>If it exceeds 5,000 the oracle set is degraded and the policy engine widens its own
+                    tolerance. Do not size an order off a stale price.</p></div>
+              </div>
+            </div>
+
+            <div class="dx-ep">
+              <h3 id="ws-lifecycle" data-m="WSS" data-nav="Heartbeats and reconnect">Heartbeats and reconnect</h3>
+              <p>The server sends <code>ping</code> every <code>heartbeat_sec</code>. Miss two and the socket
+                closes. Every event carries a monotonic <code>seq</code> per channel; reconnect with
+                <code>resume_from</code> to replay the gap from a 15-minute buffer.</p>
+              <div class="dx-code" data-lang="json" data-title="resume after a drop"><pre><code>{ "op": "subscribe", "id": "s3",
+  "channels": [ { "name": "executions", "resume_from": 88217 } ] }</code></pre></div>
+              <div class="dx-tw">
+                <table class="dx-t dx-t--compact">
+                  <thead><tr><th class="n">Close code</th><th>Meaning</th><th>What to do</th></tr></thead>
+                  <tbody>
+                    <tr><td class="n">1000</td><td>Normal closure.</td><td>Nothing.</td></tr>
+                    <tr><td class="n">4001</td><td>Authentication timeout or failure.</td><td>Fix the key. Do not reconnect in a loop.</td></tr>
+                    <tr><td class="n">4003</td><td>Scope missing for a requested channel.</td><td>Mint a key with the scope.</td></tr>
+                    <tr><td class="n">4008</td><td>Too many connections for the tier.</td><td>Multiplex channels onto one socket.</td></tr>
+                    <tr><td class="n">4009</td><td>Heartbeat missed.</td><td>Reconnect with <code>resume_from</code>.</td></tr>
+                    <tr><td class="n">4029</td><td>Subscription flood — more than 20 subscribe ops per minute.</td><td>Back off 60 s.</td></tr>
+                    <tr><td class="n">1012</td><td>Server restarting for a deploy.</td><td>Reconnect after a jittered 1–5 s.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="dx-code" data-lang="ts" data-title="reconnect.ts"><pre><code>function connect(url: string, token: string, onEvent: (e: unknown) =&gt; void) {
+  let seq = 0;
+  let backoff = 500;
+
+  const open = () =&gt; {
+    const ws = new WebSocket(url);
+
+    ws.onopen = () =&gt; ws.send(JSON.stringify({ op: "auth", token, id: "c1" }));
+
+    ws.onmessage = (m) =&gt; {
+      const f = JSON.parse(m.data as string);
+      if (f.op === "auth.ok") {
+        backoff = 500;
+        ws.send(JSON.stringify({
+          op: "subscribe", id: "s1",
+          channels: [{ name: "executions", resume_from: seq || undefined }],
+        }));
+      } else if (f.op === "event") {
+        seq = f.seq;
+        onEvent(f.data);
+      } else if (f.op === "ping") {
+        ws.send(JSON.stringify({ op: "pong", id: f.id }));
+      }
+    };
+
+    ws.onclose = (e) =&gt; {
+      if (e.code === 4001 || e.code === 4003) return; // fatal: do not retry
+      setTimeout(open, Math.random() * backoff);
+      backoff = Math.min(backoff * 2, 30_000);
+    };
+  };
+
+  open();
+}</code></pre></div>
+            </div>
+          </section>
+
+          <nav class="dx-pager" aria-label="Continue reading">
+            <a href="docs.html"><small>Back</small><b>← Protocol documentation</b></a>
+            <a href="sdk.html"><small>Next</small><b>SDK reference →</b></a>
+          </nav>
+
+        </div>
+
+        <nav class="dx-toc" id="dx-toc" aria-label="On this page"></nav>
+      </div>
+    </div>
+  </main>
+  <div id="sx-footer-host"></div>
+  <script src="assets/strix.js"></script>
+  <script src="assets/strix-data.js"></script>
+  <script src="assets/wallet.js"></script>
+  <script src="assets/shell.js"></script>
+  <script src="assets/docs.js"></script>
+  <script>Strix.page({ smooth:false });</script>
+</body>
+</html>

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Protocol Dashboard — Strix Hood</title>
+<meta name="description" content="Protocol-side view of Strix Hood: network throughput, the agent registry, fee and treasury flow, the five-layer security monitor and $STRX tokenomics.">
+<link rel="canonical" href="https://strix-hood.vercel.app/admin.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="theme-color" content="#0A0A0F">
+<meta property="og:title" content="Strix Hood — Protocol Dashboard">
+<meta property="og:description" content="Network throughput, agent registry, fee flow, security monitor and $STRX tokenomics.">
+<meta property="og:image" content="https://strix-hood.vercel.app/assets/og.png">
+<meta property="og:url" content="https://strix-hood.vercel.app/admin.html">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@strixhood">
+<meta name="twitter:image" content="https://strix-hood.vercel.app/assets/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/strix.css">
+<link rel="stylesheet" href="assets/dash.css">
+<link rel="stylesheet" href="assets/chatbot.css">
+</head>
+<body data-dash="admin">
+
+<canvas id="sx-ambient" aria-hidden="true"></canvas>
+<div id="sx-nav-host"></div>
+
+<main id="main" class="sx-app">
+
+  <!-- ══ SIDEBAR ══════════════════════════════════════════════ -->
+  <aside class="sx-side" id="d-side">
+    <div class="d-side__brand">
+      <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--ring"></span></span>
+      <span><b>Protocol</b><em>network · testnet</em></span>
+    </div>
+
+    <p class="d-side__sec">Monitor</p>
+    <nav class="sx-side__nav" id="d-nav" aria-label="Protocol sections"></nav>
+
+    <div class="sx-side__foot">
+      <p class="d-side__sec" style="margin:0 0 2px">Feed health</p>
+      <div class="d-health" id="d-health" aria-label="Data feed health"></div>
+      <a class="sx-btn sx-btn--ghost sx-btn--sm sx-btn--block" href="app.html">Agent console</a>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ═════════════════════════════════════════════════ -->
+  <div class="sx-main">
+
+    <header class="sx-topbar">
+      <div class="d-topbar__l">
+        <span class="sx-eyebrow"><span class="sx-glyph sx-glyph--dot"></span>Strix Hood · Protocol</span>
+        <h1 class="d-title" id="d-title">Network</h1>
+        <p class="d-sub" id="d-sub">Throughput, settlement quality and chain conditions.</p>
+      </div>
+      <div class="d-topbar__r">
+        <span class="d-clock sx-mono" id="d-clock" aria-label="Session clock"><i class="d-dot d-dot--live"></i><b>--:--:--</b> UTC<span class="sx-dim" id="d-clock-off"></span></span>
+        <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="d-sources">Data sources</button>
+      </div>
+    </header>
+
+    <div id="d-views">
+
+      <!-- ── OVERVIEW ─────────────────────────────────────── -->
+      <section class="sx-view" id="view-overview" data-view="overview" tabindex="-1" aria-label="Network overview" hidden>
+        <div class="d-cols">
+
+          <article class="sx-card d-panel c12">
+            <div class="d-panel__head">
+              <div>
+                <h2>Network</h2>
+                <p>Rolling 24-hour protocol metrics.</p>
+              </div>
+              <div class="d-panel__tools">
+                <span class="d-src d-src--sim">simulated</span>
+                <span class="sx-status sx-status--live"><i></i>TESTNET</span>
+              </div>
+            </div>
+            <div class="d-kpis" id="ad-kpis"></div>
+          </article>
+
+          <article class="sx-card d-panel c7">
+            <div class="d-panel__head">
+              <div>
+                <h2>Settlement volume</h2>
+                <p>Hourly notional settled through the protocol, last 48 hours.</p>
+              </div>
+              <div class="d-panel__tools">
+                <div class="sx-tabs" id="ad-vol-tabs" role="group" aria-label="Volume window"></div>
+              </div>
+            </div>
+            <div class="d-panel__body">
+              <canvas id="ad-vol" class="d-vol" role="img" aria-label="Settlement volume sparkline" style="width:100%;height:150px;display:block"></canvas>
+              <div class="d-chart__meta" id="ad-vol-meta" style="margin:14px -18px -18px;border-top:1px solid rgba(255,255,255,.07)"></div>
+            </div>
+          </article>
+
+          <article class="sx-card d-panel c5">
+            <div class="d-panel__head">
+              <div>
+                <h2>Chain conditions</h2>
+                <p>Ethereum mainnet, read directly from public infrastructure.</p>
+              </div>
+            </div>
+            <div class="d-panel__body" id="ad-chain"></div>
+          </article>
+
+          <article class="sx-card d-panel c12">
+            <div class="d-panel__head">
+              <div>
+                <h2>Global execution feed</h2>
+                <p>Every intent that crosses the protocol, newest first.</p>
+              </div>
+              <div class="d-panel__tools">
+                <span class="sx-status sx-status--live"><i></i>STREAMING</span>
+                <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="ad-feed-toggle" aria-pressed="false">Pause</button>
+              </div>
+            </div>
+            <div class="d-panel__body d-panel__body--flush">
+              <div class="sx-feed" id="ad-feed" role="log" aria-live="polite" aria-label="Global execution feed" style="max-height:300px"></div>
+            </div>
+            <div class="d-panel__foot">
+              <span class="d-src d-src--sim">simulated</span>
+              <span>Testnet carries no real settlement volume — events are generated locally at the observed protocol rate.</span>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- ── REGISTRY ─────────────────────────────────────── -->
+      <section class="sx-view" id="view-registry" data-view="registry" tabindex="-1" aria-label="Agent registry" hidden>
+        <div class="d-cols">
+          <article class="sx-card d-panel c12">
+            <div class="d-toolbar">
+              <label class="sx-sr" for="rg-search">Search registry</label>
+              <input class="sx-input" id="rg-search" type="search" placeholder="Search agent, operator or capability…" autocomplete="off">
+              <div class="sx-tabs" id="rg-tabs" role="group" aria-label="Filter registry by category"></div>
+              <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="rg-slashed" aria-pressed="false">Slashed only</button>
+              <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="rg-clear" hidden>Clear filters</button>
+              <span class="d-toolbar__count" id="rg-count">—</span>
+            </div>
+            <div class="sx-tablewrap d-scrolly">
+              <table class="sx-table" id="rg-table">
+                <caption class="sx-sr">Registered agents. Select a row for the full record.</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" data-sort="name"><button type="button">Agent <span class="d-sort">↕</span></button></th>
+                    <th scope="col" data-sort="cat"><button type="button">Category <span class="d-sort">↕</span></button></th>
+                    <th scope="col" data-sort="operator"><button type="button">Operator <span class="d-sort">↕</span></button></th>
+                    <th scope="col" class="num" data-sort="rep"><button type="button">Reputation <span class="d-sort">↕</span></button></th>
+                    <th scope="col" class="num" data-sort="runs"><button type="button">Executions <span class="d-sort">↕</span></button></th>
+                    <th scope="col" class="num" data-sort="bond"><button type="button">Bond <span class="d-sort">↕</span></button></th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="rg-body"></tbody>
+              </table>
+            </div>
+            <div class="sx-empty" id="rg-empty" hidden style="margin:18px">
+              <b>No agent matches those filters.</b>
+              <p class="sx-body">Try a different category, clear the search field, or turn off the slashing filter.</p>
+              <button class="sx-btn sx-btn--ghost sx-btn--sm" type="button" id="rg-reset">Reset filters</button>
+            </div>
+            <div class="d-panel__foot">
+              <span class="d-src d-src--sim">simulated</span>
+              <span>Registry fixtures mirror the testnet schema: bond in $STRX, reputation 0–1000, slashing recorded per incident.</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ── TREASURY ─────────────────────────────────────── -->
+      <section class="sx-view" id="view-treasury" data-view="treasury" tabindex="-1" aria-label="Fee and treasury" hidden>
+        <div class="d-cols">
+
+          <article class="sx-card d-panel c12">
+            <div class="d-panel__head">
+              <div>
+                <h2>Fee flow</h2>
+                <p>A flat 0.25% of settled commerce volume, split on every epoch close.</p>
+              </div>
+              <div class="d-panel__tools">
+                <div class="sx-tabs" id="tr-window" role="group" aria-label="Fee window"></div>
+                <span class="d-src d-src--sim">simulated</span>
+              </div>
+            </div>
+            <div class="d-panel__body">
+              <div class="d-flow" id="tr-flow"></div>
+            </div>
+          </article>
+
+          <article class="sx-card d-panel c5">
+            <div class="d-panel__head">
+              <div><h2>Treasury holdings</h2><p>Cumulative, net of grants paid.</p></div>
+            </div>
+            <div class="d-panel__body">
+              <div class="d-alloc">
+                <div class="d-alloc__chart" id="tr-donut"></div>
+                <div class="d-legend" id="tr-legend"></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="sx-card d-panel c7">
+            <div class="d-panel__head">
+              <div><h2>Epoch settlements</h2><p>Each epoch closes every 6 hours and pays out atomically.</p></div>
+              <div class="d-panel__tools"><span class="d-toolbar__count" id="tr-count">—</span></div>
+            </div>
+            <div class="sx-tablewrap d-scrolly">
+              <table class="sx-table" id="tr-table">
+                <caption class="sx-sr">Recent fee epochs and their split</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Epoch</th>
+                    <th scope="col" class="num">Volume</th>
+                    <th scope="col" class="num">Fee</th>
+                    <th scope="col" class="num">Treasury</th>
+                    <th scope="col" class="num">Stakers</th>
+                    <th scope="col" class="num">Burned</th>
+                    <th scope="col">Closed</th>
+                  </tr>
+                </thead>
+                <tbody id="tr-body"></tbody>
+              </table>
+            </div>
+            <div class="d-panel__foot">
+              <span class="d-src d-src--sim">simulated</span>
+              <span>Epoch history is generated from the same random walk that drives the live counters.</span>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- ── SECURITY ─────────────────────────────────────── -->
+      <section class="sx-view" id="view-security" data-view="security" tabindex="-1" aria-label="Security monitor" hidden>
+        <div class="d-cols">
+
+          <article class="sx-card d-panel c12">
+            <div class="d-panel__head">
+              <div>
+                <h2>Five gates</h2>
+                <p>Each layer can independently refuse an action. Select a layer for its refusal criteria.</p>
+              </div>
+              <div class="d-panel__tools">
+                <span class="d-src d-src--sim">simulated</span>
+                <span class="sx-status sx-status--live" id="sec-status"><i></i>ALL ACTIVE</span>
+              </div>
+            </div>
+            <div class="d-panel__body">
+              <ol class="d-layers" id="sec-layers" style="list-style:none;margin:0;padding:0"></ol>
+            </div>
+          </article>
+
+          <article class="sx-card d-panel c12">
+            <div class="d-panel__head">
+              <div><h2>Recent refusals</h2><p>Actions stopped before broadcast, with the layer that stopped them.</p></div>
+              <div class="d-panel__tools">
+                <div class="sx-tabs" id="sec-tabs" role="group" aria-label="Filter refusals by layer"></div>
+              </div>
+            </div>
+            <div class="sx-tablewrap d-scrolly">
+              <table class="sx-table" id="sec-table">
+                <caption class="sx-sr">Recently blocked actions</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Layer</th>
+                    <th scope="col">Agent</th>
+                    <th scope="col">Reason</th>
+                    <th scope="col" class="num">Notional</th>
+                    <th scope="col" class="num">Time</th>
+                  </tr>
+                </thead>
+                <tbody id="sec-body"></tbody>
+              </table>
+            </div>
+            <div class="sx-empty" id="sec-empty" hidden style="margin:18px">
+              <b>No refusals recorded for that layer.</b>
+              <p class="sx-body">An empty list is the expected steady state — switch back to “All layers”.</p>
+            </div>
+            <div class="d-panel__foot">
+              <span class="d-src d-src--sim">simulated</span>
+              <span>Refusal log is generated locally at the protocol's observed block rate.</span>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- ── TOKENOMICS ───────────────────────────────────── -->
+      <section class="sx-view" id="view-tokenomics" data-view="tokenomics" tabindex="-1" aria-label="Tokenomics" hidden>
+        <div class="d-cols">
+
+          <article class="sx-card d-panel c12">
+            <div class="d-panel__head">
+              <div><h2>$STRX supply</h2><p>Fixed supply of 1,000,000,000. No mint function exists after deployment.</p></div>
+              <div class="d-panel__tools">
+                <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="tk-copy">Copy contract</button>
+              </div>
+            </div>
+            <div class="d-kpis d-supply" id="tk-kpis"></div>
+          </article>
+
+          <article class="sx-card d-panel c5">
+            <div class="d-panel__head">
+              <div><h2>Distribution</h2><p>Allocation at genesis.</p></div>
+            </div>
+            <div class="d-panel__body">
+              <div class="d-alloc">
+                <div class="d-alloc__chart" id="tk-donut"></div>
+                <div class="d-legend" id="tk-legend"></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="sx-card d-panel c7">
+            <div class="d-panel__head">
+              <div><h2>Unlock curve</h2><p>Circulating supply by month, cliffs included.</p></div>
+              <div class="d-panel__tools"><span class="d-toolbar__count" id="tk-month">month 0</span></div>
+            </div>
+            <div class="d-panel__body">
+              <div id="tk-vest"></div>
+              <label class="sx-sr" for="tk-scrub">Month</label>
+              <input class="sx-range" type="range" id="tk-scrub" min="0" max="48" step="1" value="0" style="margin-top:14px">
+            </div>
+          </article>
+
+          <article class="sx-card d-panel c12">
+            <div class="d-panel__head">
+              <div><h2>Vesting schedule</h2><p>Cliff and linear release per allocation.</p></div>
+            </div>
+            <div class="sx-tablewrap">
+              <table class="sx-table" id="tk-table">
+                <caption class="sx-sr">Vesting schedule per allocation</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Allocation</th>
+                    <th scope="col" class="num">Share</th>
+                    <th scope="col" class="num">Tokens</th>
+                    <th scope="col" class="num">Cliff</th>
+                    <th scope="col" class="num">Vesting</th>
+                    <th scope="col" class="num">Unlocked now</th>
+                    <th scope="col">Purpose</th>
+                  </tr>
+                </thead>
+                <tbody id="tk-body"></tbody>
+              </table>
+            </div>
+            <div class="d-panel__foot">
+              <span class="d-src d-src--sim">testnet parameters</span>
+              <span>Schedule is fixed in the token contract; “unlocked now” is computed from the genesis date below.</span>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<nav class="sx-bottomnav" id="d-bottomnav" aria-label="Protocol sections"></nav>
+
+<div id="sx-footer-host"></div>
+
+<script src="assets/strix.js"></script>
+<script src="assets/strix-data.js"></script>
+<script src="assets/wallet.js"></script>
+<script src="assets/shell.js"></script>
+<script src="assets/chatbot.js"></script>
+<script src="assets/strix-3d.js"></script>
+<script src="assets/dash.js"></script>
+</body>
+</html>

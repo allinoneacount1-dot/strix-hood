@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Console — Strix Hood</title>
+<meta name="description" content="Control your onchain agents: live portfolio, execution history, spending policy and wallet — with a realtime ETH chart and a native fallback renderer.">
+<link rel="canonical" href="https://strix-hood.vercel.app/app.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta name="theme-color" content="#0A0A0F">
+<meta property="og:title" content="Strix Hood — Agent Console">
+<meta property="og:description" content="Live portfolio, agent telemetry, execution ledger and the spending policy your agents cannot exceed.">
+<meta property="og:image" content="https://strix-hood.vercel.app/assets/og.png">
+<meta property="og:url" content="https://strix-hood.vercel.app/app.html">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@strixhood">
+<meta name="twitter:image" content="https://strix-hood.vercel.app/assets/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/strix.css">
+<link rel="stylesheet" href="assets/dash.css">
+<link rel="stylesheet" href="assets/chatbot.css">
+</head>
+<body data-dash="app">
+
+<canvas id="sx-ambient" aria-hidden="true"></canvas>
+<div id="sx-nav-host"></div>
+
+<main id="main" class="sx-app">
+
+  <!-- ══ SIDEBAR ══════════════════════════════════════════════ -->
+  <aside class="sx-side" id="d-side">
+    <div class="d-side__brand">
+      <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--diamond"></span></span>
+      <span><b>Agent console</b><em>account · testnet</em></span>
+    </div>
+
+    <p class="d-side__sec">Workspace</p>
+    <nav class="sx-side__nav" id="d-nav" aria-label="Console sections"></nav>
+
+    <div class="sx-side__foot">
+      <p class="d-side__sec" style="margin:0 0 2px">Feed health</p>
+      <div class="d-health" id="d-health" aria-label="Data feed health"></div>
+      <button class="sx-btn sx-btn--ghost sx-btn--sm sx-btn--block" type="button" data-wallet data-wallet-idle="Connect wallet">
+        <span class="sx-glyph sx-glyph--dot"></span><span data-wallet-label>Connect wallet</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ═════════════════════════════════════════════════ -->
+  <div class="sx-main">
+
+    <header class="sx-topbar">
+      <div class="d-topbar__l">
+        <span class="sx-eyebrow"><span class="sx-glyph sx-glyph--dot"></span>Strix Hood · App</span>
+        <h1 class="d-title" id="d-title">Overview</h1>
+        <p class="d-sub" id="d-sub">Portfolio, agents and activity in one place.</p>
+      </div>
+      <div class="d-topbar__r">
+        <span class="d-clock sx-mono" id="d-clock" aria-label="Session clock"><i class="d-dot d-dot--live"></i><b>--:--:--</b> UTC<span class="sx-dim" id="d-clock-off"></span></span>
+        <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="d-sources">Data sources</button>
+      </div>
+    </header>
+
+    <div id="d-views">
+
+      <!-- ── OVERVIEW ─────────────────────────────────────── -->
+      <section class="sx-view" id="view-overview" data-view="overview" tabindex="-1" aria-label="Overview" hidden>
+        <div class="d-cols">
+
+          <article class="sx-card d-panel c12">
+            <div class="d-panel__head">
+              <div>
+                <h2>Position summary</h2>
+                <p>Simulated holdings valued against the live market feed.</p>
+              </div>
+              <div class="d-panel__tools">
+                <span class="d-src" id="ov-price-src">pricing…</span>
+                <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" data-go="portfolio">Open portfolio</button>
+              </div>
+            </div>
+            <div class="d-kpis" id="ov-kpis"></div>
+          </article>
+
+          <div class="c8" id="ov-chart"></div>
+
+          <article class="sx-card d-panel c4">
+            <div class="d-panel__head">
+              <div>
+                <h2>Your agents</h2>
+                <p>Executors scoped to your committed policy.</p>
+              </div>
+              <div class="d-panel__tools">
+                <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" data-go="agents">Manage</button>
+              </div>
+            </div>
+            <div class="d-panel__body d-panel__body--flush" style="padding:8px">
+              <div class="d-mini" id="ov-agents"></div>
+            </div>
+            <div class="d-panel__foot">
+              <span class="d-src d-src--sim">simulated</span>
+              <span>Reputation, revenue and run counts come from the protocol simulator.</span>
+            </div>
+          </article>
+
+          <article class="sx-card d-panel c7">
+            <div class="d-panel__head">
+              <div>
+                <h2>Agent activity</h2>
+                <p>Intent lifecycle events, newest first.</p>
+              </div>
+              <div class="d-panel__tools">
+                <span class="sx-status sx-status--live"><i></i>STREAMING</span>
+                <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="ov-feed-toggle" aria-pressed="false">Pause</button>
+              </div>
+            </div>
+            <div class="d-panel__body d-panel__body--flush">
+              <div class="sx-feed" id="ov-feed" role="log" aria-live="polite" aria-label="Live agent activity"></div>
+            </div>
+            <div class="d-panel__foot">
+              <span class="d-src d-src--sim">simulated</span>
+              <span>Testnet carries no real settlement volume — events are generated locally.</span>
+            </div>
+          </article>
+
+          <article class="sx-card d-panel c5">
+            <div class="d-panel__head">
+              <div>
+                <h2>Execution quality</h2>
+                <p>Rolling 24h across every agent you operate.</p>
+              </div>
+            </div>
+            <div class="d-panel__body" id="ov-quick"></div>
+            <div class="d-panel__foot">
+              <span class="d-src d-src--sim">simulated</span>
+              <span>Latency and success rate from the protocol simulator.</span>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- ── AGENTS ───────────────────────────────────────── -->
+      <section class="sx-view" id="view-agents" data-view="agents" tabindex="-1" aria-label="Agents" hidden>
+        <div class="d-cols">
+          <article class="sx-card d-panel c12">
+            <div class="d-toolbar">
+              <label class="sx-sr" for="ag-search">Search agents</label>
+              <input class="sx-input" id="ag-search" type="search" placeholder="Search name, role or skill…" autocomplete="off">
+              <div class="sx-tabs" id="ag-tabs" role="group" aria-label="Filter agents by status"></div>
+              <label class="sx-sr" for="ag-sort">Sort agents</label>
+              <select class="sx-select" id="ag-sort" style="width:auto;padding:9px 38px 9px 13px;font-size:13px">
+                <option value="rev">Sort · revenue 30d</option>
+                <option value="rep">Sort · reputation</option>
+                <option value="runs">Sort · executions</option>
+                <option value="name">Sort · name</option>
+              </select>
+              <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="ag-clear" hidden>Clear filters</button>
+              <span class="d-toolbar__count" id="ag-count">—</span>
+            </div>
+            <div class="d-panel__body">
+              <div class="d-agents" id="ag-grid"></div>
+              <div class="sx-empty" id="ag-empty" hidden>
+                <b>No agent matches that filter.</b>
+                <p class="sx-body">Clear the search box or switch back to “All” to see every agent registered to this account.</p>
+                <button class="sx-btn sx-btn--ghost sx-btn--sm" type="button" id="ag-reset">Reset filters</button>
+              </div>
+            </div>
+            <div class="d-panel__foot">
+              <span class="d-src d-src--sim">simulated</span>
+              <span>Agent registry entries are local fixtures; pausing or revoking changes state in this session only.</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ── PORTFOLIO ────────────────────────────────────── -->
+      <section class="sx-view" id="view-portfolio" data-view="portfolio" tabindex="-1" aria-label="Portfolio" hidden>
+        <div class="d-cols">
+
+          <article class="sx-card d-panel c12">
+            <div class="d-panel__head">
+              <div>
+                <h2>Book value</h2>
+                <p>Marked to the live feed, against a simulated cost basis.</p>
+              </div>
+              <div class="d-panel__tools"><span class="d-src" id="pf-src">pricing…</span></div>
+            </div>
+            <div class="d-kpis" id="pf-kpis"></div>
+          </article>
+
+          <article class="sx-card d-panel c5">
+            <div class="d-panel__head">
+              <div>
+                <h2>Allocation</h2>
+                <p>Share of book value by asset.</p>
+              </div>
+            </div>
+            <div class="d-panel__body">
+              <div class="d-alloc">
+                <div class="d-alloc__chart" id="pf-donut"></div>
+                <div class="d-legend" id="pf-legend"></div>
+              </div>
+            </div>
+          </article>
+
+          <div class="c7" id="pf-chart"></div>
+
+          <article class="sx-card d-panel c12">
+            <div class="d-panel__head">
+              <div>
+                <h2>Holdings</h2>
+                <p>Click a column header to sort. 7-day series from CoinGecko when reachable.</p>
+              </div>
+              <div class="d-panel__tools">
+                <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="pf-export">Copy as CSV</button>
+              </div>
+            </div>
+            <div class="sx-tablewrap">
+              <table class="sx-table" id="pf-table">
+                <caption class="sx-sr">Holdings with live price, 24-hour change, market value and unrealised profit and loss</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" data-sort="sym"><button type="button">Asset <span class="d-sort">↕</span></button></th>
+                    <th scope="col" class="num" data-sort="qty"><button type="button">Quantity <span class="d-sort">↕</span></button></th>
+                    <th scope="col" class="num" data-sort="price"><button type="button">Price <span class="d-sort">↕</span></button></th>
+                    <th scope="col" class="num" data-sort="ch"><button type="button">24h <span class="d-sort">↕</span></button></th>
+                    <th scope="col" class="num" data-sort="val"><button type="button">Value <span class="d-sort">↕</span></button></th>
+                    <th scope="col" class="num" data-sort="pnl"><button type="button">Unrealised <span class="d-sort">↕</span></button></th>
+                    <th scope="col">7d</th>
+                  </tr>
+                </thead>
+                <tbody id="pf-body"></tbody>
+              </table>
+            </div>
+            <div class="d-panel__foot">
+              <span class="d-src d-src--sim">simulated</span><span>quantities and cost basis</span>
+              <span class="d-src" id="pf-foot-src">prices</span>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- ── TRANSACTIONS ─────────────────────────────────── -->
+      <section class="sx-view" id="view-transactions" data-view="transactions" tabindex="-1" aria-label="Transactions" hidden>
+        <div class="d-cols">
+          <article class="sx-card d-panel c12">
+            <div class="d-toolbar">
+              <label class="sx-sr" for="tx-search">Search transactions</label>
+              <input class="sx-input" id="tx-search" type="search" placeholder="Search hash, agent, asset or venue…" autocomplete="off">
+              <div class="sx-tabs" id="tx-tabs" role="group" aria-label="Filter transactions by status"></div>
+              <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="tx-live" aria-pressed="true">Live · on</button>
+              <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="tx-clear" hidden>Clear filters</button>
+              <span class="d-toolbar__count" id="tx-count">—</span>
+            </div>
+            <div class="sx-tablewrap d-scrolly">
+              <table class="sx-table" id="tx-table">
+                <caption class="sx-sr">Execution ledger. Select a row to open the receipt.</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Status</th>
+                    <th scope="col">Hash</th>
+                    <th scope="col">Agent</th>
+                    <th scope="col">Action</th>
+                    <th scope="col">Venue</th>
+                    <th scope="col" class="num">Notional</th>
+                    <th scope="col" class="num">Time</th>
+                  </tr>
+                </thead>
+                <tbody id="tx-body"></tbody>
+              </table>
+            </div>
+            <div class="sx-empty" id="tx-empty" hidden style="margin:18px">
+              <b>Nothing matches that filter.</b>
+              <p class="sx-body">Try a different status, or clear the search field.</p>
+              <button class="sx-btn sx-btn--ghost sx-btn--sm" type="button" id="tx-reset">Reset filters</button>
+            </div>
+            <div class="d-panel__foot">
+              <span class="d-src d-src--sim">simulated</span>
+              <span>Ledger rows and hashes are generated locally — they will not resolve on a public explorer.</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ── POLICY ───────────────────────────────────────── -->
+      <section class="sx-view" id="view-policy" data-view="policy" tabindex="-1" aria-label="Policy" hidden>
+        <div class="d-cols">
+
+          <article class="sx-card d-panel c7">
+            <div class="d-panel__head">
+              <div>
+                <h2>Spending policy</h2>
+                <p>Evaluated before an intent is simulated. An agent cannot act outside the committed hash.</p>
+              </div>
+              <div class="d-panel__tools"><span class="sx-status sx-status--live"><i></i>ENFORCED</span></div>
+            </div>
+            <div class="d-panel__body">
+
+              <div class="d-field">
+                <div class="d-field__head">
+                  <label class="sx-label" for="pol-day">Daily cap</label>
+                  <output class="sx-mono" id="pol-day-v" for="pol-day">$25,000</output>
+                </div>
+                <input class="sx-range" type="range" id="pol-day" min="1000" max="250000" step="1000" value="25000" aria-describedby="pol-day-h">
+                <p id="pol-day-h">Total notional every agent on this account may move in a rolling 24-hour window.</p>
+              </div>
+
+              <div class="d-field">
+                <div class="d-field__head">
+                  <label class="sx-label" for="pol-tx">Per transaction</label>
+                  <output class="sx-mono" id="pol-tx-v" for="pol-tx">$5,000</output>
+                </div>
+                <input class="sx-range" type="range" id="pol-tx" min="100" max="250000" step="100" value="5000" aria-describedby="pol-tx-h">
+                <p id="pol-tx-h">Ceiling for a single execution. Raising this above the daily cap is impossible — the daily cap moves with it.</p>
+              </div>
+
+              <div class="d-field">
+                <div class="d-field__head">
+                  <label class="sx-label" for="pol-slip">Max slippage</label>
+                  <output class="sx-mono" id="pol-slip-v" for="pol-slip">0.50%</output>
+                </div>
+                <input class="sx-range" type="range" id="pol-slip" min="1" max="500" step="1" value="50" aria-describedby="pol-slip-h">
+                <p id="pol-slip-h">Realised slippage above this band aborts the route during simulation, before signing.</p>
+              </div>
+
+              <div class="d-field">
+                <span class="sx-label" id="pol-venues-l">Allowed venues</span>
+                <div class="d-chips" id="pol-venues" role="group" aria-labelledby="pol-venues-l"></div>
+                <p>A venue that is off is rejected at policy check — the solver auction never sees it.</p>
+              </div>
+
+              <div class="d-field">
+                <div class="d-field__head">
+                  <span class="sx-label" id="pol-human-l">Human approval above per-tx cap</span>
+                  <button class="sx-switch" id="pol-human" type="button" role="switch" aria-checked="true" aria-labelledby="pol-human-l"></button>
+                </div>
+                <p>When on, an intent over the per-transaction cap is held for your signature instead of being refused outright.</p>
+              </div>
+
+            </div>
+          </article>
+
+          <div class="c5 d-stack">
+            <article class="sx-card d-panel">
+              <div class="d-panel__head">
+                <div><h2>Committed policy</h2><p>Hash of the exact object the executor enforces.</p></div>
+              </div>
+              <div class="d-panel__body">
+                <div class="d-hash-box">
+                  <div style="min-width:0">
+                    <span>policy hash · FNV-1a</span>
+                    <b id="pol-hash">0x0000…0000</b>
+                  </div>
+                  <button class="sx-btn sx-btn--ghost sx-btn--sm" type="button" id="pol-copy" style="margin-left:auto">Copy</button>
+                </div>
+                <pre class="d-json" id="pol-json" aria-label="Policy object preview" style="margin-top:14px"></pre>
+                <button class="sx-btn sx-btn--primary sx-btn--block" type="button" id="pol-save" style="margin-top:14px">Commit policy</button>
+                <p class="sx-body" style="font-size:12px;margin-top:11px">Committing writes the hash to local storage and re-scopes every agent in this session. On testnet this would be a signed transaction.</p>
+              </div>
+            </article>
+
+            <article class="sx-card d-panel">
+              <div class="d-panel__head">
+                <div><h2>Utilisation today</h2><p>Against the caps above.</p></div>
+                <div class="d-panel__tools"><span class="d-src d-src--sim">simulated</span></div>
+              </div>
+              <div class="d-panel__body" id="pol-util"></div>
+            </article>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── SETTINGS ─────────────────────────────────────── -->
+      <section class="sx-view" id="view-settings" data-view="settings" tabindex="-1" aria-label="Settings" hidden>
+        <div class="d-cols">
+
+          <article class="sx-card d-panel c6">
+            <div class="d-panel__head">
+              <div><h2>Wallet</h2><p>Your address is your identity here — there is no account to create.</p></div>
+            </div>
+            <div class="d-panel__body" id="set-wallet"></div>
+          </article>
+
+          <article class="sx-card d-panel c6">
+            <div class="d-panel__head">
+              <div><h2>Interface</h2><p>Applied immediately and remembered on this device.</p></div>
+              <div class="d-panel__tools">
+                <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="set-prefs-reset">Reset</button>
+              </div>
+            </div>
+            <div class="d-panel__body">
+
+              <div class="d-pref">
+                <div class="d-pref__t">
+                  <b id="pref-ambient-l">Ambient background</b>
+                  <p>WebGL lattice behind the console. Turning it off stops the render loop and releases the scene.</p>
+                </div>
+                <button class="sx-switch" id="pref-ambient" type="button" role="switch" aria-checked="true" aria-labelledby="pref-ambient-l"></button>
+              </div>
+
+              <div class="d-pref">
+                <div class="d-pref__t">
+                  <b id="pref-cursor-l">Custom cursor</b>
+                  <p>Blend-difference dot that scales over interactive elements. Pointer devices only.</p>
+                </div>
+                <button class="sx-switch" id="pref-cursor" type="button" role="switch" aria-checked="true" aria-labelledby="pref-cursor-l"></button>
+              </div>
+
+              <div class="d-pref">
+                <div class="d-pref__t">
+                  <b id="pref-motion-l">Reduce motion</b>
+                  <p>Suppresses transitions, count-ups and looping animations across the whole site.</p>
+                </div>
+                <button class="sx-switch" id="pref-motion" type="button" role="switch" aria-checked="false" aria-labelledby="pref-motion-l"></button>
+              </div>
+
+              <div class="d-pref">
+                <div class="d-pref__t">
+                  <b id="pref-flash-l">Price flash</b>
+                  <p>Tints a number green or red for a beat when its value moves.</p>
+                </div>
+                <button class="sx-switch" id="pref-flash" type="button" role="switch" aria-checked="true" aria-labelledby="pref-flash-l"></button>
+              </div>
+
+            </div>
+          </article>
+
+          <article class="sx-card d-panel c6">
+            <div class="d-panel__head">
+              <div><h2>Data sources</h2><p>Every endpoint this console reads, and whether it answered.</p></div>
+              <div class="d-panel__tools">
+                <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="set-retry">Retry all</button>
+              </div>
+            </div>
+            <div class="d-panel__body" id="set-sources"></div>
+          </article>
+
+          <article class="sx-card d-panel c6">
+            <div class="d-panel__head">
+              <div><h2>Local state</h2><p>Nothing leaves this browser. There is no backend to delete from.</p></div>
+            </div>
+            <div class="d-panel__body" id="set-state"></div>
+          </article>
+
+        </div>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<nav class="sx-bottomnav" id="d-bottomnav" aria-label="Console sections"></nav>
+
+<div id="sx-footer-host"></div>
+
+<script src="assets/strix.js"></script>
+<script src="assets/strix-data.js"></script>
+<script src="assets/wallet.js"></script>
+<script src="assets/shell.js"></script>
+<script src="assets/chatbot.js"></script>
+<script src="assets/strix-3d.js"></script>
+<script src="assets/dash.js"></script>
+</body>
+</html>
