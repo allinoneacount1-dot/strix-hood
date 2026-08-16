@@ -46,6 +46,22 @@ body{background:transparent}
 }
 .hero__copy{min-width:0}
 
+/* brand lockup — the emblem turning next to the status pill, above the word */
+.hero__brand{display:flex;align-items:center;gap:clamp(12px,1.5vw,20px);flex-wrap:wrap}
+.hero__emblem{position:relative;flex:none;width:clamp(72px,10vw,118px);aspect-ratio:1/1}
+.hero__emblem canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* CSS fallback: the flat mark, drifting, until WebGL takes the canvas over */
+.hero__emblem-fb{
+  position:absolute;inset:0;width:100%;height:100%;
+  filter:drop-shadow(0 6px 22px rgba(204,255,0,.20));
+  animation:heroEmblemFloat 9s var(--expo) infinite;
+}
+.has-3d-emblem .hero__emblem-fb{display:none}
+@keyframes heroEmblemFloat{
+  0%,100%{transform:translateY(0) rotate(0)}
+  50%{transform:translateY(-6px) rotate(-1.6deg)}
+}
+
 /* 3D wordmark sits over an accessible h1 */
 .hero__wordmark{position:relative;margin:20px 0 6px;height:clamp(96px,15vw,190px)}
 .hero__wordmark canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -433,4 +449,11 @@ body{background:transparent}
   .hero__scroll{display:none}
   .sechead--row{align-items:flex-start}
   .hire__search{max-width:none;width:100%}
+}
+
+/* hero secondary actions */
+.hero__links{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px}
+.hero__xi{width:14px;height:14px;flex:none}
+@media (max-width:620px){
+  .hero__links .sx-btn{flex:1 1 auto;justify-content:center}
 }

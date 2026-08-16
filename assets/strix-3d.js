@@ -1,13 +1,20 @@
 /* ============================================================
    STRIX HOOD — WebGL layer
-   Four scenes, no build step, no post-processing:
+   Five scenes, no build step, no post-processing:
      Strix3D.core(canvas, opts)     -> hero "Agent Core"
      Strix3D.passport(canvas, opts) -> rotating Agent NFT card
      Strix3D.wordmark(canvas, opts) -> extruded "STRIX HOOD" lettering
+     Strix3D.emblem(canvas, opts)   -> the hood mark, milled and turning
      Strix3D.ambient(canvas, opts)  -> full-page background lattice
    Three.js is pulled in with a dynamic import() at call time, so
    the page costs nothing until a scene is actually requested and
    keeps working (CSS fallback) if the CDN is blocked.
+
+   Two of the scenes are supplied art rather than code: wordmark reads
+   assets/wordmark-geo.json and emblem reads assets/logo-geo.json (built
+   by assets/build-wordmark.py and assets/build-emblem.py). Either can be
+   repointed with window.STRIX_WORDMARK_URL / window.STRIX_EMBLEM_URL, and
+   either failing to load costs nothing but that one scene.
 
    Host requirements:
    - The <canvas> must have a CSS size (e.g. width:100%;height:100%
@@ -2052,6 +2059,772 @@
   }
 
   /* ============================================================
+     SCENE 5 — Emblem (the Strix Hood mark, in the round)
+     ------------------------------------------------------------
+     Same deal as the wordmark: the drawing is supplied art, not
+     code. assets/logo-geo.json carries assets/logo.svg flattened to
+     polygon contours (see assets/build-emblem.py) and the scene
+     re-stacks them in depth so the mark reads as a milled object
+     rather than a sticker of itself:
+
+       shell   the hood band — outer silhouette with the interior cut
+               out of it, the deepest layer, bevelled so its arris
+               catches the neon gradient
+       panel   the near-black interior, set back behind the shell's
+               front face: everything else lives in that recess and
+               the shell's own inner wall is what shadows it
+       face    brows, eyes, pupils — extruded off the panel floor,
+               tops still below the shell's front face
+       circuit traces and node pads, thinner, with the pads proud;
+               one merged buffer carrying arc length per vertex so a
+               packet of light can run the whole tracery in one pass
+       gem     the beak, a real octahedral solid on the artwork's own
+               facet lines, the one thing that stands out in front
+
+     The hood's stroke joins are round in the SVG, so the flattener's
+     distance-field offsets are the exact same curve — the silhouette
+     here is the silhouette of the file, not an approximation of it.
+     ============================================================ */
+
+  function emblemURL() {
+    var u = global.STRIX_EMBLEM_URL;
+    return (typeof u === 'string' && u) ? u : (SCRIPT_DIR + 'logo-geo.json');
+  }
+
+  function ringOK(ring) {
+    if (!Array.isArray(ring) || ring.length < 3) return false;
+    for (var i = 0; i < ring.length; i++) {
+      var p = ring[i];
+      if (!Array.isArray(p) || p.length < 2 || !isFinite(p[0]) || !isFinite(p[1])) return false;
+    }
+    return true;
+  }
+
+  function partOK(part) {
+    if (!part || !Array.isArray(part.outer) || !part.outer.length) return false;
+    var i, h = part.holes || [];
+    for (i = 0; i < part.outer.length; i++) if (!ringOK(part.outer[i])) return false;
+    for (i = 0; i < h.length; i++) if (!ringOK(h[i])) return false;
+    return true;
+  }
+
+  /* The hood, its interior and the gem are the mark. Anything else in the file
+     is detail: a truncated JSON still builds a recognisable emblem, so only
+     those three are load-bearing here. */
+  function validEmblem(g) {
+    if (!g || typeof g !== 'object' || !(g.view > 0)) return false;
+    if (!partOK(g.shell) || !partOK(g.panel)) return false;
+    var b = g.beak;
+    if (!b || !isFinite(b.cx) || !isFinite(b.x0) || !isFinite(b.x1)) return false;
+    if (!isFinite(b.apexY) || !isFinite(b.waistY) || !isFinite(b.tipY)) return false;
+    return b.x1 > b.x0 && b.waistY > b.apexY && b.tipY > b.waistY;
+  }
+
+  var embPromise = null;
+  function loadEmblemGeo() {
+    if (embPromise) return embPromise;
+    embPromise = new Promise(function (resolve) {
+      if (typeof fetch !== 'function') { resolve(null); return; }
+      fetch(emblemURL(), { credentials: 'same-origin' })
+        .then(function (r) { return (r && r.ok) ? r.json() : null; })
+        .then(function (j) { resolve(validEmblem(j) ? j : null); })
+        .catch(function () { resolve(null); });
+    }).then(function (g) {
+      if (!g) embPromise = null;         /* let a later mount retry */
+      return g;
+    });
+    return embPromise;
+  }
+
+  /* --- shape helpers, all in emblem-local space (y already flipped) --- */
+
+  /* A stroked segment as one convex outline: rectangle plus a half-disc at
+     each end, i.e. exactly what stroke-linecap/linejoin:round paints. */
+  function capsuleShape(THREE, ax, ay, bx, by, r, seg) {
+    var dx = bx - ax, dy = by - ay, L = Math.sqrt(dx * dx + dy * dy), i, a;
+    if (L < 1e-9) { dx = 1; dy = 0; } else { dx /= L; dy /= L; }
+    var nx = -dy, ny = dx;
+    var a0 = Math.atan2(ny, nx);
+    var s = new THREE.Shape();
+    s.moveTo(ax + nx * r, ay + ny * r);
+    s.lineTo(bx + nx * r, by + ny * r);
+    for (i = 1; i <= seg; i++) {
+      a = a0 - Math.PI * i / seg;
+      s.lineTo(bx + r * Math.cos(a), by + r * Math.sin(a));
+    }
+    s.lineTo(ax - nx * r, ay - ny * r);
+    for (i = 1; i <= seg; i++) {
+      a = a0 + Math.PI - Math.PI * i / seg;
+      s.lineTo(ax + r * Math.cos(a), ay + r * Math.sin(a));
+    }
+    s.closePath();
+    return s;
+  }
+
+  function discShape(THREE, cx, cy, r) {
+    var s = new THREE.Shape();
+    s.absarc(cx, cy, r, 0, Math.PI * 2, false);
+    return s;
+  }
+
+  /* Concatenate small non-indexed extrusions into one buffer. The tracery is
+     ~30 pieces sharing one material; merged, it is a single draw call and a
+     single place for the packet shader to look. */
+  function mergeGeos(THREE, list) {
+    var i, g, total = 0, flat = [];
+    for (i = 0; i < list.length; i++) {
+      g = list[i];
+      if (!g) continue;
+      if (g.index) { var nx = g.toNonIndexed(); g.dispose(); g = nx; }
+      flat.push(g);
+      total += g.getAttribute('position').count;
+    }
+    if (!total) return null;
+    var pos = new Float32Array(total * 3);
+    var nor = new Float32Array(total * 3);
+    var uvs = new Float32Array(total * 2);
+    var o = 0;
+    for (i = 0; i < flat.length; i++) {
+      g = flat[i];
+      var p = g.getAttribute('position'), n = g.getAttribute('normal'), u = g.getAttribute('uv');
+      pos.set(p.array.subarray(0, p.count * 3), o * 3);
+      if (n) nor.set(n.array.subarray(0, p.count * 3), o * 3);
+      if (u) uvs.set(u.array.subarray(0, p.count * 2), o * 2);
+      o += p.count;
+      g.dispose();
+    }
+    var out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    out.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+    return out;
+  }
+
+  /* uv.x carries normalised arc length along the circuit, uv.y flags a node
+     pad. Baking it per vertex is what lets the whole tracery be one mesh and
+     still run a packet of light down it. */
+  function bakeRun(geo, ax, ay, bx, by, s0, s1, node) {
+    var p = geo.getAttribute('position'), uv = geo.getAttribute('uv');
+    if (!p || !uv) return;
+    var dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+    for (var i = 0; i < p.count; i++) {
+      var t = L2 > 1e-12
+        ? clamp(((p.getX(i) - ax) * dx + (p.getY(i) - ay) * dy) / L2, 0, 1) : 0;
+      uv.setXY(i, s0 + (s1 - s0) * t, node ? 1 : 0);
+    }
+    uv.needsUpdate = true;
+  }
+
+  var EMB_VERT = [
+    'varying vec3 vN; varying vec3 vV; varying vec3 vP; varying vec3 vNL; varying vec2 vUV;',
+    'void main(){',
+    '  vec4 wp = modelMatrix * vec4(position, 1.0);',
+    '  vN = normalize(mat3(modelMatrix) * normal);',
+    '  vV = normalize(cameraPosition - wp.xyz);',
+    /* every piece is baked at the emblem's origin, so object space is a stable
+       place to evaluate the artwork's own gradients however the mark turns */
+    '  vP = position;',
+    '  vNL = normal;',
+    '  vUV = uv;',
+    '  gl_Position = projectionMatrix * viewMatrix * wp;',
+    '}'
+  ].join('\n');
+
+  var EMB_LIB = [
+    'varying vec3 vN; varying vec3 vV; varying vec3 vP; varying vec3 vNL; varying vec2 vUV;',
+    'float lobe(vec3 r, vec3 d, float p){ return pow(max(dot(r, normalize(d)), 0.0), p); }',
+    'vec3 stops(float t, vec3 c0, vec3 c1, vec3 c2){',
+    '  return t < 0.45 ? mix(c0, c1, t / 0.45) : mix(c1, c2, (t - 0.45) / 0.55);',
+    '}'
+  ].join('\n');
+
+  /* The hood band. uEdge is 0 on the flat caps and 1 on the skirt; inside the
+     skirt the object-space normal separates the chamfer from the straight
+     wall, so the neon gradient reads as an arris around a solid rim instead of
+     as a keyline traced round a cut-out. */
+  var EMB_SHELL_FRAG = EMB_LIB + [
+    'uniform vec2 uG0; uniform vec2 uG1;',
+    'uniform vec3 uC0; uniform vec3 uC1; uniform vec3 uC2;',
+    'uniform float uEdge; uniform float uDepth; uniform float uKick;',
+    'void main(){',
+    '  vec3 n = normalize(vN); vec3 v = normalize(vV);',
+    '  float ndv = clamp(dot(n, v), 0.0, 1.0);',
+    '  vec3 r = reflect(-v, n);',
+    '  float fres = pow(1.0 - ndv, 3.2);',
+    '  float bev  = uEdge * smoothstep(0.10, 0.55, abs(vNL.z));',
+    '  float wall = uEdge * (1.0 - bev);',
+    '  vec2 gd = uG1 - uG0;',
+    '  float t = clamp(dot(vP.xy - uG0, gd) / max(dot(gd, gd), 1e-6), 0.0, 1.0);',
+    '  vec3 grad = stops(t, uC0, uC1, uC2);',
+    '  float key  = lobe(r, vec3(-0.38, 0.72, 0.58), 46.0);',
+    '  float soft = lobe(r, vec3(-0.16, 0.34, 0.93), 2.8);',
+    '  float lam  = max(dot(n, normalize(vec3(-0.34, 0.62, 0.71))), 0.0);',
+    '  float back = clamp(-vP.z / max(uDepth, 0.001), 0.0, 1.0);',
+    '  vec3 col = grad * (0.70 + 0.28 * lam + 0.14 * soft);',
+    '  col += vec3(1.0, 1.0, 0.93) * key * 0.30;',
+    '  col += grad * fres * 0.28;',
+    /* the wall is the thickness of the band: dark, and darker toward the back */
+    '  col *= mix(1.0, 0.26 + 0.30 * (1.0 - back), wall);',
+    '  vec3 rim = grad * (1.14 + 0.50 * lam) + vec3(1.0, 1.0, 0.92) * key * 0.70;',
+    '  col = mix(col, rim, bev);',
+    '  col += grad * uKick * 0.30;',
+    '  gl_FragColor = vec4(col, 1.0);',
+    '  #include <colorspace_fragment>',
+    '}'
+  ].join('\n');
+
+  /* The recess floor. Near-black on the artwork's own vertical gradient, with
+     a radial falloff standing in for the occlusion the shell wall casts over
+     the rim of the recess — that shading is most of what sells the depth. */
+  var EMB_PANEL_FRAG = EMB_LIB + [
+    'uniform vec3 uC0; uniform vec3 uC1; uniform vec3 uAccent;',
+    'uniform vec2 uCen; uniform float uTop; uniform float uSpan; uniform float uR;',
+    'uniform float uKick;',
+    'void main(){',
+    '  vec3 n = normalize(vN); vec3 v = normalize(vV);',
+    '  float ndv = clamp(dot(n, v), 0.0, 1.0);',
+    '  float fres = pow(1.0 - ndv, 3.0);',
+    '  float lam = max(dot(n, normalize(vec3(-0.30, 0.66, 0.69))), 0.0);',
+    '  float t = clamp((uTop - vP.y) / max(uSpan, 1e-4), 0.0, 1.0);',
+    '  vec3 col = mix(uC0, uC1, t) * (0.58 + 0.58 * lam);',
+    '  float rr = length(vP.xy - uCen) / max(uR, 1e-4);',
+    '  col *= mix(1.0, 0.30, smoothstep(0.42, 1.02, rr));',
+    '  col += uAccent * fres * 0.10;',
+    '  col += uAccent * uKick * 0.05;',
+    '  gl_FragColor = vec4(col, 1.0);',
+    '  #include <colorspace_fragment>',
+    '}'
+  ].join('\n');
+
+  /* Brows, eyes, pupils: one flat colour, lit just enough to have a top and a
+     side. uPulse is per-material, which is how the two eyes breathe out of
+     phase with each other. */
+  var EMB_FLAT_FRAG = EMB_LIB + [
+    'uniform vec3 uCol; uniform float uShade; uniform float uSpec;',
+    'uniform float uPulse; uniform float uKick;',
+    'void main(){',
+    '  vec3 n = normalize(vN); vec3 v = normalize(vV);',
+    '  float ndv = clamp(dot(n, v), 0.0, 1.0);',
+    '  vec3 r = reflect(-v, n);',
+    '  float fres = pow(1.0 - ndv, 3.0);',
+    '  float bev = smoothstep(0.12, 0.55, abs(vNL.z));',
+    '  float key = lobe(r, vec3(-0.38, 0.72, 0.58), 40.0);',
+    '  float lam = max(dot(n, normalize(vec3(-0.34, 0.62, 0.71))), 0.0);',
+    '  vec3 col = uCol * (uShade + 0.30 * lam + 0.18 * bev);',
+    '  col += vec3(1.0, 1.0, 0.94) * key * uSpec;',
+    '  col += uCol * fres * 0.22;',
+    '  col *= 1.0 + uPulse;',
+    '  col += uCol * uKick * 0.25;',
+    '  gl_FragColor = vec4(col, 1.0);',
+    '  #include <colorspace_fragment>',
+    '}'
+  ].join('\n');
+
+  /* Circuit tracery. uv.x is arc length from the gem, so one gaussian on that
+     coordinate lights a packet travelling the whole branching run at once,
+     pads included. */
+  var EMB_CIRC_FRAG = EMB_LIB + [
+    'uniform vec3 uCol; uniform float uShade; uniform float uPacket;',
+    'uniform float uSpan; uniform float uKick; uniform float uFlow;',
+    'void main(){',
+    '  vec3 n = normalize(vN); vec3 v = normalize(vV);',
+    '  vec3 r = reflect(-v, n);',
+    '  float bev = smoothstep(0.12, 0.55, abs(vNL.z));',
+    '  float key = lobe(r, vec3(-0.38, 0.72, 0.58), 40.0);',
+    '  float lam = max(dot(n, normalize(vec3(-0.34, 0.62, 0.71))), 0.0);',
+    '  float node = step(0.5, vUV.y);',
+    '  float d = (vUV.x - uPacket) / max(uSpan, 1e-4);',
+    '  float g = exp(-d * d) * uFlow;',
+    '  vec3 col = uCol * (uShade + 0.28 * lam + 0.20 * bev + 0.14 * node);',
+    '  col += vec3(1.0, 1.0, 0.94) * key * 0.22;',
+    '  col += (uCol * 1.35 + vec3(0.26, 0.50, 0.34)) * g * (0.80 + node * 0.85);',
+    '  col += uCol * uKick * 0.30;',
+    '  gl_FragColor = vec4(col, 1.0);',
+    '  #include <colorspace_fragment>',
+    '}'
+  ].join('\n');
+
+  /* The gem is the only lit object in the frame: eight real facets, flat
+     normals, two speculars, and the artwork's vertical gradient across it. */
+  var EMB_GEM_FRAG = EMB_LIB + [
+    'uniform vec3 uC0; uniform vec3 uC1; uniform float uTop; uniform float uSpan;',
+    'uniform float uKick;',
+    'void main(){',
+    '  vec3 n = normalize(vN); vec3 v = normalize(vV);',
+    '  float ndv = clamp(dot(n, v), 0.0, 1.0);',
+    '  vec3 r = reflect(-v, n);',
+    '  float fres = pow(1.0 - ndv, 2.2);',
+    '  float t = clamp((uTop - vP.y) / max(uSpan, 1e-4), 0.0, 1.0);',
+    '  vec3 base = mix(uC0, uC1, t);',
+    '  float key  = lobe(r, vec3(-0.40, 0.74, 0.52), 58.0);',
+    '  float key2 = lobe(r, vec3( 0.58,-0.34, 0.72), 20.0);',
+    '  float lam  = max(dot(n, normalize(vec3(-0.30, 0.60, 0.74))), 0.0);',
+    /* low ambient and a hard lambert: what makes a gem read as a gem is that
+       neighbouring facets are plainly *different* brightnesses, so the crown
+       and the pavilion have to separate rather than average out to a bright
+       blob at this size */
+    '  vec3 col = base * (0.46 + 0.82 * lam + 0.26 * fres);',
+    '  col += vec3(1.0, 1.0, 0.90) * key * 0.62 + base * key2 * 0.45;',
+    '  col += base * uKick * 0.95 + vec3(1.0, 1.0, 0.90) * uKick * 0.30;',
+    '  gl_FragColor = vec4(col, 1.0);',
+    '  #include <colorspace_fragment>',
+    '}'
+  ].join('\n');
+
+  function buildEmblem(THREE, canvas, opts) {
+    /* Artwork first: without it there is no mark to draw, so the caller gets
+       null and keeps whatever it had (an <img> of the same logo, usually). */
+    return loadEmblemGeo().then(function (geo) {
+      if (!geo) return null;
+      var handle = null;
+      try { handle = emblemScene(THREE, canvas, opts, geo); } catch (e) { handle = null; }
+      return handle;
+    });
+  }
+
+  function emblemScene(THREE, canvas, opts, geo) {
+    var stage = createStage(THREE, canvas, opts, { fov: 26, dist: 5, near: 1, far: 60 });
+    if (!stage) return null;
+
+    var scene = stage.scene, camera = stage.camera, S = stage.state;
+
+    /* ---- artwork units -> world units, mark height = 2 ----
+       Scaled and centred on the hood's own silhouette rather than on the SVG
+       viewBox, so the mark fills the canvas whatever margin the file carries. */
+    var box = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
+    var i, j, r;
+    for (i = 0; i < geo.shell.outer.length; i++) {
+      r = geo.shell.outer[i];
+      for (j = 0; j < r.length; j++) {
+        if (r[j][0] < box.x0) box.x0 = r[j][0];
+        if (r[j][0] > box.x1) box.x1 = r[j][0];
+        if (r[j][1] < box.y0) box.y0 = r[j][1];
+        if (r[j][1] > box.y1) box.y1 = r[j][1];
+      }
+    }
+    var K = 2 / Math.max(box.y1 - box.y0, 1e-3);
+    var OX = (box.x0 + box.x1) / 2, OY = (box.y0 + box.y1) / 2;
+    var fitW = (box.x1 - box.x0) / 2 * K, fitH = (box.y1 - box.y0) / 2 * K;
+
+    function lx(x) { return (x - OX) * K; }
+    function ly(y) { return (OY - y) * K; }
+
+    var root = new THREE.Group();
+    scene.add(root);
+    var body = new THREE.Group();       /* everything that is the mark itself */
+    root.add(body);
+
+    /* ---- shared uniform cells: one object per value, so setAccent and pulse
+       each touch a single place ---- */
+    var uAccent = { value: new THREE.Color(NEON) };
+    var uEtchCol = { value: new THREE.Color(NEON).multiplyScalar(0.45) };
+    var uKick = { value: 0 };
+    var uPacket = { value: -1 };
+    var uFlow = { value: 1 };
+    var uPulseL = { value: 0 };
+    var uPulseR = { value: 0 };
+    var uHood = [
+      { value: new THREE.Color(NEON2) },
+      { value: new THREE.Color(NEON) },
+      { value: new THREE.Color(TEAL) }
+    ];
+
+    /* the SVG's hoodEdge gradient runs (0.1,0)->(0.9,1) of the bounding box */
+    var uG0 = { value: new THREE.Vector2(lx(box.x0 + (box.x1 - box.x0) * 0.1), ly(box.y0)) };
+    var uG1 = { value: new THREE.Vector2(lx(box.x0 + (box.x1 - box.x0) * 0.9), ly(box.y1)) };
+
+    /* ---- depth plan (world units; +z is toward the camera) ----
+       The shell's front face is the zero: everything else is measured back
+       from it, and the face layers all bottom out on the panel floor so
+       nothing floats in the recess. */
+    var Z_SHELL = 0.00, D_SHELL = 0.30;
+    var Z_PANEL = -0.105;
+    /* the drawing overlaps the brow and the eye at the inner corner and
+       resolves it by paint order, so the eye is floated a hair in front of
+       the brow rather than left coplanar with it */
+    var Z_BROW = -0.058, Z_EYE = -0.052, Z_PUPIL = -0.034;
+    var Z_NODE = -0.050, Z_TRACE = -0.074, Z_ETCH = -0.090, Z_STEM = -0.046;
+
+    function cfgTo(zFront, zBack, bevel, curve) {
+      var bt = bevel * 0.55;
+      return {
+        zFront: zFront, bevelThickness: bt, bevelSize: bevel, bevelOffset: 0,
+        bevelEnabled: bevel > 0, bevelSegments: bevel > 0.012 ? 2 : 1,
+        curveSegments: curve || 6, steps: 1,
+        depth: Math.max(0.006, zFront - zBack - 2 * bt)
+      };
+    }
+
+    /* One extrusion, pushed back so its front face lands on cfg.zFront. */
+    function extrude(shape, cfg) {
+      var g = new THREE.ExtrudeGeometry(shape, cfg);
+      g.translate(0, 0, cfg.zFront - cfg.depth - cfg.bevelThickness);
+      return g;
+    }
+
+    function mat(frag, uniforms) {
+      return stage.track(new THREE.ShaderMaterial({
+        uniforms: uniforms, vertexShader: EMB_VERT, fragmentShader: frag
+      }));
+    }
+
+    /* ---- 1. shell: the hood band ---------------------------------------- */
+
+    function shellUni(edge) {
+      return {
+        uG0: uG0, uG1: uG1, uC0: uHood[0], uC1: uHood[1], uC2: uHood[2],
+        uKick: uKick, uEdge: { value: edge }, uDepth: { value: D_SHELL }
+      };
+    }
+    /* group 0 = the flat caps, group 1 = chamfer + walls */
+    var shellMats = [mat(EMB_SHELL_FRAG, shellUni(0)), mat(EMB_SHELL_FRAG, shellUni(1))];
+
+    /* glyphShapes parents each hole to the outer ring that contains it — the
+       same routine the wordmark uses for O and D, and the same thing the band
+       needs: the interior is a hole in the silhouette, not a second shape. */
+    var shellCfg = cfgTo(Z_SHELL, Z_SHELL - D_SHELL, 0.011, 5);
+    var shellShapes = glyphShapes(THREE, geo.shell, OX, OY, K);
+    for (i = 0; i < shellShapes.length; i++) {
+      body.add(new THREE.Mesh(stage.track(extrude(shellShapes[i], shellCfg)), shellMats));
+    }
+
+    /* ---- 2. panel: the recess floor -------------------------------------- */
+
+    var panelRing = geo.panel.outer[0];
+    var pbox = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
+    for (i = 0; i < panelRing.length; i++) {
+      if (panelRing[i][0] < pbox.x0) pbox.x0 = panelRing[i][0];
+      if (panelRing[i][0] > pbox.x1) pbox.x1 = panelRing[i][0];
+      if (panelRing[i][1] < pbox.y0) pbox.y0 = panelRing[i][1];
+      if (panelRing[i][1] > pbox.y1) pbox.y1 = panelRing[i][1];
+    }
+    var panelMat = mat(EMB_PANEL_FRAG, {
+      uC0: { value: new THREE.Color(0x161B08) },
+      uC1: { value: new THREE.Color(0x0A0A0F) },
+      uAccent: uAccent, uKick: uKick,
+      uCen: { value: new THREE.Vector2((lx(pbox.x0) + lx(pbox.x1)) / 2, (ly(pbox.y0) + ly(pbox.y1)) / 2) },
+      uTop: { value: ly(pbox.y0) },
+      uSpan: { value: (pbox.y1 - pbox.y0) * K },
+      uR: { value: Math.max(pbox.x1 - pbox.x0, pbox.y1 - pbox.y0) * K * 0.5 }
+    });
+    var panelCfg = cfgTo(Z_PANEL, Z_PANEL - 0.14, 0.010, 5);
+    var panelShapes = glyphShapes(THREE, geo.panel, OX, OY, K);
+    for (i = 0; i < panelShapes.length; i++) {
+      body.add(new THREE.Mesh(stage.track(extrude(panelShapes[i], panelCfg)), panelMat));
+    }
+
+    /* ---- 3. the owl face, standing on the panel floor --------------------- */
+
+    function flatMat(color, shade, spec, pulse) {
+      return mat(EMB_FLAT_FRAG, {
+        uCol: { value: new THREE.Color(color) }, uShade: { value: shade },
+        uSpec: { value: spec }, uPulse: pulse || { value: 0 }, uKick: uKick
+      });
+    }
+
+    function addRings(rings, cfg, material) {
+      if (!Array.isArray(rings)) return;
+      for (var k = 0; k < rings.length; k++) {
+        if (!ringOK(rings[k])) continue;
+        body.add(new THREE.Mesh(stage.track(extrude(
+          ringInto(new THREE.Shape(), rings[k], OX, OY, K), cfg)), material));
+      }
+    }
+
+    addRings(geo.brows, cfgTo(Z_BROW, Z_PANEL, 0.006, 6), flatMat(NEON, 0.62, 0.26));
+
+    /* the eyes get one material each so they can breathe out of phase */
+    var eyeCfg = cfgTo(Z_EYE, Z_PANEL, 0.006, 6);
+    var eyeMats = [flatMat(NEON2, 0.66, 0.30, uPulseL), flatMat(NEON2, 0.66, 0.30, uPulseR)];
+    var eyeRings = Array.isArray(geo.eyes) ? geo.eyes : [];
+    for (i = 0; i < eyeRings.length; i++) addRings([eyeRings[i]], eyeCfg, eyeMats[i % 2]);
+
+    var pupilMat = flatMat(0x0A0A0F, 1.0, 0.34);
+    var pupilCfg = cfgTo(Z_PUPIL, Z_EYE, 0.005, 14);
+    var pupils = Array.isArray(geo.pupils) ? geo.pupils : [];
+    for (i = 0; i < pupils.length; i++) {
+      var pu = pupils[i];
+      if (!pu || !isFinite(pu[0]) || !isFinite(pu[1]) || !(pu[2] > 0)) continue;
+      body.add(new THREE.Mesh(stage.track(extrude(discShape(
+        THREE, lx(pu[0]), ly(pu[1]),
+        Math.max(0.002, pu[2] * K - pupilCfg.bevelSize)), pupilCfg)), pupilMat));
+    }
+
+    /* ---- 4. circuit tracery: one merged mesh, arc length baked in --------- */
+
+    var sMax = geo.sMax > 0 ? geo.sMax : 60;
+    var circMat = mat(EMB_CIRC_FRAG, {
+      uCol: uAccent, uShade: { value: 0.74 }, uPacket: uPacket,
+      uSpan: { value: 0.085 }, uKick: uKick, uFlow: uFlow
+    });
+
+    /* One capsule per segment. They overlap at the joins, so each is stepped a
+       fraction of a millimetre in z: the overlap then resolves the same way
+       every frame instead of z-fighting along every corner. */
+    function strokeRun(list, pts, s0, cfg, seam) {
+      var s = s0;
+      for (var k = 0; k < pts.length - 1; k++) {
+        var a = pts[k], b = pts[k + 1];
+        if (!Array.isArray(a) || !Array.isArray(b) ||
+          !isFinite(a[0]) || !isFinite(a[1]) || !isFinite(b[0]) || !isFinite(b[1])) continue;
+        var ax = lx(a[0]), ay = ly(a[1]), bx = lx(b[0]), by = ly(b[1]);
+        var seg = Math.sqrt((b[0] - a[0]) * (b[0] - a[0]) + (b[1] - a[1]) * (b[1] - a[1]));
+        var c2 = {}, key;
+        for (key in cfg) c2[key] = cfg[key];
+        c2.zFront = cfg.zFront + list.length * seam;
+        var g = extrude(capsuleShape(THREE, ax, ay, bx, by, cfg.radius, 6), c2);
+        bakeRun(g, ax, ay, bx, by, s / sMax, (s + seg) / sMax, false);
+        list.push(g);
+        s += seg;
+      }
+      return s;
+    }
+
+    var circGeos = [];
+    var traceCfg = cfgTo(Z_TRACE, Z_PANEL, 0.005, 5);
+    traceCfg.radius = Math.max(0.002, (geo.traceW || 2.6) / 2 * K - traceCfg.bevelSize);
+    var traces = Array.isArray(geo.traces) ? geo.traces : [];
+    for (i = 0; i < traces.length; i++) {
+      var tr = traces[i];
+      if (!tr || !Array.isArray(tr.pts) || tr.pts.length < 2) continue;
+      strokeRun(circGeos, tr.pts, isFinite(tr.s0) ? tr.s0 : 0, traceCfg, 0.0004);
+    }
+
+    var nodeCfg = cfgTo(Z_NODE, Z_PANEL, 0.010, 14);
+    var nodes = Array.isArray(geo.nodes) ? geo.nodes : [];
+    for (i = 0; i < nodes.length; i++) {
+      var nd = nodes[i];
+      if (!nd || !isFinite(nd[0]) || !isFinite(nd[1]) || !(nd[2] > 0)) continue;
+      var ng = extrude(discShape(
+        THREE, lx(nd[0]), ly(nd[1]),
+        Math.max(0.002, nd[2] * K - nodeCfg.bevelSize)), nodeCfg);
+      var ns = (isFinite(nd[3]) ? nd[3] : 0) / sMax;
+      bakeRun(ng, 0, 0, 0, 0, ns, ns, true);
+      circGeos.push(ng);
+    }
+
+    var circGeo = stage.track(mergeGeos(THREE, circGeos));
+    if (circGeo) body.add(new THREE.Mesh(circGeo, circMat));
+
+    /* the inner bevel highlight and crown seam: same stroking, no packet */
+    var etchGeos = [];
+    var etchCfg = cfgTo(Z_ETCH, Z_PANEL, 0.003, 4);
+    etchCfg.radius = Math.max(0.002, (geo.etchW || 2.4) / 2 * K - etchCfg.bevelSize);
+    var etch = Array.isArray(geo.etch) ? geo.etch : [];
+    for (i = 0; i < etch.length; i++) {
+      if (!etch[i] || !Array.isArray(etch[i].pts) || etch[i].pts.length < 2) continue;
+      strokeRun(etchGeos, etch[i].pts, 0, etchCfg, 0.0003);
+    }
+    var etchGeo = stage.track(mergeGeos(THREE, etchGeos));
+    if (etchGeo) {
+      body.add(new THREE.Mesh(etchGeo, mat(EMB_CIRC_FRAG, {
+        uCol: uEtchCol, uShade: { value: 0.85 }, uPacket: { value: -9 },
+        uSpan: { value: 0.08 }, uKick: uKick, uFlow: { value: 0 }
+      })));
+    }
+
+    /* ---- 5. the gem beak: a real solid, not an extruded diamond ----------- */
+
+    var B = geo.beak;
+    var gemTop = { value: ly(B.apexY) }, gemSpan = { value: (B.tipY - B.apexY) * K };
+    var gemMat = mat(EMB_GEM_FRAG, {
+      uC0: { value: new THREE.Color(NEON2) }, uC1: { value: new THREE.Color(TEAL) },
+      uTop: gemTop, uSpan: gemSpan, uKick: uKick
+    });
+
+    var gemCx = lx(B.cx), gemWaist = ly(B.waistY), gemZ = -0.03;
+    var halfW = (B.x1 - B.x0) / 2 * K;
+    /* The SVG draws the gem's facet lines as a cross through the waist: this
+       is that cross swept into the third dimension, so the silhouette from the
+       front is the drawn diamond exactly and every edge it shows is real. */
+    var crown = (B.waistY - B.apexY) * K;
+    var gemV = [
+      [gemCx, ly(B.apexY), gemZ],                 /* 0 top    */
+      [gemCx, ly(B.tipY), gemZ],                  /* 1 bottom */
+      [gemCx - halfW, gemWaist, gemZ],            /* 2 left   */
+      [gemCx + halfW, gemWaist, gemZ],            /* 3 right  */
+      [gemCx, gemWaist, gemZ + crown * 1.10],     /* 4 front  */
+      [gemCx, gemWaist, gemZ - crown * 0.85]      /* 5 back   */
+    ];
+    var gemTris = [
+      [0, 2, 4], [0, 4, 3], [0, 3, 5], [0, 5, 2],
+      [1, 4, 2], [1, 3, 4], [1, 5, 3], [1, 2, 5]
+    ];
+    var gemPos = new Float32Array(gemTris.length * 9);
+    var gcy = (ly(B.apexY) + ly(B.tipY)) / 2;
+    for (i = 0; i < gemTris.length; i++) {
+      var va = gemV[gemTris[i][0]], vb = gemV[gemTris[i][1]], vc = gemV[gemTris[i][2]];
+      /* keep every facet facing out, whatever order the table is written in */
+      var e1 = [vb[0] - va[0], vb[1] - va[1], vb[2] - va[2]];
+      var e2 = [vc[0] - va[0], vc[1] - va[1], vc[2] - va[2]];
+      var fx = e1[1] * e2[2] - e1[2] * e2[1];
+      var fy = e1[2] * e2[0] - e1[0] * e2[2];
+      var fz = e1[0] * e2[1] - e1[1] * e2[0];
+      var cx3 = (va[0] + vb[0] + vc[0]) / 3 - gemCx;
+      var cy3 = (va[1] + vb[1] + vc[1]) / 3 - gcy;
+      var cz3 = (va[2] + vb[2] + vc[2]) / 3 - gemZ;
+      var tri = (fx * cx3 + fy * cy3 + fz * cz3) < 0 ? [va, vc, vb] : [va, vb, vc];
+      for (j = 0; j < 3; j++) {
+        gemPos[i * 9 + j * 3] = tri[j][0];
+        gemPos[i * 9 + j * 3 + 1] = tri[j][1];
+        gemPos[i * 9 + j * 3 + 2] = tri[j][2];
+      }
+    }
+    var gemGeo = stage.track(new THREE.BufferGeometry());
+    gemGeo.setAttribute('position', new THREE.BufferAttribute(gemPos, 3));
+    gemGeo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(gemTris.length * 6), 2));
+    gemGeo.computeVertexNormals();          /* non-indexed -> true flat facets */
+    body.add(new THREE.Mesh(gemGeo, gemMat));
+
+    /* ---- 6. the stem below the hood -------------------------------------- */
+
+    if (ringOK(geo.stem)) {
+      /* the stem carries the beak gradient over its own height, not the gem's */
+      var sy0 = 1e9, sy1 = -1e9;
+      for (i = 0; i < geo.stem.length; i++) {
+        if (geo.stem[i][1] < sy0) sy0 = geo.stem[i][1];
+        if (geo.stem[i][1] > sy1) sy1 = geo.stem[i][1];
+      }
+      addRings([geo.stem], cfgTo(Z_STEM, Z_PANEL, 0.006, 5), mat(EMB_GEM_FRAG, {
+        uC0: { value: new THREE.Color(NEON2) }, uC1: { value: new THREE.Color(TEAL) },
+        uTop: { value: ly(sy0) }, uSpan: { value: (sy1 - sy0) * K }, uKick: uKick
+      }));
+    }
+
+    /* ---- 7. glow: a soft card behind the mark, a flare on the gem --------- */
+
+    var glowTex = stage.track(glowTexture(THREE));
+    var glowMat = stage.track(new THREE.SpriteMaterial({
+      map: glowTex, color: NEON, transparent: true, opacity: 0.07,
+      depthWrite: false, depthTest: true, blending: THREE.AdditiveBlending
+    }));
+    /* parented to the scene, not to root: a sprite riding the rotation swings
+       out from behind the mark and reads as a smear rather than as bloom */
+    var glow = new THREE.Sprite(glowMat);
+    glow.scale.set(fitW * 3.2, fitH * 2.9, 1);
+    scene.add(glow);
+
+    var flareMat = stage.track(new THREE.SpriteMaterial({
+      map: glowTex, color: NEON2, transparent: true, opacity: 0.16,
+      depthWrite: false, depthTest: true, blending: THREE.AdditiveBlending
+    }));
+    var flare = new THREE.Sprite(flareMat);
+    flare.position.set(gemCx, gcy, gemZ - 0.01);
+    flare.scale.setScalar(0.9);
+    body.add(flare);
+
+    /* ---- camera fit ------------------------------------------------------ */
+
+    var PAD = 1.07, baseDist = 5;
+    function fitCamera(w, h) {
+      var aspect = (w > 0 && h > 0) ? w / h : 1;
+      var halfV = Math.tan(camera.fov * Math.PI / 360);
+      baseDist = Math.max(fitH * PAD / halfV, fitW * PAD / (halfV * aspect));
+      camera.near = Math.max(0.2, baseDist * 0.30);
+      camera.far = baseDist * 3.0 + 20;
+      camera.updateProjectionMatrix();
+    }
+    fitCamera(0, 0);
+    stage.onResize(function (w, h) {
+      fitCamera(w, h);
+      if (stage.reduced) frame(0, STATIC_T);
+    });
+
+    /* ---- motion ---------------------------------------------------------- */
+
+    /* One turn every 13s, nowhere near a constant rate. The yaw is driven
+       through an odd power curve — pi * (a*v + (1-a)*sign(v)*|v|^P) with v
+       running -1 -> 1 across the cycle — which holds the mark inside 60
+       degrees of face-on for about 70% of every turn and whips it through the
+       back, while the small linear term keeps it from parking dead still at
+       v = 0. Value and slope both match at v = +-1, where +pi and -pi are the
+       same angle, so the loop has no seam. The wordmark's diamond gets away
+       with a plain sin() ease because its back looks like its front; this one
+       has a face to keep pointed at the reader.
+       PHASE puts the still frame off dead-centre, so the extrusion reads
+       even when nothing is moving. */
+    var TURN = 11.0, STATIC_T = 1.9;
+    var progress = 0, progressT = 0, kick = 0;
+    var mx = 0, my = 0;
+
+    /* A logo turned edge-on is a logo nobody can read. Rather than a full
+       revolution — which spends part of every cycle as an unreadable sliver —
+       the mark swings through a bounded arc. The extrusion still reads as a
+       solid object, but the owl face is legible in every single frame. */
+    var SWING = 0.74;          /* +/- 42 degrees */
+    var PHASE = 0.62;          /* start already turned, so t=0 is not dead flat */
+
+    function yawAt(t) {
+      return Math.sin((t - STATIC_T) / TURN * Math.PI * 2 + PHASE) * SWING;
+    }
+
+    function frame(dt, t) {
+      progress = damp(progress, progressT, 0.08, dt);
+      kick = Math.max(0, kick - dt * 2.0);
+
+      mx = damp(mx, clamp(S.px, -1, 1), 0.05, dt);
+      my = damp(my, clamp(S.py, -1, 1), 0.05, dt);
+
+      root.rotation.set(
+        Math.sin(t * 0.37) * 0.085 - my * 0.20 + progress * 0.38,
+        yawAt(t) + mx * 0.30 + progress * 0.55,
+        Math.sin(t * 0.23) * 0.022 - mx * 0.04
+      );
+      root.position.set(0, progress * 0.22, -progress * 1.1);
+      glow.position.set(0, root.position.y, root.position.z - 0.9);
+      camera.position.set(0, 0, baseDist);
+      camera.lookAt(0, 0, 0);
+
+      /* the eyes breathe, half a cycle apart, and only just enough to see */
+      uPulseL.value = 0.16 + Math.sin(t * 1.15) * 0.16 + kick * 0.55;
+      uPulseR.value = 0.16 + Math.sin(t * 1.15 + Math.PI * 0.85) * 0.16 + kick * 0.55;
+
+      /* a packet leaves the gem and runs out to the pads, then again */
+      uPacket.value = -0.12 + ((t * 0.34) % 1) * 1.30;
+      uFlow.value = 0.85 + kick * 1.6;
+
+      uKick.value = kick;
+      glowMat.opacity = 0.06 + Math.sin(t * 0.8) * 0.012 + kick * 0.20;
+      flareMat.opacity = 0.14 + Math.sin(t * 1.6) * 0.035 + kick * 0.75;
+      flare.scale.setScalar(0.9 + kick * 0.8);
+      body.scale.setScalar(1 + kick * 0.035);
+    }
+    stage.onFrame(frame);
+
+    function still() { frame(0, STATIC_T); stage.renderOnce(); }
+
+    still();
+    if (!stage.reduced) stage.start();
+
+    var handle = {
+      dispose: function () { stage.dispose(); },
+      setProgress: function (p) {
+        p = clamp(Number(p) || 0, 0, 1);
+        progressT = p;
+        if (stage.reduced) { progress = p; still(); }
+      },
+      pulse: function (strength) {
+        var s = clamp(strength === undefined ? 1 : Number(strength) || 0, 0, 3);
+        kick = Math.min(1.6, kick + s);
+        if (stage.reduced) { uKick.value = kick; stage.renderOnce(); }
+      },
+      setPaused: function (v) { stage.setPaused(v); },
+      setAccent: function (hex) {
+        var h = toHex(hex);
+        if (h === null) return;
+        uAccent.value.setHex(h);
+        uHood[1].value.setHex(h);
+        uEtchCol.value.setHex(h).multiplyScalar(0.45);
+        glowMat.color.setHex(h);
+        if (stage.reduced) stage.renderOnce();
+      }
+    };
+    if (toHex(opts.accent) !== null) handle.setAccent(opts.accent);
+    if (typeof opts.progress === 'number') handle.setProgress(opts.progress);
+    return handle;
+  }
+
+  /* ============================================================
      Public API
      ============================================================ */
 
@@ -2063,6 +2836,10 @@
       /* warm the artwork alongside the three.js import instead of after it */
       if (canvas && canvas.getContext && available()) loadWordmarkGeo();
       return boot(canvas, opts, buildWordmark);
+    },
+    emblem: function (canvas, opts) {
+      if (canvas && canvas.getContext && available()) loadEmblemGeo();
+      return boot(canvas, opts, buildEmblem);
     },
     ambient: function (canvas, opts) { return boot(canvas, opts, buildAmbient); }
   };

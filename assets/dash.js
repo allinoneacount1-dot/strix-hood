@@ -1764,8 +1764,10 @@
 
   var TOKEN = {
     supply: 1000000000,
-    genesis: Date.UTC(2026, 1, 1),
-    contract: '0x5771780000000000000000000000000000000d17',
+    /* No TGE has happened. The unlock curve is a schedule, not a position, so
+       "month" is a position on that schedule rather than a date in the past. */
+    genesis: null,
+    contract: null,
     buckets: [
       { k: 'community', label: 'Community & Ecosystem', pctv: 40, color: '#CCFF00', tge: 5, cliff: 0, vest: 48, why: 'Incentives, grants and agent operator rewards' },
       { k: 'team', label: 'Team & Advisors', pctv: 20, color: '#00E5A0', tge: 0, cliff: 12, vest: 36, why: 'Core contributors, 12-month cliff' },
@@ -1782,9 +1784,7 @@
     var p = clamp((month - b.cliff) / b.vest, 0, 1);
     return tge + (total - tge) * p;
   }
-  function monthNow() {
-    return Math.max(0, Math.round((Date.now() - TOKEN.genesis) / (30.44 * 86400000)));
-  }
+  function monthNow() { return 0; }
 
   /* ============================================================
      9 · ADMIN — views
@@ -2180,11 +2180,11 @@
     function paintKpis() {
       var circ = circulating(mNow);
       $('#tk-kpis').innerHTML = [
-        ['Total supply', fmt.compact(TOKEN.supply) + ' STRX', 'fixed at deployment'],
-        ['Circulating', fmt.compact(circ) + ' STRX', ((circ / TOKEN.supply) * 100).toFixed(1) + '% of supply'],
-        ['Locked', fmt.compact(TOKEN.supply - circ) + ' STRX', 'released on schedule'],
-        ['Staked', fmt.compact(S.data.sim.metrics.staked) + ' STRX', 'agent bonds + delegation'],
-        ['Month since TGE', String(mNow), new Date(TOKEN.genesis).toISOString().slice(0, 10)]
+        ['Total supply', fmt.compact(TOKEN.supply) + ' STRX', 'designed, not minted'],
+        ['Circulating', '0 STRX', 'no token is deployed'],
+        ['At TGE', fmt.compact(circ) + ' STRX', ((circ / TOKEN.supply) * 100).toFixed(1) + '% unlocked on day one'],
+        ['Staked (simulated)', fmt.compact(S.data.sim.metrics.staked) + ' STRX', 'testnet faucet token'],
+        ['TGE', 'unscheduled', 'no date, no sale']
       ].map(function (k) {
         return '<div class="d-kpi"><div class="sx-stat"><span class="sx-stat__k">' + k[0] + '</span>' +
           '<span class="sx-stat__v" style="font-size:21px">' + k[1] + '</span></div>' +
@@ -2247,9 +2247,8 @@
         ticks += '<text x="' + X(m) + '" y="' + (H - 6) + '" text-anchor="middle">M' + m + '</text>';
       });
 
-      var nowX = X(clamp(mNow, 0, months - 1)), selX = X(clamp(month, 0, months - 1));
+      var selX = X(clamp(month, 0, months - 1));
       var marks =
-        '<line x1="' + nowX + '" y1="' + padT + '" x2="' + nowX + '" y2="' + (padT + ih) + '" stroke="rgba(255,255,255,.35)" stroke-dasharray="3 4"/>' +
         '<line x1="' + selX + '" y1="' + padT + '" x2="' + selX + '" y2="' + (padT + ih) + '" stroke="#CCFF00" stroke-width="1.4"/>' +
         '<circle cx="' + selX + '" cy="' + Y(circulating(month)) + '" r="3.6" fill="#CCFF00"/>';
 
@@ -2257,7 +2256,7 @@
         '<svg class="d-vest" viewBox="0 0 ' + W + ' ' + H + '" role="img" ' +
         'aria-label="Stacked unlock curve: circulating supply by month for each allocation">' +
         grid + paths + marks + ticks + '</svg>';
-      $('#tk-month').textContent = 'month ' + month + ' · ' + fmt.compact(circulating(month)) + ' circulating (' +
+      $('#tk-month').textContent = 'M+' + month + ' after TGE · ' + fmt.compact(circulating(month)) + ' unlocked (' +
         ((circulating(month) / TOKEN.supply) * 100).toFixed(1) + '%)';
     }
 
@@ -2276,11 +2275,29 @@
           '<td class="sx-dim">' + esc(b.why) + '</td>' +
           '</tr>';
       }).join('') +
-        '<tr><td><b>Genesis contract</b></td><td colspan="6" class="sx-mono" style="word-break:break-all">' + TOKEN.contract + '</td></tr>';
+        '<tr><td><b>Token contract</b></td><td colspan="6" class="sx-mono" style="word-break:break-all">' +
+        'not deployed — no address exists on any network' + '</td></tr>';
     }
 
     scrub.addEventListener('input', function () { paintVest(+this.value); });
-    $('#tk-copy').addEventListener('click', function () { S.copy(TOKEN.contract, 'Contract address copied'); });
+    $('#tk-copy').addEventListener('click', function () {
+      S.modal({
+        eyebrow: 'Contracts',
+        title: 'There is no $STRX contract',
+        subtitle: 'No token is deployed on any network, testnet or mainnet.',
+        body: '<p class="sx-body">The supply, distribution and unlock schedule on this view are designed ' +
+          'parameters. They describe what the token contract will enforce, not a contract that exists. There has ' +
+          'been no TGE, no sale and no listing.</p>' +
+          '<p class="sx-body" style="margin-top:14px">Anyone offering you $STRX today is offering you nothing. ' +
+          'The address will be published in the docs, in the SDK deployment manifest and from ' +
+          '<a style="color:var(--neon)" href="https://x.com/strixhood" target="_blank" rel="noopener noreferrer">@strixhood</a> ' +
+          'at the same time — never one before the others.</p>',
+        actions: [
+          { label: 'Deployment status', variant: 'ghost', onClick: function () { location.href = 'docs.html#networks'; } },
+          { label: 'Tokenomics reference', variant: 'primary', onClick: function () { location.href = 'docs.html#tokenomics'; } }
+        ]
+      });
+    });
 
     paintKpis(); paintDonut(); paintVest(mNow); paintTable();
     whenShown('tokenomics', function () { paintVest(+scrub.value); });

@@ -35,7 +35,7 @@
   /* shell.js owns the sitemap; the widget must still work without it. */
   var FALLBACK_SITE = {
     x: 'https://x.com/strixhood',
-    opensea: 'https://opensea.io/',
+    opensea: null,
     product: [
       { label: 'Agents', href: 'agents.html' },
       { label: 'Marketplace', href: 'marketplace.html' },
@@ -290,7 +290,7 @@
       blocks: [
         p('Every agent mints an ERC-721 passport that carries its identity, reputation score, permission set and revenue rights.'),
         p('The metadata is dynamic: completed intents, level and slashing history are written back to the token, so reputation is portable and verifiable instead of a number in our database. Permissions are encoded as traits and revocable at any time.'),
-        p('Because it is a standard NFT it trades on OpenSea through Seaport — and agent earnings follow whoever holds it.'),
+        p('It is a standard NFT, so once deployed it will transfer through Seaport like any other — and agent earnings follow whoever holds it. Nothing is deployed yet: there is no passport contract on any network and no collection listed anywhere.'),
         list([
           { n: '01', title: 'Dynamic metadata', detail: 'Evolves with activity, level and slashing record.' },
           { n: '02', title: 'Permission sets', detail: 'Encoded as traits, revocable at any time.' },
@@ -298,7 +298,7 @@
         ]),
         actions([
           { label: 'NFT Passport', href: P('nft') },
-          { label: 'View on OpenSea', href: SITE().opensea, ext: true, variant: 'quiet' }
+          { label: 'Deployment status', href: P('docs') + '#networks', variant: 'quiet' }
         ])
       ],
       chips: ['How are agents registered', 'Tokenomics', 'Show me the marketplace'],
@@ -310,7 +310,8 @@
     var m = metrics();
     return {
       blocks: [
-        p('$STRX is the work token. Fixed supply of 1,000,000,000 — agents stake it to register, which is what makes sybil attacks expensive rather than merely discouraged.'),
+        p('$STRX is the work token, and it does not exist yet. There is no deployed contract, no TGE, no market and no sale — the numbers below are the designed parameters, not a description of anything you can hold. Anyone selling you $STRX today is selling you nothing.'),
+        p('As designed: fixed supply of 1,000,000,000 — agents stake it to register, which is what makes sybil attacks expensive rather than merely discouraged.'),
         p('The protocol takes 0.25% of commerce volume routed through it. That fee splits three ways: 40% treasury, 30% to stakers, 30% to buyback-and-burn, so usage retires supply.'),
         stats([
           st('Total supply', fmt.compact(TOKEN.supply) + ' STRX'),
@@ -325,10 +326,13 @@
           st('Fees 24h', fmt.usdC(m.fees24)),
           st('→ burn 24h', fmt.usdC(m.fees24 * 0.3), 'up')
         ]) : null,
-        m ? note('Volume, fees and staked supply are simulated protocol metrics, not a live contract read.', 'warn') : null,
-        actions([{ label: 'How agents are slashed', act: 'ask', arg: 'how are agents registered and slashed' }])
+        m ? note('Volume, fees and staked supply are simulated protocol metrics, not a live contract read — there is no contract to read.', 'warn') : null,
+        actions([
+          { label: 'Contract status', act: 'ask', arg: 'contract address' },
+          { label: 'How agents are slashed', act: 'ask', arg: 'how are agents registered and slashed', variant: 'quiet' }
+        ])
       ],
-      chips: ['How are agents registered', 'What is Strix Hood', 'Protocol metrics'],
+      chips: ['Contract address', 'How are agents registered', 'Protocol metrics'],
       topic: 'protocol'
     };
   }
@@ -367,6 +371,48 @@
         ])
       ],
       chips: ['How does the policy engine work', 'What is an intent', 'Buy 2 ETH'],
+      topic: 'protocol'
+    };
+  }
+
+  /* Contracts, deployments and audit state. Nothing is deployed and nothing is
+     audited, so this answer exists specifically to refuse to invent either. */
+  function kbContracts() {
+    return {
+      blocks: [
+        p('There is no contract address to give you. Strix Hood is not deployed to any mainnet, there is no $STRX token contract, and the testnet deployments are redeployed without notice so they are not worth pinning.'),
+        table(['Chain', 'Target', 'Status'], [
+          ['Ethereum', 'Sepolia', 'testnet'],
+          ['Base', 'Base Sepolia', 'testnet'],
+          ['Arbitrum', 'Arbitrum Sepolia', 'testnet'],
+          ['OP Mainnet', 'OP Sepolia', 'queued'],
+          ['Polygon', 'Amoy', 'queued'],
+          ['BNB Chain', 'BNB Testnet', 'queued'],
+          ['Solana', 'Devnet', 'queued']
+        ]),
+        note('Anyone offering you a Strix Hood contract address or a $STRX token today is not us, because there is nothing to offer. Mainnet addresses will be published in the docs, in the SDK deployment manifest and from @strixhood at the same time.', 'warn'),
+        actions([
+          { label: 'Deployment status', href: P('docs') + '#networks' },
+          { label: 'Audit status', act: 'ask', arg: 'has it been audited', variant: 'quiet' }
+        ])
+      ],
+      chips: ['Has it been audited', 'Tokenomics', 'What is Strix Hood'],
+      topic: 'protocol'
+    };
+  }
+
+  function kbAudit() {
+    return {
+      blocks: [
+        p('No. No audit has been completed, no firm is engaged, and every contract currently running on a testnet is unaudited. Treating anything here as reviewed would be wrong.'),
+        p('The scope is published in the order it will be handed over — settlement and registry first, then the account and session-key validator, then the bond vault, the RWA allow-list and finally the indexer and API. Reports get published in full when they exist, including findings we dispute.'),
+        p('There is no funded bug bounty either. The severity ladder and the response clock are in force now; the reward amounts are set when the programme is funded at mainnet. Report findings anyway — they are credited and paid retroactively.'),
+        actions([
+          { label: 'Audit scope', href: P('security') + '#audits' },
+          { label: 'Report a finding', href: 'mailto:security@strix-hood.xyz?subject=Security%20report', variant: 'quiet' }
+        ])
+      ],
+      chips: ['Contract address', 'What are the five security layers', 'What does it not protect against'],
       topic: 'protocol'
     };
   }
@@ -971,10 +1017,9 @@
 
   function iNav(q, hit) {
     var n = hit.nav;
-    var s = SITE();
     var extra = [];
     if (n.key === 'api') extra.push({ label: 'Open dashboard', href: P('app'), variant: 'quiet' });
-    if (n.key === 'nft') extra.push({ label: 'OpenSea', href: s.opensea, ext: true, variant: 'quiet' });
+    if (n.key === 'nft') extra.push({ label: 'Deployment status', href: P('docs') + '#networks', variant: 'quiet' });
     return {
       blocks: [
         p(n.line),
@@ -1231,6 +1276,8 @@
     { id: 'kb.intent', m: /\bwhat is an? intent\b|\bintent[- ]based\b|\bhow do intents? work\b|\bexplain intents?\b|\bwhat are intents\b/, run: kbIntent },
     { id: 'kb.policy', m: /\bpolicy engine\b|\bspending polic|\bhow do polic|\bwhat is a polic|\bpolicy work\b|\bspending limits?\b/, run: kbPolicy },
     { id: 'kb.passport', m: /\bpassport\b|\bagent nft\b|\berc.?721\b|\bagent identity\b/, run: kbPassport },
+    { id: 'kb.audit', m: /\baudit(ed|s|or)?\b|\bbug bounty\b|\bbounty\b|\bpen ?test|\bsecurity review\b/, run: kbAudit },
+    { id: 'kb.contracts', m: /\bcontract address(es)?\b|\bcontract\b.*\baddress\b|\baddress\b.*\bcontract\b|\bdeploy(ed|ment)s?\b|\bwhat chains?\b|\bwhich chains?\b|\bwhere (is|are) (it|the contracts?) deployed\b|\bis (it|strx) (live|on mainnet)\b|\bmainnet\b|\bca\b|\btoken address\b|\bwhen (tge|token|launch)\b/, run: kbContracts },
     { id: 'kb.token', m: /\btokenomic|\bstrx\b|\bthe token\b|\bfee split\b|\bburn\b|\bsupply\b|\bstaking rewards?\b/, run: kbTokenomics },
     { id: 'kb.agents', m: /\bslash|\bregister(ed|ing)? (an )?agent|\bhow do agents? (get )?(work|register|join)|\bagent bond\b|\breputation bond\b/, run: kbAgents },
     { id: 'kb.security', m: /\bsecurity layers?\b|\bfive layers?\b|\b5 layers?\b|\bhow (is it|are you) secure\b|\bsecurity (stack|model)\b|\bis it safe\b|\baccount abstraction\b|\berc.?4337\b|\bhuman.in.the.loop\b/, run: kbSecurity },

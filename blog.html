@@ -1,12 +1,12 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Writing — protocol notes and postmortems | Strix Hood</title>
-<meta name="description" content="Engineering and protocol writing from the Strix Hood team: why agents need collateral, sealed-bid solver auctions, the indexer deadlock postmortem, prompt injection as a policy problem, and T+1 versus the block.">
+<title>Writing — the editorial calendar | Strix Hood</title>
+<meta name="description" content="What Strix Hood intends to publish, before it publishes it: eight planned pieces on collateral, solver auctions, prompt injection, session-key scope and tokenized equity settlement. Titles and outlines only — nothing is written yet.">
 <link rel="canonical" href="https://strix-hood.vercel.app/blog.html">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<meta property="og:title" content="Writing — protocol notes and postmortems | Strix Hood"><meta property="og:description" content="Eight posts on collateral, solver auctions, prompt injection, tokenized equity settlement and the bugs we caused.">
+<meta property="og:title" content="Writing — the editorial calendar | Strix Hood"><meta property="og:description" content="Eight planned pieces on collateral, solver auctions, prompt injection and tokenized equity settlement. Outlines are public; none of them are written yet.">
 <meta property="og:image" content="https://strix-hood.vercel.app/assets/og.png">
 <meta property="og:url" content="https://strix-hood.vercel.app/blog.html"><meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@strixhood">
@@ -24,11 +24,12 @@
 <!-- ══ HERO ══════════════════════════════════════════════════ -->
 <section class="ph" style="padding-block:clamp(96px,10vw,140px) clamp(20px,3vw,36px)">
   <div class="sx-shell ph__in">
-    <span class="sx-eyebrow" data-reveal="0"><span class="sx-glyph sx-glyph--dot"></span>Writing · 8 posts · updated 2026-08-11</span>
-    <h1 data-reveal="50">Notes from building a thing that <em>moves money</em>.</h1>
+    <span class="sx-eyebrow" data-reveal="0"><span class="sx-glyph sx-glyph--dot"></span>Writing · 8 planned · 0 published</span>
+    <h1 data-reveal="50">The calendar, published before <em>the writing is</em>.</h1>
     <p class="sx-lead ph__lead" data-reveal="100">
-      Design decisions with the alternatives we rejected, postmortems for the outages we caused, and the occasional
-      argument we lost. Roughly two posts a month. Nothing here is a product announcement.
+      Nothing here has been published yet. What follows is what we intend to write and the argument each piece has
+      to make — titles and outlines, no drafts, no bylines and no dates we would have to invent. A plan you can
+      hold us to beats an archive you cannot check.
     </p>
   </div>
 </section>
@@ -46,10 +47,10 @@
   <div class="sx-shell">
     <div class="pg-head pg-head--row" data-reveal="0">
       <div>
-        <span class="sx-eyebrow">Archive</span>
-        <h2>Everything else we have published</h2>
-        <p class="sx-lead">Filter by tag or search the titles. Selecting a post opens it in full — nothing here links
-          to a page that does not exist.</p>
+        <span class="sx-eyebrow">Calendar</span>
+        <h2>Everything else that is queued</h2>
+        <p class="sx-lead">Filter by tag or search the titles. Selecting one opens its outline — that is all there
+          is, and the page says so rather than linking you to a draft that does not exist.</p>
       </div>
       <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="bl-clear">Clear filters</button>
     </div>
@@ -66,7 +67,7 @@
 
     <div class="mk-empty" id="bl-empty" hidden>
       <b>Nothing matches that.</b>
-      <p class="sx-body">Eight posts is not a large archive. Try a broader tag, or clear the filters.</p>
+      <p class="sx-body">Eight planned pieces is not a large calendar. Try a broader tag, or clear the filters.</p>
     </div>
   </div>
 </section>
@@ -84,14 +85,16 @@
       <div class="sx-card pg-card">
         <span class="pg-card__tag">Rule 01</span>
         <h3>Show the alternative we rejected</h3>
-        <p>A design post without the discarded options is an advertisement. Every decision piece names what we tried
-          first and why it failed — including the six weeks spent on a relayer we deleted.</p>
+        <p>A design post without the discarded options is an advertisement. Every decision piece names what was tried
+          first and why it failed, which is why several of the outlines above end on the thing the design does not
+          solve.</p>
       </div>
       <div class="sx-card pg-card">
         <span class="pg-card__tag">Rule 02</span>
         <h3>Postmortems are blameless and specific</h3>
-        <p>Named commitments we missed, real timestamps, and the diff that fixed it. If the interesting failure was
-          organisational rather than technical, we say that instead of hiding behind a race condition.</p>
+        <p>When there is one to write: named commitments we missed, real timestamps, and the diff that fixed it. If
+          the interesting failure is organisational rather than technical, we say that instead of hiding behind a
+          race condition. There are none yet, and we are not writing fiction to fill the section.</p>
       </div>
       <div class="sx-card pg-card">
         <span class="pg-card__tag">Rule 03</span>
@@ -109,9 +112,10 @@
     <div class="pg-grid pg-grid--2" data-reveal="0" style="align-items:center;gap:clamp(20px,3vw,48px)">
       <div>
         <span class="sx-eyebrow" style="margin-bottom:14px">Subscribe</span>
-        <h2 class="sx-h3" style="font-size:clamp(20px,2.2vw,30px)">Two emails a month, both of them long</h2>
-        <p class="sx-body" style="margin-top:12px;max-width:56ch">New posts only. Incident notices live on the status
-          page and have their own list, so subscribing here will never get you a product announcement.</p>
+        <h2 class="sx-h3" style="font-size:clamp(20px,2.2vw,30px)">One email when the first one lands</h2>
+        <p class="sx-body" style="margin-top:12px;max-width:56ch">New posts only, and there are none yet — so this
+          list is silent until there are. Incident notices live on the status page and have their own list, so
+          subscribing here will never get you a product announcement.</p>
       </div>
       <form class="pg-form" id="bl-sub" novalidate>
         <label class="sx-sr" for="bl-email">Email address for new posts</label>
@@ -130,8 +134,9 @@
   <div class="sx-shell pg-cta__in" data-reveal="0">
     <div>
       <h2 class="sx-h1">Disagree in public.</h2>
-      <p class="sx-lead">Most of these posts started as an argument inside the team, and several of them were settled
-        by someone outside it. The fastest way to change our mind is a specific counter-example.</p>
+      <p class="sx-lead">Every outline above started as an argument inside the team, and the useful ones get settled
+        by someone outside it. The fastest way to change our mind — or the shape of a piece before it is written —
+        is a specific counter-example.</p>
       <div class="pg-cta__links">
         <a class="sx-btn sx-btn--primary" href="https://x.com/strixhood" target="_blank" rel="noopener noreferrer">Argue on X</a>
         <a class="sx-btn sx-btn--quiet" href="careers.html">Or come and do it internally</a>
@@ -139,11 +144,11 @@
     </div>
     <div class="pg-cta__side">
       <div class="sx-card sx-card--flat">
-        <span class="sx-label">Referenced in these posts</span>
+        <span class="sx-label">What these outlines draw on</span>
         <ul class="pg-ul" style="margin-top:12px">
           <li><a href="agents.html" style="color:var(--neon-2)">Bonds and registration tiers</a></li>
           <li><a href="security.html" style="color:var(--neon-2)">The five-layer stack</a></li>
-          <li><a href="status.html" style="color:var(--neon-2)">The 9 July postmortem</a></li>
+          <li><a href="status.html" style="color:var(--neon-2)">Service objectives</a></li>
           <li><a href="stocks.html" style="color:var(--neon-2)">Tokenized equity settlement</a></li>
         </ul>
       </div>

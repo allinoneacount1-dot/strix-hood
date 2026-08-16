@@ -1,12 +1,12 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Status — uptime, latency and incident history | Strix Hood</title>
-<meta name="description" content="Live status for Strix Hood protocol services: API, WebSocket, solver network, indexer, RPC gateway and per-chain settlement. 90-day uptime, current latency, and full postmortems for every incident.">
+<title>Status — service objectives and live feed probe | Strix Hood</title>
+<meta name="description" content="Status for Strix Hood protocol services: API, WebSocket, solver network, indexer, RPC gateway and per-chain settlement. Published availability objectives, a live browser-side feed probe, and an incident log that is empty because nothing has run in public yet.">
 <link rel="canonical" href="https://strix-hood.vercel.app/status.html">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/icon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<meta property="og:title" content="Status — uptime, latency and incident history | Strix Hood"><meta property="og:description" content="Component status, 90-day uptime, live latency and postmortems for every incident — including the ones where we missed our own commitments.">
+<meta property="og:title" content="Status — service objectives and live feed probe | Strix Hood"><meta property="og:description" content="Component objectives, thresholds and a live browser-side probe. No uptime history and no incidents, because nothing has run in public yet.">
 <meta property="og:image" content="https://strix-hood.vercel.app/assets/og.png">
 <meta property="og:url" content="https://strix-hood.vercel.app/status.html"><meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@strixhood">
@@ -25,11 +25,12 @@
 <section class="ph" style="padding-block:clamp(96px,10vw,132px) clamp(24px,3vw,40px)">
   <div class="sx-shell ph__in">
     <span class="sx-eyebrow" data-reveal="0"><span class="sx-glyph sx-glyph--dot"></span>Protocol status · testnet</span>
-    <h1 data-reveal="50">Status, including the parts that <em>make us look bad</em>.</h1>
+    <h1 data-reveal="50">Status, including the part where <em>there is nothing to report</em>.</h1>
     <p class="sx-lead ph__lead" data-reveal="100">
-      Component health, 90 days of daily availability, current latency percentiles and a full postmortem for every
-      incident. The panel on the right is not a stored value — it runs an Ethereum JSON-RPC call from your browser,
-      right now, and reports whatever happens.
+      Eight services with published thresholds and availability objectives, an empty incident log, and no uptime
+      history — because none of this has run in public long enough to have one. The live check panel is the only
+      measurement anywhere on this page: it runs an Ethereum JSON-RPC call from your browser, right now, and
+      reports whatever happens.
     </p>
   </div>
 </section>
@@ -40,8 +41,8 @@
     <div class="su-overall">
       <span class="su-overall__dot" aria-hidden="true"><i></i></span>
       <div>
-        <h2 id="su-overall-h">All systems operational</h2>
-        <p id="su-overall-p">Reading component history…</p>
+        <h2 id="su-overall-h">No availability record yet</h2>
+        <p id="su-overall-p">Reading component definitions…</p>
       </div>
     </div>
 
@@ -65,12 +66,13 @@
     <div class="pg-head pg-head--row" data-reveal="0">
       <div>
         <span class="sx-eyebrow">Components</span>
-        <h2>Eight services, 90 days each</h2>
-        <p class="sx-lead">One bar per day. Full height is a clean day, amber is degraded, crimson is an outage that
-          appears in the incident list below.</p>
+        <h2>Eight services, and what each one is held to</h2>
+        <p class="sx-lead">One bar per day for the last ninety. They are all empty: no availability has been
+          recorded for any of these services yet. The latency figures are the objectives they are built against,
+          not measurements taken from a running cluster.</p>
       </div>
       <div class="pg-chiprow">
-        <span class="pg-tag pg-tag--on">operational</span>
+        <span class="pg-tag">no history</span>
         <span class="pg-tag pg-tag--amber">degraded</span>
         <span class="pg-tag pg-tag--crimson">outage</span>
       </div>
@@ -80,11 +82,12 @@
 
     <div class="pg-note" data-reveal="80">
       <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--ring"></span></span>
-      <div><b>How these numbers are produced</b>
-        <p>Availability is derived from this page’s incident record and a deterministic background-noise model seeded
-          per component, so the history is stable between visits rather than re-rolled on every load. Latency
-          percentiles are trailing one-hour figures from the testnet cluster. We are not pretending this is a hosted
-          monitoring provider — when it becomes one, this paragraph changes.</p></div>
+      <div><b>Where these numbers come from</b>
+        <p>Nowhere yet, and that is the honest answer. There is no monitoring pipeline behind this page, so there is
+          no availability series to draw and we have not invented one. The p50/p95/p99 figures are the design
+          targets each service is built against, and the availability column is the objective it will be measured
+          against once measurement exists. When a real monitoring provider is wired in, this paragraph changes and
+          the bars fill from that day forward — not backwards.</p></div>
     </div>
   </div>
 </section>
@@ -95,15 +98,15 @@
   <div class="sx-shell">
     <div class="pg-head" data-reveal="0">
       <span class="sx-eyebrow">Incident history</span>
-      <h2>Four incidents in 90 days, with postmortems</h2>
-      <p class="sx-lead">Impact first, then the timeline, then the root cause, then what changed. Where we missed our
-        own commitment — alerting on 9 July — the postmortem says so rather than burying it.</p>
+      <h2>Zero incidents, because there is nothing in public to break</h2>
+      <p class="sx-lead">Impact first, then the timeline, then the root cause, then what changed. That is the shape
+        every entry here will take. There are no entries.</p>
     </div>
 
     <div class="su-inc" id="su-incidents" data-reveal="40"></div>
 
     <div class="sx-row" data-reveal="80" style="margin-top:26px">
-      <a class="sx-btn sx-btn--ghost" href="security.html#gaps">Disclosure commitments</a>
+      <a class="sx-btn sx-btn--ghost" href="security.html#disclosure">Disclosure commitments</a>
       <a class="sx-btn sx-btn--quiet" href="docs.html#failure-modes">Failure-mode catalogue</a>
     </div>
   </div>
@@ -116,7 +119,8 @@
     <div class="pg-head" data-reveal="0">
       <span class="sx-eyebrow">Definitions</span>
       <h2>What counts as degraded, and what counts as down</h2>
-      <p class="sx-lead">Published thresholds, so “operational” is a measurement rather than an opinion.</p>
+      <p class="sx-lead">Published thresholds, so “operational” will be a measurement rather than an opinion the
+        day there is something to measure.</p>
     </div>
 
     <div class="sx-tablewrap" data-reveal="40">
@@ -173,7 +177,8 @@
         <span class="sx-eyebrow" style="margin-bottom:14px">Notifications</span>
         <h2 class="sx-h3" style="font-size:clamp(20px,2.2vw,30px)">Get told when something breaks</h2>
         <p class="sx-body" style="margin-top:12px;max-width:56ch">One message per incident: opened, updated, resolved.
-          Postmortems go out when they are published, not before. No product announcements on this list, ever.</p>
+          Postmortems go out when they are published, not before. No product announcements on this list, ever — and
+          on current evidence, no messages at all for a while.</p>
       </div>
       <form class="pg-form" id="su-sub" novalidate>
         <label class="sx-sr" for="su-email">Email address for incident notifications</label>
@@ -192,11 +197,12 @@
   <div class="sx-shell pg-cta__in" data-reveal="0">
     <div>
       <h2 class="sx-h1">Verify it yourself.</h2>
-      <p class="sx-lead">Everything on this page is derived from data you can query. The API exposes execution
-        receipts, the chain exposes settlement, and the contracts are public.</p>
+      <p class="sx-lead">Nothing on this page asks you to take our word for it. The probe runs in your browser,
+        the thresholds are written down, and the incident log is empty in public rather than curated in private.</p>
       <div class="pg-cta__links">
         <a class="sx-btn sx-btn--primary" href="api.html#executions">Query the API</a>
-        <a class="sx-btn sx-btn--ghost" href="docs.html#contract-addresses">Contract addresses</a>
+        <a class="sx-btn sx-btn--ghost" href="docs.html#contract-addresses">Deployment status</a>
+        <a class="sx-btn sx-btn--quiet" href="security.html#disclosure">Disclosure policy</a>
       </div>
     </div>
     <div class="pg-cta__side">
@@ -204,7 +210,7 @@
         <span class="sx-label">Related</span>
         <ul class="pg-ul" style="margin-top:12px">
           <li><a href="security.html" style="color:var(--neon-2)">Security model and disclosure policy</a></li>
-          <li><a href="blog.html" style="color:var(--neon-2)">The indexer deadlock, in detail</a></li>
+          <li><a href="blog.html" style="color:var(--neon-2)">What we plan to write about</a></li>
           <li><a href="docs.html#networks" style="color:var(--neon-2)">Supported networks</a></li>
           <li><a href="api.html#error-codes" style="color:var(--neon-2)">Error codes</a></li>
         </ul>

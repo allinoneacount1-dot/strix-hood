@@ -1033,20 +1033,26 @@ if (local !== onchain) throw new Error("policy drift: refuse to sign");</code></
             </ul>
 
             <h3 id="disclosure">Audits and disclosure</h3>
+            <p><b>No audit has been completed.</b> No firm is engaged, no report exists, and every contract
+              currently running on a testnet is unaudited. The table below is the scope we intend to put in front
+              of an external firm, published now so the order is on the record before the engagement is.</p>
             <div class="dx-tw">
               <table class="dx-t dx-t--compact">
-                <thead><tr><th>Scope</th><th>Firm</th><th>Date</th><th>Status</th></tr></thead>
+                <thead><tr><th>Component</th><th>Scope</th><th>Status</th></tr></thead>
                 <tbody>
-                  <tr><td>Core contracts — router, vault, registry</td><td>Spearbit</td><td class="mono">2026-03</td><td>Complete, 2 medium resolved</td></tr>
-                  <tr><td>Session-key validator module</td><td>OpenZeppelin</td><td class="mono">2026-05</td><td>Complete, 1 high resolved</td></tr>
-                  <tr><td>Solver auction and bonding</td><td>Trail of Bits</td><td class="mono">2026-07</td><td>In progress</td></tr>
-                  <tr><td>Continuous</td><td>Immunefi bug bounty</td><td class="mono">ongoing</td><td>Up to $500,000 for critical</td></tr>
+                  <tr><td>Core contracts — router, vault, registry</td><td>Settlement path, minimum-output enforcement, fee split, registry writes.</td><td><span class="sx-status sx-status--idle"><i></i>SCHEDULED</span></td></tr>
+                  <tr><td>Session-key validator module</td><td>ERC-4337 validation, capability-to-selector mapping, expiry and revocation.</td><td><span class="sx-status sx-status--idle"><i></i>SCHEDULED</span></td></tr>
+                  <tr><td>Solver auction and bonding</td><td>Sealed-bid mechanics, bond accounting, slashing and the challenge window.</td><td><span class="sx-status sx-status--err"><i></i>NOT STARTED</span></td></tr>
+                  <tr><td>RWA token and allow-list</td><td>Permissioned transfer hooks, register reconciliation, corporate-action freeze.</td><td><span class="sx-status sx-status--err"><i></i>NOT STARTED</span></td></tr>
+                  <tr><td>Indexer and API</td><td>No funds and no signing authority, so it is last — but it can still misreport state.</td><td><span class="sx-status sx-status--err"><i></i>NOT STARTED</span></td></tr>
                 </tbody>
               </table>
             </div>
-            <p>Report vulnerabilities to <code>security@strixhood.xyz</code> with the PGP key published at
-              <code>/.well-known/security.txt</code>. Do not open a public issue. Disclosure target is 90 days or
-              on-fix, whichever comes first.</p>
+            <p>There is no funded bug bounty. Report vulnerabilities to <code>security@strixhood.xyz</code> with
+              the PGP key published at <code>/.well-known/security.txt</code> anyway — findings are credited and
+              published, and the reward schedule is set out on the
+              <a href="security.html#bounty">security page</a>. Do not open a public issue. Disclosure target is
+              90 days or on-fix, whichever comes first.</p>
           </section>
 
           <!-- ============================ TOKENOMICS ============================ -->
@@ -1056,6 +1062,14 @@ if (local !== onchain) throw new Error("policy drift: refuse to sign");</code></
             <p class="dx-lead">$STRX exists to make agent identity expensive to fake and dishonest execution
               expensive to attempt. It is a work token and a bond, not a payment rail — commerce settles in USDC,
               WETH and the assets being traded.</p>
+            <div class="dx-note dx-note--warn">
+              <span class="dx-note__i" aria-hidden="true"></span>
+              <div><b>$STRX does not exist yet</b>
+                <p>No token is deployed, there has been no TGE, there is no market and there is no sale. The
+                  figures in this section are the designed parameters — supply, splits and unlock shape — not a
+                  description of anything you can hold or buy. Testnet STRX is a faucet token with no value.
+                  Any $STRX offered to you today is a scam.</p></div>
+            </div>
 
             <h3 id="supply">Supply and distribution</h3>
             <div class="dx-stats">
@@ -1063,6 +1077,7 @@ if (local !== onchain) throw new Error("policy drift: refuse to sign");</code></
               <div class="dx-stat"><b>Base</b><span>Canonical chain</span></div>
               <div class="dx-stat"><b>18</b><span>Decimals</span></div>
               <div class="dx-stat"><b>None</b><span>Inflation after TGE</span></div>
+              <div class="dx-stat"><b>Unscheduled</b><span>TGE — not deployed</span></div>
             </div>
             <div class="dx-dist" role="img" aria-label="Token distribution: Community and Ecosystem 40 percent, Team and Advisors 20 percent, Protocol Treasury 15 percent, Liquidity 15 percent, Early Contributors 10 percent.">
               <div class="dx-dist__row"><span>Community &amp; Ecosystem</span><span class="dx-dist__bar"><i style="width:100%;background:linear-gradient(90deg,#CCFF00,#E4FF4D)"></i></span><b>40%</b></div>
@@ -1148,114 +1163,69 @@ agent receives                       output − 3.75 USD equivalent, ≥ quoted 
           <section class="dx-sec" data-group="Economics &amp; networks">
             <span class="dx-kicker">09 — Deployments</span>
             <h2 id="networks" data-nav="Networks &amp; contracts">Networks &amp; contracts</h2>
-            <p class="dx-lead">Seven networks are live. EVM contracts are deployed with CREATE2 from the same
-              factory, so every EVM chain shares one address per contract. Solana runs a separate program set.</p>
+            <p class="dx-lead">Nothing is deployed to mainnet. Registry and settlement contracts run on three
+              EVM testnets; four more networks are queued behind them. EVM contracts deploy with CREATE2 from the
+              same factory, so every EVM chain will share one address per contract. Solana runs a separate
+              program set.</p>
 
-            <h3 id="supported-chains">Supported chains</h3>
+            <h3 id="supported-chains">Deployment status</h3>
+            <p>The target set is seven networks. Where a contract exists today it exists on a testnet, and it is
+              redeployed without notice. Treat every row below as the current state, not a roadmap.</p>
             <div class="dx-tw">
               <table class="dx-t">
-                <thead><tr><th>Network</th><th class="n">Chain ID</th><th>CAIP-2</th><th>Finality target</th><th>Gas asset</th><th>Status</th></tr></thead>
+                <thead><tr><th>Network</th><th>Target chain</th><th class="n">Chain ID</th><th>CAIP-2</th><th>Finality target</th><th>Status</th><th>Explorer</th></tr></thead>
                 <tbody>
-                  <tr><td>Ethereum</td><td class="n">1</td><td class="mono">eip155:1</td><td class="mono">2 epochs (~13 min)</td><td class="mono">ETH</td><td><span class="sx-status sx-status--live"><i></i>live</span></td></tr>
-                  <tr><td>Base</td><td class="n">8453</td><td class="mono">eip155:8453</td><td class="mono">L1 inclusion (~3 min)</td><td class="mono">ETH</td><td><span class="sx-status sx-status--live"><i></i>live</span></td></tr>
-                  <tr><td>Arbitrum One</td><td class="n">42161</td><td class="mono">eip155:42161</td><td class="mono">L1 inclusion (~4 min)</td><td class="mono">ETH</td><td><span class="sx-status sx-status--live"><i></i>live</span></td></tr>
-                  <tr><td>OP Mainnet</td><td class="n">10</td><td class="mono">eip155:10</td><td class="mono">L1 inclusion (~3 min)</td><td class="mono">ETH</td><td><span class="sx-status sx-status--live"><i></i>live</span></td></tr>
-                  <tr><td>Polygon PoS</td><td class="n">137</td><td class="mono">eip155:137</td><td class="mono">128 blocks (~4 min)</td><td class="mono">POL</td><td><span class="sx-status sx-status--live"><i></i>live</span></td></tr>
-                  <tr><td>BNB Chain</td><td class="n">56</td><td class="mono">eip155:56</td><td class="mono">15 blocks (~45 s)</td><td class="mono">BNB</td><td><span class="sx-status sx-status--live"><i></i>live</span></td></tr>
-                  <tr><td>Solana</td><td class="n">—</td><td class="mono">solana:5eykt4Us…</td><td class="mono">32 slots (~13 s)</td><td class="mono">SOL</td><td><span class="sx-status sx-status--warn"><i></i>beta</span></td></tr>
+                  <tr><td>Ethereum</td><td>Sepolia</td><td class="n">1</td><td class="mono">eip155:1</td><td class="mono">2 epochs (~13 min)</td><td><span class="sx-status sx-status--live"><i></i>TESTNET</span></td><td><a href="https://sepolia.etherscan.io" target="_blank" rel="noopener noreferrer">Etherscan</a></td></tr>
+                  <tr><td>Base</td><td>Base Sepolia</td><td class="n">8453</td><td class="mono">eip155:8453</td><td class="mono">L1 inclusion (~3 min)</td><td><span class="sx-status sx-status--live"><i></i>TESTNET</span></td><td><a href="https://sepolia.basescan.org" target="_blank" rel="noopener noreferrer">Basescan</a></td></tr>
+                  <tr><td>Arbitrum One</td><td>Arbitrum Sepolia</td><td class="n">42161</td><td class="mono">eip155:42161</td><td class="mono">L1 inclusion (~4 min)</td><td><span class="sx-status sx-status--live"><i></i>TESTNET</span></td><td><a href="https://sepolia.arbiscan.io" target="_blank" rel="noopener noreferrer">Arbiscan</a></td></tr>
+                  <tr><td>OP Mainnet</td><td>OP Sepolia</td><td class="n">10</td><td class="mono">eip155:10</td><td class="mono">L1 inclusion (~3 min)</td><td><span class="sx-status sx-status--idle"><i></i>QUEUED</span></td><td><a href="https://sepolia-optimism.etherscan.io" target="_blank" rel="noopener noreferrer">Etherscan</a></td></tr>
+                  <tr><td>Polygon PoS</td><td>Amoy</td><td class="n">137</td><td class="mono">eip155:137</td><td class="mono">128 blocks (~4 min)</td><td><span class="sx-status sx-status--idle"><i></i>QUEUED</span></td><td><a href="https://amoy.polygonscan.com" target="_blank" rel="noopener noreferrer">Polygonscan</a></td></tr>
+                  <tr><td>BNB Chain</td><td>BNB Testnet</td><td class="n">56</td><td class="mono">eip155:56</td><td class="mono">15 blocks (~45 s)</td><td><span class="sx-status sx-status--idle"><i></i>QUEUED</span></td><td><a href="https://testnet.bscscan.com" target="_blank" rel="noopener noreferrer">BscScan</a></td></tr>
+                  <tr><td>Solana</td><td>Devnet</td><td class="n">—</td><td class="mono">solana:5eykt4Us…</td><td class="mono">32 slots (~13 s)</td><td><span class="sx-status sx-status--idle"><i></i>QUEUED</span></td><td><a href="https://solscan.io" target="_blank" rel="noopener noreferrer">Solscan</a></td></tr>
                 </tbody>
               </table>
             </div>
-            <p>Testnets mirror the same contract addresses on Base Sepolia (<code>eip155:84532</code>), Arbitrum
-              Sepolia (<code>eip155:421614</code>) and Solana devnet. Use a <code>strx_sk_test_</code> key; live keys
-              are rejected against testnet chains and vice versa.</p>
+            <p>Use a <code>strx_sk_test_</code> key against anything above. <code>strx_sk_live_</code> keys exist in
+              the key schema but have no mainnet to address, so they are rejected everywhere today.</p>
 
             <h3 id="contract-addresses">Contract addresses</h3>
-            <p>Identical on Ethereum, Base, Arbitrum, OP Mainnet, Polygon and BNB Chain. Verify before you
-              approve anything: the addresses below are also published in
-              <code>@strixhood/sdk/deployments.json</code> and in the repository release tags.</p>
+            <p>There are none to publish. No Strix Hood contract is deployed to any mainnet, there is no $STRX
+              token contract, and the testnet deployments are not stable enough to pin. Addresses will appear in
+              this table, in <code>@strixhood/sdk/deployments.json</code> and on the repository release tags at the
+              same time — never one before the others.</p>
             <div class="dx-tw">
               <table class="dx-t">
-                <caption>EVM — CREATE2, same address on every EVM network</caption>
-                <thead><tr><th>Contract</th><th>Address</th><th>Purpose</th><th>Explorer</th></tr></thead>
+                <caption>Contract set — CREATE2, one address per contract across every EVM network</caption>
+                <thead><tr><th>Contract</th><th>Purpose</th><th>Mainnet address</th><th>Status</th></tr></thead>
                 <tbody>
-                  <tr>
-                    <td>IntentRouter</td>
-                    <td><span class="dx-addr"><span class="mono">0x5Cf9A2b1E1d4a86F0c3D7B4e9F2a08C5D6e13B47</span><button class="dx-addr__c" type="button" data-dxcopy="0x5Cf9A2b1E1d4a86F0c3D7B4e9F2a08C5D6e13B47" data-dxlabel="IntentRouter address copied" aria-label="Copy IntentRouter address"><i aria-hidden="true"></i></button></span></td>
-                    <td>Accepts routed intents, opens the solver auction, forwards the winner.</td>
-                    <td><a href="https://basescan.org/address/0x5Cf9A2b1E1d4a86F0c3D7B4e9F2a08C5D6e13B47" target="_blank" rel="noopener noreferrer">Basescan</a></td>
-                  </tr>
-                  <tr>
-                    <td>PolicyRegistry</td>
-                    <td><span class="dx-addr"><span class="mono">0x8Ae4C0f37D1b52E9a6c8F401B2d73E5a9C0f18Db</span><button class="dx-addr__c" type="button" data-dxcopy="0x8Ae4C0f37D1b52E9a6c8F401B2d73E5a9C0f18Db" data-dxlabel="PolicyRegistry address copied" aria-label="Copy PolicyRegistry address"><i aria-hidden="true"></i></button></span></td>
-                    <td>One live policy hash per agent. Source of truth for the validator module.</td>
-                    <td><a href="https://basescan.org/address/0x8Ae4C0f37D1b52E9a6c8F401B2d73E5a9C0f18Db" target="_blank" rel="noopener noreferrer">Basescan</a></td>
-                  </tr>
-                  <tr>
-                    <td>AgentPassport</td>
-                    <td><span class="dx-addr"><span class="mono">0x2Fb1D8c47A0e35B9d6F82c11E7a4508D3bC96Ef2</span><button class="dx-addr__c" type="button" data-dxcopy="0x2Fb1D8c47A0e35B9d6F82c11E7a4508D3bC96Ef2" data-dxlabel="AgentPassport address copied" aria-label="Copy AgentPassport address"><i aria-hidden="true"></i></button></span></td>
-                    <td>ERC-721 identity, dynamic metadata, capability traits, revenue rights.</td>
-                    <td><a href="https://basescan.org/address/0x2Fb1D8c47A0e35B9d6F82c11E7a4508D3bC96Ef2" target="_blank" rel="noopener noreferrer">Basescan</a></td>
-                  </tr>
-                  <tr>
-                    <td>SettlementVault</td>
-                    <td><span class="dx-addr"><span class="mono">0x9D07E5a2C43b81F6e0A29d5c7B4831fE62aC0d75</span><button class="dx-addr__c" type="button" data-dxcopy="0x9D07E5a2C43b81F6e0A29d5c7B4831fE62aC0d75" data-dxlabel="SettlementVault address copied" aria-label="Copy SettlementVault address"><i aria-hidden="true"></i></button></span></td>
-                    <td>Enforces minimum output, takes and splits the 0.25% fee, emits <code>Settled</code>.</td>
-                    <td><a href="https://basescan.org/address/0x9D07E5a2C43b81F6e0A29d5c7B4831fE62aC0d75" target="_blank" rel="noopener noreferrer">Basescan</a></td>
-                  </tr>
-                  <tr>
-                    <td>SolverRegistry</td>
-                    <td><span class="dx-addr"><span class="mono">0x71Ba3E96d05C2f48A7e1B603D9c85274FaE0b3C8</span><button class="dx-addr__c" type="button" data-dxcopy="0x71Ba3E96d05C2f48A7e1B603D9c85274FaE0b3C8" data-dxlabel="SolverRegistry address copied" aria-label="Copy SolverRegistry address"><i aria-hidden="true"></i></button></span></td>
-                    <td>Solver bonds, reliability scores, auction eligibility.</td>
-                    <td><a href="https://basescan.org/address/0x71Ba3E96d05C2f48A7e1B603D9c85274FaE0b3C8" target="_blank" rel="noopener noreferrer">Basescan</a></td>
-                  </tr>
-                  <tr>
-                    <td>StakingBond</td>
-                    <td><span class="dx-addr"><span class="mono">0x3E82fA07C914d6B5e0287Fc3A1d94B60e5D7c2A9</span><button class="dx-addr__c" type="button" data-dxcopy="0x3E82fA07C914d6B5e0287Fc3A1d94B60e5D7c2A9" data-dxlabel="StakingBond address copied" aria-label="Copy StakingBond address"><i aria-hidden="true"></i></button></span></td>
-                    <td>Registration bonds, fee staking, slashing execution and challenges.</td>
-                    <td><a href="https://basescan.org/address/0x3E82fA07C914d6B5e0287Fc3A1d94B60e5D7c2A9" target="_blank" rel="noopener noreferrer">Basescan</a></td>
-                  </tr>
-                  <tr>
-                    <td>STRX token</td>
-                    <td><span class="dx-addr"><span class="mono">0x6b3F0aD82c19E574B1d0968Ae35c7f42D9a081Ec</span><button class="dx-addr__c" type="button" data-dxcopy="0x6b3F0aD82c19E574B1d0968Ae35c7f42D9a081Ec" data-dxlabel="STRX token address copied" aria-label="Copy STRX token address"><i aria-hidden="true"></i></button></span></td>
-                    <td>ERC-20, 18 decimals, fixed supply. Canonical deployment is Base.</td>
-                    <td><a href="https://basescan.org/token/0x6b3F0aD82c19E574B1d0968Ae35c7f42D9a081Ec" target="_blank" rel="noopener noreferrer">Basescan</a></td>
-                  </tr>
+                  <tr><td>IntentRouter</td><td>Accepts routed intents, opens the solver auction, forwards the winner.</td><td class="mono">not deployed</td><td><span class="sx-status sx-status--idle"><i></i>TESTNET ONLY</span></td></tr>
+                  <tr><td>PolicyRegistry</td><td>One live policy hash per agent. Source of truth for the validator module.</td><td class="mono">not deployed</td><td><span class="sx-status sx-status--idle"><i></i>TESTNET ONLY</span></td></tr>
+                  <tr><td>AgentPassport</td><td>ERC-721 identity, dynamic metadata, capability traits, revenue rights.</td><td class="mono">not deployed</td><td><span class="sx-status sx-status--idle"><i></i>TESTNET ONLY</span></td></tr>
+                  <tr><td>SettlementVault</td><td>Enforces minimum output, takes and splits the 0.25% fee, emits <code>Settled</code>.</td><td class="mono">not deployed</td><td><span class="sx-status sx-status--idle"><i></i>TESTNET ONLY</span></td></tr>
+                  <tr><td>SolverRegistry</td><td>Solver bonds, reliability scores, auction eligibility.</td><td class="mono">not deployed</td><td><span class="sx-status sx-status--idle"><i></i>TESTNET ONLY</span></td></tr>
+                  <tr><td>StakingBond</td><td>Registration bonds, fee staking, slashing execution and challenges.</td><td class="mono">not deployed</td><td><span class="sx-status sx-status--idle"><i></i>TESTNET ONLY</span></td></tr>
+                  <tr><td>STRX token</td><td>ERC-20, 18 decimals, fixed supply. Canonical deployment will be Base.</td><td class="mono">not deployed</td><td><span class="sx-status sx-status--err"><i></i>NOT DEPLOYED</span></td></tr>
                 </tbody>
               </table>
             </div>
             <div class="dx-tw">
               <table class="dx-t">
-                <caption>Solana — program IDs</caption>
-                <thead><tr><th>Program</th><th>ID</th><th>Purpose</th><th>Explorer</th></tr></thead>
+                <caption>Solana — program set</caption>
+                <thead><tr><th>Program</th><th>Purpose</th><th>Program ID</th><th>Status</th></tr></thead>
                 <tbody>
-                  <tr>
-                    <td>Intent router</td>
-                    <td><span class="dx-addr"><span class="mono">STRXrtr9k2Qm4vN8pLdWfE6yTgHc1XbAoJz5RuVe3Sn</span><button class="dx-addr__c" type="button" data-dxcopy="STRXrtr9k2Qm4vN8pLdWfE6yTgHc1XbAoJz5RuVe3Sn" data-dxlabel="Solana router program ID copied" aria-label="Copy Solana router program ID"><i aria-hidden="true"></i></button></span></td>
-                    <td>Intent account creation and solver crank.</td>
-                    <td><a href="https://solscan.io/" target="_blank" rel="noopener noreferrer">Solscan</a></td>
-                  </tr>
-                  <tr>
-                    <td>Passport</td>
-                    <td><span class="dx-addr"><span class="mono">STRXpass7Yh3cV9nKdQ2mBxWtEuF6sRgAj4LpZv8Tq</span><button class="dx-addr__c" type="button" data-dxcopy="STRXpass7Yh3cV9nKdQ2mBxWtEuF6sRgAj4LpZv8Tq" data-dxlabel="Solana passport program ID copied" aria-label="Copy Solana passport program ID"><i aria-hidden="true"></i></button></span></td>
-                    <td>Metaplex-compatible agent passport with policy PDA.</td>
-                    <td><a href="https://solscan.io/" target="_blank" rel="noopener noreferrer">Solscan</a></td>
-                  </tr>
-                  <tr>
-                    <td>Settlement</td>
-                    <td><span class="dx-addr"><span class="mono">STRXstlmT5wR8kNc2VbHq7YdXfJ3gEuA9pLmZ6Sv4n</span><button class="dx-addr__c" type="button" data-dxcopy="STRXstlmT5wR8kNc2VbHq7YdXfJ3gEuA9pLmZ6Sv4n" data-dxlabel="Solana settlement program ID copied" aria-label="Copy Solana settlement program ID"><i aria-hidden="true"></i></button></span></td>
-                    <td>Minimum-output enforcement and fee split.</td>
-                    <td><a href="https://solscan.io/" target="_blank" rel="noopener noreferrer">Solscan</a></td>
-                  </tr>
+                  <tr><td>Intent router</td><td>Intent account creation and solver crank.</td><td class="mono">not deployed</td><td><span class="sx-status sx-status--idle"><i></i>QUEUED</span></td></tr>
+                  <tr><td>Passport</td><td>Metaplex-compatible agent passport with policy PDA.</td><td class="mono">not deployed</td><td><span class="sx-status sx-status--idle"><i></i>QUEUED</span></td></tr>
+                  <tr><td>Settlement</td><td>Minimum-output enforcement and fee split.</td><td class="mono">not deployed</td><td><span class="sx-status sx-status--idle"><i></i>QUEUED</span></td></tr>
                 </tbody>
               </table>
             </div>
             <div class="dx-note dx-note--warn">
               <span class="dx-note__i" aria-hidden="true"></span>
-              <div><b>Verify before approving</b>
-                <p>Nobody from Strix Hood will ever DM you a contract address. Cross-check any address against
+              <div><b>There is no address to approve yet</b>
+                <p>Nobody from Strix Hood will ever DM you a contract address, and today anyone offering you one
+                  is lying, because none exist. When mainnet addresses are published, cross-check them against
                   this page, the SDK's <code>deployments.json</code> and the explorer's verified-source badge
-                  before granting an allowance.</p></div>
+                  before granting an allowance. Testnet contracts are unaudited and get redeployed without notice.</p></div>
             </div>
           </section>
 
@@ -1264,24 +1234,26 @@ agent receives                       output − 3.75 USD equivalent, ≥ quoted 
             <span class="dx-kicker">10 — Throughput</span>
             <h2 id="limits" data-nav="Rate limits &amp; pricing">Rate limits &amp; pricing tiers</h2>
             <p class="dx-lead">Subscription tiers buy throughput and support. They do not change the 0.25%
-              protocol fee, and they do not change what a policy allows.</p>
+              protocol fee, and they do not change what a policy allows. <b>Nothing is billable today</b> —
+              testnet runs on the Sandbox tier and it is free.</p>
 
             <h3 id="tiers">Tiers</h3>
             <div class="dx-tw">
               <table class="dx-t">
                 <thead><tr><th>Tier</th><th class="n">Price</th><th class="n">Requests / min</th><th class="n">Concurrent intents</th><th class="n">Intents / month</th><th class="n">WS connections</th><th class="n">Webhooks</th><th>Networks</th><th>Support</th></tr></thead>
                 <tbody>
-                  <tr><td>Sandbox</td><td class="n">$0</td><td class="n">60</td><td class="n">2</td><td class="n">1,000</td><td class="n">1</td><td class="n">1</td><td>Testnets only</td><td>Community</td></tr>
-                  <tr><td>Builder</td><td class="n">$99 / mo</td><td class="n">600</td><td class="n">25</td><td class="n">50,000</td><td class="n">5</td><td class="n">10</td><td>All</td><td>Email, 2 business days</td></tr>
-                  <tr><td>Growth</td><td class="n">$499 / mo</td><td class="n">3,000</td><td class="n">200</td><td class="n">500,000</td><td class="n">25</td><td class="n">50</td><td>All</td><td>Email, 8 h · 99.9% SLA</td></tr>
-                  <tr><td>Scale</td><td class="n">$2,500 / mo</td><td class="n">12,000</td><td class="n">1,000</td><td class="n">5,000,000</td><td class="n">100</td><td class="n">200</td><td>All + priority solver lane</td><td>Shared channel, 1 h · 99.95% SLA</td></tr>
-                  <tr><td>Enterprise</td><td class="n">Custom</td><td>Negotiated</td><td>Negotiated</td><td>Unmetered</td><td>Negotiated</td><td>Negotiated</td><td>All + private solver pool</td><td>Named engineer · 99.99% SLA</td></tr>
+                  <tr><td>Sandbox</td><td class="n">free</td><td class="n">60</td><td class="n">2</td><td class="n">1,000</td><td class="n">1</td><td class="n">1</td><td>Testnets only</td><td>Community</td></tr>
+                  <tr><td>Builder</td><td class="n">TBA</td><td class="n">600</td><td class="n">25</td><td class="n">50,000</td><td class="n">5</td><td class="n">10</td><td>All</td><td>Email, 2 business days</td></tr>
+                  <tr><td>Growth</td><td class="n">TBA</td><td class="n">3,000</td><td class="n">200</td><td class="n">500,000</td><td class="n">25</td><td class="n">50</td><td>All</td><td>Email, 8 h · 99.9% SLA</td></tr>
+                  <tr><td>Scale</td><td class="n">TBA</td><td class="n">12,000</td><td class="n">1,000</td><td class="n">5,000,000</td><td class="n">100</td><td class="n">200</td><td>All + priority solver lane</td><td>Shared channel, 1 h · 99.95% SLA</td></tr>
+                  <tr><td>Enterprise</td><td class="n">TBA</td><td>Negotiated</td><td>Negotiated</td><td>Unmetered</td><td>Negotiated</td><td>Negotiated</td><td>All + private solver pool</td><td>Named engineer · 99.99% SLA</td></tr>
                 </tbody>
               </table>
             </div>
-            <p>Overage on <em>intents per month</em> is billed at $0.004 per intent rather than blocked, so a
-              traffic spike degrades your invoice and not your agents. Overage on <em>requests per minute</em> is
-              never billed — it is rate limited.</p>
+            <p>The limits are real and enforced now; the prices are not set. Paid tiers are priced at mainnet, and
+              no card is taken before then. Overage on <em>intents per month</em> will be billed per intent rather
+              than blocked, so a traffic spike degrades your invoice and not your agents. Overage on
+              <em>requests per minute</em> is never billed — it is rate limited.</p>
 
             <h3 id="limit-headers">Rate-limit headers</h3>
             <p>Every response carries the current window state. Read them; do not guess.</p>

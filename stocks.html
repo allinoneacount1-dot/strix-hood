@@ -28,8 +28,9 @@
     <h1 data-reveal="50">Equities your agent can hold, on <em>two different clocks</em>.</h1>
     <p class="sx-lead ph__lead" data-reveal="110">
       NVDAx, TSLAx, SPYx and nine others: permissioned ERC-20s backed one-for-one by shares held at a
-      custodian and recorded by a regulated transfer agent. The token moves in a block. The register moves
-      T+1. Everything below is about the gap between those two sentences.
+      custodian and recorded by a regulated transfer agent. None of them exist yet — no instrument is issued and
+      no counterparty is engaged. The design is below, including the gap between "the token moves in a block" and
+      "the register moves T+1", which is the whole problem.
     </p>
     <div class="ph__actions" data-reveal="160">
       <a class="sx-btn sx-btn--primary" href="#symbols">See available symbols</a>
@@ -37,8 +38,8 @@
       <a class="sx-btn sx-btn--quiet" href="#risks">Read the risks</a>
     </div>
     <div class="ph__meta" data-reveal="200">
-      <span>symbols <b>12</b></span>
-      <span>backing <b>1:1 custodied</b></span>
+      <span>symbols <b>12 designed</b></span>
+      <span>issued <b>none</b></span>
       <span>onchain leg <b>instant</b></span>
       <span>register <b>T+1</b></span>
       <span>crypto leg <b>24/7</b></span>
@@ -143,7 +144,7 @@
     <div class="pg-head pg-head--row" data-reveal="0">
       <div>
         <span class="sx-eyebrow">Available symbols</span>
-        <h2>Twelve instruments on testnet</h2>
+        <h2>Twelve instruments, none of them issued</h2>
         <p class="sx-lead">Sort by symbol, price or change. Selecting one loads it into the sizer below.</p>
       </div>
       <span class="sx-status sx-status--warn"><i></i>SIMULATED TAPE</span>
@@ -280,6 +281,10 @@
       <span class="sx-eyebrow">Custody &amp; compliance</span>
       <h2>Who holds what, and what happens when they fail</h2>
       <p class="sx-lead">Six functions, six parties, deliberately separated. The interesting column is the last one.</p>
+      <p class="sx-body" style="margin-top:14px;max-width:74ch"><b>None of these seats are filled.</b> No transfer
+        agent, custodian, broker-dealer, compliance provider or accountant is engaged, and no tokenized equity
+        exists. This is the counterparty structure the product requires, published so it can be argued with before
+        anyone is signed — not a description of relationships we have.</p>
     </div>
 
     <div class="sx-tablewrap" data-reveal="60">
@@ -298,10 +303,10 @@
             <td>Segregation means client assets are not part of the estate. Recovery is slow, not zero.</td></tr>
           <tr><td><b>Execution</b></td><td>Broker-dealer</td>
             <td>Nothing overnight. Routes orders under best-execution obligations.</td>
-            <td>Routing halts; existing positions unaffected. A second broker is contracted but not yet live.</td></tr>
+            <td>Routing halts; existing positions unaffected. A second broker is part of the intended structure and is not contracted.</td></tr>
           <tr><td><b>Token contract</b></td><td>Strix Hood Labs</td>
             <td>Supply, allow-list, freeze. Upgradeable behind a 48-hour timelock.</td>
-            <td>A bug in the allow-list gate is a compliance incident. Audited; the timelock is your warning window.</td></tr>
+            <td>A bug in the allow-list gate is a compliance incident. Unaudited so far; the timelock is your warning window.</td></tr>
           <tr><td><b>Allow-list</b></td><td>Compliance provider</td>
             <td>Jurisdiction and investor-class attestations per address.</td>
             <td>New addresses cannot be onboarded. Existing holders keep transferring.</td></tr>
@@ -408,8 +413,8 @@
         <ul class="pg-ul" style="margin-top:12px">
           <li><a href="docs.html#networks" style="color:var(--neon-2)">Supported networks</a></li>
           <li><a href="api.html#intents-create" style="color:var(--neon-2)">Submitting a mixed-leg intent</a></li>
-          <li><a href="status.html" style="color:var(--neon-2)">Settlement status per chain</a></li>
-          <li><a href="blog.html" style="color:var(--neon-2)">T+1 and the block — long read</a></li>
+          <li><a href="status.html" style="color:var(--neon-2)">Settlement objectives per chain</a></li>
+          <li><a href="blog.html" style="color:var(--neon-2)">T+1 and the block — planned</a></li>
         </ul>
       </div>
     </div>

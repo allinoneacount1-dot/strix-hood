@@ -13,7 +13,7 @@
   /* ---------------- sitemap ---------------- */
   var SITE = {
     x: 'https://x.com/strixhood',
-    opensea: 'https://opensea.io/',
+    opensea: 'https://opensea.io/',   // no collection deployed
     discord: null,   // not live yet
     mirror: null,    // not live yet
     product: [

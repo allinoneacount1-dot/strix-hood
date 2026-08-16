@@ -658,7 +658,7 @@
         var weight = t.weight ? t.weight * Math.sqrt(bond / Math.max(1, t.bond)) : 0;
         $('#ag-vol-v').textContent = fmt.usdC(n);
         $('#ag-o-bond').textContent = fmt.n(bond, 0) + ' STRX';
-        $('#ag-o-usd').textContent = fmt.usd(bond * 0.42, 0);
+        $('#ag-o-usd').textContent = 'STRX · no market price';
         $('#ag-o-fee').textContent = fmt.usd(fee, 0);
         $('#ag-o-reg').textContent = t.registry ? fmt.n(t.registry, 0) + ' STRX' : 'none';
         $('#ag-o-max').textContent = fmt.usd(t.maxIntent, 0);
@@ -1010,12 +1010,14 @@
           mint.classList.remove('is-busy');
           var eq = NF_MODULES.filter(function (m) { return m.on; });
           S.modal({
-            eyebrow: 'Testnet mint',
-            title: 'Passport ready to mint',
+            eyebrow: 'Not deployed',
+            title: 'Loadout ready, contract is not',
             subtitle: st.walletName + ' · ' + fmt.addr(st.address, 8, 6),
-            body: '<p class="sx-body">On testnet this call mints an Agent Passport to your address with the ' + eq.length +
-              ' module' + (eq.length === 1 ? '' : 's') + ' you selected, consuming ' + used() + ' of ' + NF_SLOTS +
-              ' slots. Mainnet minting opens with the audited registry contract.</p>' +
+            body: '<p class="sx-body">Nothing is broadcast and nothing is signed. There is no passport contract to ' +
+              'mint against yet, on any network. This is the loadout your passport would carry — ' + eq.length +
+              ' module' + (eq.length === 1 ? '' : 's') + ' consuming ' + used() + ' of ' + NF_SLOTS +
+              ' slots — and the metadata it would produce. Minting opens after the registry contract is deployed ' +
+              'and audited, in that order.</p>' +
               '<div class="sx-card sx-card--flat" style="margin-top:16px"><span class="sx-label">Loadout</span>' +
               '<p class="sx-mono" style="margin-top:8px;font-size:13px">' +
               esc(eq.map(function (m) { return m.label; }).join(' · ') || 'none') + '</p></div>',
@@ -1395,146 +1397,52 @@
      PAGE · STATUS
      ============================================================ */
   var COMPONENTS = [
-    { k: 'api', name: 'REST API', d: 'api.strix-hood.xyz · intents, agents, executions', seed: 4111, p50: 38, p95: 121, p99: 308 },
-    { k: 'ws', name: 'WebSocket stream', d: 'wss://stream.strix-hood.xyz · execution + policy events', seed: 9021, p50: 12, p95: 44, p99: 96 },
-    { k: 'solver', name: 'Solver network', d: '18 registered solvers · sealed-bid auction', seed: 3307, p50: 210, p95: 640, p99: 1480 },
-    { k: 'indexer', name: 'Indexer', d: 'receipt and passport indexing across 7 chains', seed: 7715, p50: 90, p95: 310, p99: 820 },
-    { k: 'rpc', name: 'RPC gateway', d: 'multiplexed node access with per-chain failover', seed: 5540, p50: 47, p95: 168, p99: 401 },
-    { k: 'settle-eth', name: 'Settlement · Ethereum', d: 'chain id 1 · atomic settlement contract', seed: 1201, p50: 12400, p95: 26800, p99: 51200 },
-    { k: 'settle-base', name: 'Settlement · Base', d: 'chain id 8453 · atomic settlement contract', seed: 8453, p50: 2100, p95: 4400, p99: 9800 },
-    { k: 'settle-arb', name: 'Settlement · Arbitrum', d: 'chain id 42161 · atomic settlement contract', seed: 4216, p50: 1400, p95: 3100, p99: 7600 }
-  ];
-
-  var INCIDENTS = [
-    {
-      date: '2026-08-02', dur: '1h 12m', sev: 'Degraded', comps: ['solver'],
-      t: 'Solver auction p95 latency regression',
-      impact: 'Auction close times rose from 640ms to 4.1s at p95. No intent failed; 2,310 intents settled slower than their quoted window and 41 expired and were re-quoted automatically.',
-      tl: [['09:14', 'Alert on solver auction p95 above the 1.5s objective.'],
-      ['09:21', 'Traffic shifted away from the two slowest solvers.'],
-      ['09:48', 'Cause identified: a solver shipped a build that held the auction lock during its own simulation.'],
-      ['10:26', 'Solver removed from rotation; latency returned to baseline.']],
-      cause: 'The auction lock was held for the duration of a solver-side simulation rather than only for quote submission. One solver’s slow simulation therefore serialised the whole auction. The lock semantics were wrong before this build; the build merely made the cost visible.',
-      fix: ['Auction lock scope reduced to quote submission only (shipped 2026-08-03).', 'Per-solver timeout of 800ms enforced by the auctioneer, not by the solver.', 'p95 objective added to the pre-rotation gate so a slow solver cannot enter rotation.']
-    },
-    {
-      date: '2026-07-09', dur: '3h 41m', sev: 'Outage', comps: ['indexer'],
-      t: 'Indexer fell 340 blocks behind on Base',
-      impact: 'Execution receipts on Base were not queryable through the API for 3h41m. Settlement was unaffected — the chain state was always correct — but `GET /executions` returned stale data and the dashboard showed a frozen feed.',
-      tl: [['02:03', 'Reorg of 7 blocks on Base triggers the indexer’s rollback path.'],
-      ['02:04', 'Rollback path deadlocks against the write-ahead log.'],
-      ['02:51', 'On-call paged by staleness alert (48 minutes after onset — too slow).'],
-      ['04:12', 'Indexer restarted from the last consistent checkpoint.'],
-      ['05:44', 'Backfill complete, staleness back under one block.']],
-      cause: 'The rollback path took the WAL lock and then requested the checkpoint lock; the checkpoint writer took them in the opposite order. A deep reorg was the only trigger that made both run concurrently, so this survived eight months in production.',
-      fix: ['Lock ordering made explicit and asserted in debug builds.', 'Staleness alert threshold cut from 45 minutes to 90 seconds.', 'Reorg replay added to the chaos suite with depths up to 32 blocks.']
-    },
-    {
-      date: '2026-06-15', dur: '52m', sev: 'Degraded', comps: ['rpc', 'settle-eth'],
-      t: 'RPC gateway rate-limited by an upstream provider',
-      impact: 'Roughly 6% of Ethereum reads returned 429 for 52 minutes. Intents that needed a fresh nonce were held rather than failed, so no transaction was broadcast twice.',
-      tl: [['16:32', 'Upstream provider applies a new per-key rate limit without notice.'],
-      ['16:35', 'Gateway failover engages; secondary provider absorbs 80% of traffic.'],
-      ['16:58', 'Provider confirms the limit change; key upgraded.'],
-      ['17:24', 'Traffic rebalanced, error rate back to baseline.']],
-      cause: 'Our failover worked, but the weighting was static: the secondary was configured for 40% of peak, not 100%. Correct failure, undersized capacity.',
-      fix: ['Failover weights are now derived from measured headroom instead of a config constant.', 'Third provider added to the Ethereum pool.', 'Held-intent behaviour on read failure documented in the failure-mode reference.']
-    },
-    {
-      date: '2026-05-28', dur: '22m', sev: 'Outage', comps: ['api', 'ws'],
-      t: 'API and WebSocket unavailable during a certificate rotation',
-      impact: 'Complete API and stream outage for 22 minutes. Agents already holding session keys continued to settle onchain; nothing could be submitted through the API during the window.',
-      tl: [['11:40', 'Automated certificate rotation deploys a chain missing an intermediate.'],
-      ['11:41', 'TLS handshakes begin failing for clients that do not fetch intermediates.'],
-      ['11:47', 'Rollback initiated.'],
-      ['12:02', 'Previous certificate restored; traffic recovers.']],
-      cause: 'The rotation job validated the leaf certificate but not the chain it was deployed with. Our own health check used a client that fetches missing intermediates, so it passed while real clients failed.',
-      fix: ['Chain validation added to the rotation job.', 'Health checks now run with intermediate fetching disabled, matching a strict client.', 'Rotations moved behind a canary with a 15-minute soak.']
-    }
+    { k: 'api', name: 'REST API', d: 'api.strix-hood.xyz · intents, agents, executions', slo: '99.9% / 30d', p50: 40, p95: 150, p99: 400 },
+    { k: 'ws', name: 'WebSocket stream', d: 'wss://stream.strix-hood.xyz · execution + policy events', slo: '99.9% / 30d', p50: 15, p95: 60, p99: 150 },
+    { k: 'solver', name: 'Solver network', d: 'sealed-bid auction across the registered solver set', slo: '99.5% / 30d', p50: 250, p95: 1500, p99: 3000 },
+    { k: 'indexer', name: 'Indexer', d: 'receipt and passport indexing across every deployed chain', slo: '99.5% / 30d', p50: 100, p95: 400, p99: 1000 },
+    { k: 'rpc', name: 'RPC gateway', d: 'multiplexed node access with per-chain failover', slo: '99.95% / 30d', p50: 50, p95: 200, p99: 500 },
+    { k: 'settle-eth', name: 'Settlement · Ethereum Sepolia', d: 'chain id 11155111 · atomic settlement contract', slo: '99.9% / 30d', p50: 12000, p95: 36000, p99: 72000 },
+    { k: 'settle-base', name: 'Settlement · Base Sepolia', d: 'chain id 84532 · atomic settlement contract', slo: '99.9% / 30d', p50: 2000, p95: 6000, p99: 12000 },
+    { k: 'settle-arb', name: 'Settlement · Arbitrum Sepolia', d: 'chain id 421614 · atomic settlement contract', slo: '99.9% / 30d', p50: 1500, p95: 4500, p99: 9000 }
   ];
 
   PAGES.status = function () {
     var host = $('#su-components');
     if (!host) return;
 
-    var DAY = 86400000;
-    var today = new Date(); today.setHours(0, 0, 0, 0);
-    var start = today.getTime() - 89 * DAY;
+    function fmtms(v) { return v >= 1000 ? (v / 1000).toFixed(1) + 's' : v + 'ms'; }
 
-    function incidentDaysFor(k) {
-      var out = {};
-      INCIDENTS.forEach(function (inc) {
-        if (inc.comps.indexOf(k) < 0) return;
-        var idx = Math.round((new Date(inc.date + 'T00:00:00').getTime() - start) / DAY);
-        if (idx >= 0 && idx <= 89) out[idx] = inc.sev === 'Outage' ? 'out' : 'deg';
-      });
-      return out;
-    }
-
-    function series(c) {
-      var r = S.rng(c.seed);
-      var bad = incidentDaysFor(c.k);
-      var days = [];
-      for (var i = 0; i < 90; i++) {
-        var v = r();
-        var kind = bad[i] || (v > 0.988 ? 'deg' : 'ok');
-        days.push({ i: i, kind: kind, ts: start + i * DAY });
-      }
-      return days;
-    }
-
-    var liveStates = [];
     COMPONENTS.forEach(function (c) {
-      var days = series(c);
-      var up = days.reduce(function (n, d) { return n + (d.kind === 'ok' ? 1 : d.kind === 'deg' ? 0.985 : 0.62); }, 0) / days.length * 100;
-      var live = days[days.length - 1].kind;
-      liveStates.push(live);
-      var pill = live === 'ok'
-        ? '<span class="sx-status sx-status--live sx-comp__pill"><i></i>OPERATIONAL</span>'
-        : live === 'deg'
-          ? '<span class="sx-status sx-status--warn sx-comp__pill"><i></i>DEGRADED</span>'
-          : '<span class="sx-status sx-status--err sx-comp__pill"><i></i>OUTAGE</span>';
+      var bars = '';
+      for (var i = 0; i < 90; i++) bars += '<span class="su-bar su-bar--none"></span>';
 
       var node = el('article', { class: 'su-comp' });
       node.innerHTML =
-        '<div class="su-comp__head"><h3>' + esc(c.name) + '</h3>' + pill +
+        '<div class="su-comp__head"><h3>' + esc(c.name) + '</h3>' +
+        '<span class="sx-status sx-status--idle sx-comp__pill"><i></i>NO HISTORY</span>' +
         '<p>' + esc(c.d) + '</p></div>' +
-        '<div class="su-bars" role="img" aria-label="' + esc(c.name + ' daily availability, last 90 days: ' + up.toFixed(2) + ' percent') + '">' +
-        days.map(function (d) {
-          var h = d.kind === 'ok' ? 100 : d.kind === 'deg' ? 62 : 30;
-          var t = new Date(d.ts).toISOString().slice(0, 10) + ' · ' + (d.kind === 'ok' ? 'no incidents' : d.kind === 'deg' ? 'degraded' : 'outage');
-          return '<span class="su-bar' + (d.kind === 'deg' ? ' su-bar--deg' : d.kind === 'out' ? ' su-bar--out' : '') +
-            '" style="height:' + h + '%" title="' + esc(t) + '"></span>';
-        }).join('') +
-        '</div>' +
-        '<div class="su-legend"><span>90 days ago</span><span><b>' + up.toFixed(2) + '%</b> uptime</span><span>today</span></div>' +
+        '<div class="su-bars" role="img" aria-label="' + esc(c.name + ': no recorded availability history') + '">' +
+        bars + '</div>' +
+        '<div class="su-legend"><span>90 days ago</span><span>no recorded history</span><span>today</span></div>' +
         '<div class="su-metrics">' +
-        '<span>p50<b>' + fmtms(c.p50) + '</b></span>' +
-        '<span>p95<b>' + fmtms(c.p95) + '</b></span>' +
-        '<span>p99<b>' + fmtms(c.p99) + '</b></span>' +
-        '<span class="sx-dim">trailing 1h</span></div>';
+        '<span>p50 target<b>' + fmtms(c.p50) + '</b></span>' +
+        '<span>p95 target<b>' + fmtms(c.p95) + '</b></span>' +
+        '<span>p99 target<b>' + fmtms(c.p99) + '</b></span>' +
+        '<span>availability<b>' + esc(c.slo) + '</b></span>' +
+        '<span class="sx-dim">objectives, not measurements</span></div>';
       host.appendChild(node);
     });
 
-    function fmtms(v) { return v >= 1000 ? (v / 1000).toFixed(1) + 's' : v + 'ms'; }
-
-    /* ---- overall banner, derived from the components above ---- */
-    var down = liveStates.filter(function (k) { return k === 'out'; }).length;
-    var degraded = liveStates.filter(function (k) { return k === 'deg'; }).length;
+    /* ---- overall banner: neutral, because there is nothing measured ---- */
     var overall = $('#su-overall-h'), overallP = $('#su-overall-p'), dot = $('.su-overall');
     if (overall) {
-      overall.textContent = down ? down + ' component' + (down === 1 ? '' : 's') + ' down'
-        : degraded ? degraded + ' component' + (degraded === 1 ? '' : 's') + ' degraded'
-          : 'All systems operational';
-      var last = INCIDENTS[0] ? INCIDENTS[0].date : null;
-      overallP.textContent = COMPONENTS.length + ' testnet services · ' + INCIDENTS.length +
-        ' incidents in the last 90 days' + (last ? ' · most recent ' + last : '') + '.';
-      if (dot) {
-        if (down) dot.style.borderColor = 'rgba(255,80,0,.5)';
-        else if (degraded) dot.style.borderColor = 'rgba(255,153,0,.5)';
-      }
+      overall.textContent = 'No availability record yet';
+      overallP.textContent = COMPONENTS.length + ' testnet services defined · 0 incidents published · ' +
+        'measurement starts when the services leave private testnet.';
+      if (dot) dot.style.borderColor = 'rgba(255,255,255,.12)';
       var di = $('.su-overall__dot i');
-      if (di) di.style.background = down ? 'var(--crimson)' : degraded ? 'var(--amber)' : 'var(--neon)';
+      if (di) di.style.background = 'var(--gray-dim)';
     }
 
     /* ---- live browser-side reachability probe ---- */
@@ -1591,40 +1499,28 @@
         } else {
           if (blockN) blockN.textContent = 'unreachable';
           if (rttN) rttN.textContent = ms + 'ms (timeout)';
-          S.toast({ title: 'RPC unreachable from this browser', body: 'The public Ethereum endpoint did not answer. Protocol services above are unaffected.', type: 'warn' });
+          S.toast({ title: 'RPC unreachable from this browser', body: 'The public Ethereum endpoint did not answer from here. That is a fact about your network, not about the protocol.', type: 'warn' });
         }
       });
     }
     if (rerun) rerun.addEventListener('click', check);
     check();
 
-    /* ---- incidents ---- */
+    /* ---- incident history: empty by construction ---- */
     var incHost = $('#su-incidents');
     if (incHost) {
-      INCIDENTS.forEach(function (inc, i) {
-        var id = 'inc-' + i;
-        var node = el('article', { class: 'su-inc__item' });
-        node.innerHTML =
-          '<h3 class="su-inc__h"><button class="su-inc__btn" type="button" aria-expanded="false" aria-controls="' + id + '">' +
-          '<span class="su-inc__date">' + esc(inc.date) + '</span>' +
-          '<b>' + esc(inc.t) + '</b>' +
-          '<span class="pg-tag ' + (inc.sev === 'Outage' ? 'pg-tag--crimson' : 'pg-tag--amber') + '">' + esc(inc.sev) + '</span>' +
-          '<span class="pg-tag">' + esc(inc.dur) + '</span>' +
-          '<span class="su-inc__chev sx-dim" aria-hidden="true">▾</span>' +
-          '</button></h3>' +
-          '<div class="su-inc__panel" id="' + id + '"><div class="su-inc__inner"><div class="su-inc__pad">' +
-          '<h4>Impact</h4><p>' + esc(inc.impact) + '</p>' +
-          '<h4>Timeline (UTC)</h4><ul class="su-tl">' +
-          inc.tl.map(function (r) { return '<li><time>' + esc(r[0]) + '</time><span>' + esc(r[1]) + '</span></li>'; }).join('') +
-          '</ul>' +
-          '<h4>Root cause</h4><p>' + esc(inc.cause) + '</p>' +
-          '<h4>What changed</h4><ul class="pg-ul">' + inc.fix.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' +
-          '<p class="sx-body" style="margin-top:16px;font-size:12.5px">Affected components: ' +
-          esc(inc.comps.map(function (k) { return (COMPONENTS.filter(function (c) { return c.k === k; })[0] || {}).name || k; }).join(', ')) + '</p>' +
-          '</div></div></div>';
-        incHost.appendChild(node);
-      });
-      disclosure(incHost, '.su-inc__item', '.su-inc__btn');
+      incHost.innerHTML =
+        '<div class="sx-empty">' +
+        '<b>Nothing has been published here, because nothing has happened in public yet.</b>' +
+        '<p class="sx-body">Strix Hood runs on testnets with no external traffic to disrupt, so there is no ' +
+        'incident record to show and we are not going to manufacture one. This section stays empty until the ' +
+        'first real one.</p>' +
+        '<p class="sx-body">When it fills, each entry carries impact first, then a UTC timeline, then the root ' +
+        'cause, then the diff that changed — including any of our own ' +
+        '<a style="color:var(--neon-2)" href="security.html#disclosure">disclosure commitments</a> we missed, ' +
+        'named in the first paragraph rather than buried. Entries are never quietly edited after publication.</p>' +
+        '<p class="sx-body sx-mono" style="font-size:12px">0 incidents · 0 postmortems · publishing starts at public beta</p>' +
+        '</div>';
     }
 
     /* ---- subscribe ---- */
@@ -1652,44 +1548,52 @@
   /* ============================================================
      PAGE · ABOUT
      ============================================================ */
+  /* No names, no photographs, no prior employers. The team is small and early
+     and is not published as a credential. What is published is the shape of
+     the work and which parts of it are unowned. */
   var TEAM = [
-    { n: 'Rhea Andersen', r: 'Co-founder · Protocol', prev: 'Settlement systems, LCH',
-      b: 'Spent nine years building the plumbing that moves collateral between clearing members, which is where the conviction behind Strix Hood comes from: a promise is only worth the collateral standing behind it. Wrote the first version of the intent object on a train.' },
-    { n: 'Tobias Lund', r: 'Co-founder · Engineering', prev: 'Matching engine, Bitstamp',
-      b: 'Built and operated a spot matching engine handling six-figure orders per second. Responsible for the position that the solver auction must be sealed-bid: he has watched what happens to a book when quotes are visible before they clear.' },
-    { n: 'Priya Raghunathan', r: 'Head of Security', prev: 'Smart contract audit, Trail of Bits',
-      b: 'Audited fourteen bridge and account-abstraction deployments before joining. Owns the threat model and the uncomfortable habit of publishing what the stack does not protect against on the same page as what it does.' },
-    { n: 'Marco Beltrán', r: 'Solver Lead', prev: 'Execution research, Jane Street',
-      b: 'Works on the question of what "best execution" means when the counterparty is a smart contract and the clock is a block. Wrote the counterfactual-loss methodology that Cinder reports against.' },
-    { n: 'Ise Nakamura', r: 'Applied Cryptography', prev: 'zk research, NTT',
-      b: 'Works on attestation: proving that an execution happened under a specific policy without publishing the policy. The receipts format is hers, including the decision to make a refusal as expensive to forge as a settlement.' },
-    { n: 'Daniel Okafor', r: 'RWA & Compliance', prev: 'Transfer agent operations, Computershare',
-      b: 'Ran register operations for a transfer agent for six years. Translates between "the token says you own it" and "the register says you own it", and insists — correctly — that the second one is the real one.' },
-    { n: 'Lena Kowalczyk', r: 'Developer Experience', prev: 'SDK tooling, Stripe',
-      b: 'Owns the SDKs and the reference. Holds the line that an error message naming the rule that fired is worth more than a page of documentation explaining the rules in general.' },
-    { n: 'Ana Ferreira', r: 'Design', prev: 'Trading interfaces, IG',
-      b: 'Designs for people watching a number that can hurt them. Responsible for the rule that no surface on this site may show a figure without saying where it came from.' }
+    { n: 'Protocol', r: 'Contracts · settlement', st: 'staffed',
+      b: 'Owns the settlement path, the registry and the slashing logic, plus the invariant suite that runs against every commit. Every change that touches onchain state is reviewed by someone outside this area before it ships.' },
+    { n: 'Solvers', r: 'Execution · routing', st: 'hiring',
+      b: 'Quote generation, simulation and bundle submission, and the sealed-bid auction they compete inside. Owns the counterfactual-loss methodology — the number is only worth publishing if the method survives a reader who wants it to be wrong.' },
+    { n: 'Security', r: 'Threat model · disclosure', st: 'staffed',
+      b: 'Owns the threat model, the attack corpus and the habit of publishing what the stack does not protect against on the same page as what it does. Also owns the audit scope and the order it goes out in.' },
+    { n: 'Cryptography', r: 'Attestation · receipts', st: 'hiring',
+      b: 'Proving that an execution happened under a specific policy without publishing the policy. Owns the receipt format, including the decision to make a refusal as expensive to forge as a settlement.' },
+    { n: 'Accounts', r: 'ERC-4337 · session keys', st: 'staffed',
+      b: 'The smart account, the validator module and the capability map that turns a scope into a set of selectors. Owns key expiry defaults and the rotation tooling that has to be good enough that nobody routes around it.' },
+    { n: 'RWA', r: 'Register · compliance', st: 'hiring',
+      b: 'Sits between "the token says you own it" and "the register says you own it", and insists that the second one is the real one. Owns transfer-agent reconciliation, corporate actions and the jurisdiction rules.' },
+    { n: 'Developer experience', r: 'SDKs · reference', st: 'staffed',
+      b: 'Owns the SDKs and the API reference, and the line that an error message naming the rule that fired is worth more than a page explaining the rules in general.' },
+    { n: 'Design', r: 'Interface · data display', st: 'staffed',
+      b: 'Designs for people watching a number that can hurt them. Owns the rule that no surface on this site may show a figure without saying where it came from — which is why several of them now say "not yet".' }
   ];
 
-  var BACKERS = [
-    { n: 'Ledger Line Capital', t: 'Seed lead · 2025' },
-    { n: 'Halstead Ventures', t: 'Seed · 2025' },
-    { n: 'Fenwick Node', t: 'Strategic · 2025' },
-    { n: 'Orthogonal Research', t: 'Angel syndicate · 2026' },
-    { n: 'Kaido Labs', t: 'Infrastructure partner · 2026' },
-    { n: 'Bridgewell Trust', t: 'RWA custody partner · 2026' }
+  /* Where the work goes next. Replaces a backers section we have no backers to
+     put in. */
+  var FUNDING = [
+    { n: 'External audit', t: 'first engagement' },
+    { n: 'Public testnet', t: 'open registration' },
+    { n: 'Solver reference client', t: 'open source' },
+    { n: 'RWA register pilot', t: 'one symbol, end to end' },
+    { n: 'Mainnet deployment', t: 'after the audit, not before' },
+    { n: 'Token generation', t: 'unscheduled' }
   ];
 
   PAGES.about = function () {
     var host = $('#ab-team');
     if (host) {
       TEAM.forEach(function (p) {
+        var pill = p.st === 'hiring'
+          ? el('span', { class: 'sx-status sx-status--warn', html: '<i></i>HIRING' })
+          : el('span', { class: 'sx-status sx-status--live', html: '<i></i>STAFFED' });
         var node = el('article', { class: 'sx-card sx-card--hover ab-person', tabindex: '-1' }, [
           el('span', { class: 'sx-card__sheen' }),
           el('div', { class: 'ab-person__av' }, [el('canvas', { 'aria-hidden': 'true' })]),
           el('h3', {}, [el('button', { class: 'mk-a__title', type: 'button', text: p.n })]),
           el('div', { class: 'ab-person__role', text: p.r }),
-          el('p', { class: 'ab-person__prev', text: 'Previously · ' + p.prev })
+          pill
         ]);
         function open() {
           S.modal({
@@ -1698,7 +1602,9 @@
               '<div style="width:120px;aspect-ratio:1/1;border-radius:14px;overflow:hidden;border:1px solid var(--glass);background:#07070B;position:relative;flex:none">' +
               '<canvas id="ab-modal-av" style="position:absolute;inset:0;width:100%;height:100%"></canvas></div>' +
               '<div style="flex:1;min-width:220px"><p class="sx-body">' + esc(p.b) + '</p>' +
-              '<p class="sx-mono sx-dim" style="font-size:12px;margin-top:14px">Previously · ' + esc(p.prev) + '</p></div></div>',
+              '<p class="sx-mono sx-dim" style="font-size:12px;margin-top:14px">' +
+              (p.st === 'hiring' ? 'Currently hiring into this area.' : 'Staffed. Review still takes longer than the change.') +
+              '</p></div></div>',
             onOpen: function (m) {
               var c = S.$('#ab-modal-av', m.el);
               requestAnimationFrame(function () { avatar(c, avatarSeed(p.n), initialsOf(p.n)); });
@@ -1723,7 +1629,7 @@
     }
 
     var bk = $('#ab-backers');
-    if (bk) BACKERS.forEach(function (b) {
+    if (bk) FUNDING.forEach(function (b) {
       bk.appendChild(el('div', { class: 'ab-backer' }, [el('b', { text: b.n }), el('span', { text: b.t })]));
     });
   };
@@ -1962,120 +1868,97 @@
   /* ============================================================
      PAGE · BLOG
      ============================================================ */
+  /* The editorial calendar. Nothing here is written yet — each entry is a
+     title, a thesis and the outline it will follow. No authors, no dates, no
+     bodies, because there are none. */
   var POSTS = [
     {
-      id: 'collateral', d: '2026-08-11', read: 9, tags: ['protocol'], feature: true,
+      id: 'collateral', tags: ['protocol'], feature: true, st: 'drafting',
       t: 'Why an agent needs collateral, not a rate limit',
-      by: 'Rhea Andersen',
       x: 'Rate limits bound how often an agent can be wrong. Bonds bound how much being wrong costs it. Only one of those is a deterrent.',
-      body:
-        '<p>The first version of the registry had no bond. Registration was a signature and a manifest, and we rate-limited everything: intents per minute, notional per hour, new counterparties per day. It was a reasonable design and it was wrong, and the reason it was wrong is worth writing down because the same mistake is available to anyone building in this space.</p>' +
-        '<p>A rate limit is a bound on frequency. It says: whatever you are doing, you may do it this often. It does not care whether the thing you are doing is good. An agent that is systematically bad — mispriced, misconfigured, or hostile — is not slowed down by a rate limit in any way that matters. It simply does the bad thing at the permitted rate, forever, and the cost of doing so is zero.</p>' +
-        '<h3>What we actually wanted</h3>' +
-        '<p>We wanted the agent to have something at stake. Not in the reputational sense — reputation was already onchain and it turned out to be insufficient, because a fresh identity costs nothing and reputation you can abandon is not reputation. We wanted the agent to hold an asset that a counterparty could take if the agent broke a promise it made.</p>' +
-        '<p>That is a bond, and it changes the shape of every downstream decision:</p>' +
-        '<ul>' +
-        '<li><b>Sybil resistance is priced, not detected.</b> We stopped trying to distinguish one operator running forty agents from forty operators. If each agent posts collateral, we no longer care.</li>' +
-        '<li><b>Discovery weight becomes honest.</b> Marketplace ranking is bond-weighted. Visibility costs capital that is at risk, so buying visibility and then behaving badly is a losing trade rather than a growth strategy.</li>' +
-        '<li><b>Maximum notional follows from the bond.</b> An agent may move what it can make good on. That is a single number instead of a policy document.</li>' +
-        '</ul>' +
-        '<blockquote><p>A promise is worth the collateral standing behind it. Everything else in the protocol is machinery for making that sentence enforceable.</p></blockquote>' +
-        '<h3>The objection we hear most</h3>' +
-        '<p>“A bond is a barrier to entry.” Yes. That is the function. The question is not whether there is a barrier but whether the barrier is priced in something legible. A KYC gate is also a barrier, and a much less legible one — it excludes on identity rather than on capital at risk, and it cannot be reasoned about by another agent. A bond is a number any counterparty can read before deciding whether to transact.</p>' +
-        '<p>We kept the sandbox tier at zero bond precisely because of this objection. Sandbox agents can do everything except move value. The moment an agent wants a real allowance, it posts collateral, and the size of the allowance follows from the size of the collateral. There is no tier where you are trusted because you asked nicely.</p>' +
-        '<h3>What a bond does not fix</h3>' +
-        '<p>It does not fix an agent that is honest and wrong. If your agent has a bad model and loses your money inside its policy, no bond is slashed, because no promise was broken — the agent did exactly what it was permitted to do. That is a policy problem, and the answer is tighter caps and a lower human-approval threshold, not more collateral.</p>' +
-        '<p>It also does not fix owner-key compromise. If the attacker owns the account that owns the agent, they own the bond too. We have written about this in the security model and we have not solved it; guardian-delayed policy edits in v1.5 reduce the blast radius to the timelock window, which is an improvement and not a fix.</p>' +
-        '<p>Bonds solve one problem completely: they make a promise expensive to break. That turned out to be the problem worth solving first.</p>'
+      outline: [
+        'The first registry design had no bond — registration was a signature and a manifest, and everything was rate limited. Why that is a bound on frequency and not on harm.',
+        'What a bond changes downstream: sybil resistance becomes priced rather than detected, discovery weight becomes honest, and maximum notional falls out of one number.',
+        'The objection we expect — “a bond is a barrier to entry” — and why the barrier being legible is the point.',
+        'What a bond does not fix: an agent that is honest and wrong, and owner-key compromise.'
+      ]
     },
     {
-      id: 'auctions', d: '2026-07-28', read: 7, tags: ['execution'], by: 'Marco Beltrán',
-      t: 'Sealed-bid solver auctions: 90 days of data',
-      x: 'Open books let the last solver to quote win by a basis point. Sealing the bids cost us 40ms and bought back 11 bps of median price improvement.',
-      body:
-        '<p>We ran the solver auction with visible quotes for the first six weeks of testnet, because it was simpler and because we wanted the data. The data was unambiguous.</p>' +
-        '<p>With an open book, the median winning margin collapsed to under two basis points. Solvers were not competing on execution quality; they were waiting for the book to fill and then improving on the leader by the smallest increment the tick size allowed. The clearing price was set by whoever quoted last, not by whoever could execute best.</p>' +
-        '<h3>What sealing changed</h3>' +
-        '<p>Under sealed bids, a solver must quote what it can actually do, because it cannot see what it needs to beat. Median price improvement against the reference route moved from 3 bps to 14 bps. Auction close time rose by roughly 40ms, because we now wait for a fixed window instead of closing early on convergence.</p>' +
-        '<p>Losing solvers see the clearing price after the fact but never the book. That is enough to calibrate against and not enough to game. We publish the clearing-price distribution weekly so the asymmetry is bounded and visible.</p>' +
-        '<h3>The part we got wrong</h3>' +
-        '<p>Our first sealed implementation held the auction lock across each solver’s own simulation. One slow solver serialised the entire auction, which produced the p95 latency regression on 2 August. The lock now covers quote submission only, and the auctioneer enforces an 800ms per-solver timeout rather than trusting solvers to enforce it themselves. Trusting a participant to bound its own cost was the actual bug.</p>'
+      id: 'auctions', tags: ['execution'], st: 'planned',
+      t: 'Sealed-bid solver auctions, and the data we do not have yet',
+      x: 'An open book lets the last solver to quote win by a basis point. The argument for sealing is a priori; the measurement comes after there is traffic.',
+      outline: [
+        'Why an open book collapses the winning margin to the tick size rather than to execution quality.',
+        'What sealing costs: a fixed auction window instead of closing early on convergence.',
+        'The measurement plan — clearing-price distribution, published weekly, with the methodology first so the numbers cannot be chosen afterwards.',
+        'The lock-scope mistake we already know is available here, and the timeout that belongs to the auctioneer rather than the solver.'
+      ]
     },
     {
-      id: 'indexer', d: '2026-07-11', read: 6, tags: ['engineering', 'postmortem'], by: 'Tobias Lund',
-      t: 'The indexer deadlock, in detail',
-      x: 'A seven-block reorg on Base took two locks in the wrong order and froze receipt queries for three hours and forty-one minutes.',
-      body:
-        '<p>On 9 July our indexer stopped advancing on Base and stayed stopped for 3h41m. Settlement was never affected — the chain state was always correct and agents continued to settle — but the API returned stale receipts and the dashboard showed a frozen feed, which for anyone watching a position is functionally an outage.</p>' +
-        '<h3>The bug</h3>' +
-        '<p>The reorg rollback path acquired the write-ahead-log lock and then requested the checkpoint lock. The checkpoint writer took them in the opposite order. Classic. The only trigger that runs both concurrently is a reorg deeper than our checkpoint interval, which is why this survived eight months in production and three chaos-test suites.</p>' +
-        '<h3>The slower failure</h3>' +
-        '<p>The deadlock started at 02:04. We were paged at 02:51. Forty-seven minutes of an outage nobody was looking at is a worse fact than the lock ordering, because the lock ordering is a bug and the alerting gap is a decision. Our staleness threshold was set at 45 minutes on the theory that short indexer stalls are normal and pages are expensive. They are, and it was still the wrong threshold. It is now 90 seconds.</p>' +
-        '<p>Lock acquisition order is asserted in debug builds, reorg replay up to 32 blocks is in the chaos suite, and the full postmortem is on the status page.</p>'
+      id: 'indexer', tags: ['engineering'], st: 'planned',
+      t: 'Reorg handling in the indexer, before it bites',
+      x: 'The rollback path and the checkpoint writer want the same two locks. Writing down the ordering is cheaper than a postmortem about it.',
+      outline: [
+        'How the write-ahead log and the checkpoint writer interact, and the deep-reorg case that runs both concurrently.',
+        'Lock ordering as an asserted invariant in debug builds rather than a convention in someone’s head.',
+        'Staleness alerting: picking a threshold you would actually want to be woken for, and why a generous one is a decision rather than a default.',
+        'Reorg replay in the chaos suite, to depth 32.'
+      ]
     },
     {
-      id: 'injection', d: '2026-06-30', read: 8, tags: ['security'], by: 'Priya Raghunathan',
+      id: 'injection', tags: ['security'], st: 'drafting',
       t: 'Prompt injection is a policy problem',
       x: 'Assume the model is compromised on every request. Then ask what the attacker can actually do.',
-      body:
-        '<p>The security literature on prompt injection is mostly about making models harder to manipulate. That work is worth doing and it will not finish. For a system that moves money, planning around a model that eventually gets manipulated is the only defensible posture.</p>' +
-        '<p>So we assume it. On every request, we assume the model driving the agent is saying whatever an attacker wants it to say. The question that remains is narrow and answerable: given a fully compromised model, what can it cause?</p>' +
-        '<h3>The answer is the policy</h3>' +
-        '<p>The model produces an intent. It does not hold a key, choose a route, or approve a spend. The intent is evaluated against a policy the model cannot read or modify, committed as a hash the executor verifies before acting. A compromised model can therefore ask for anything and receive exactly what your policy already permitted.</p>' +
-        '<p>This is why we do not ship a “detect injection” feature. We could add a classifier, it would catch some fraction of attacks, and its main effect would be to make people comfortable relaxing their caps. A control that changes behaviour without a proportional change in safety is worse than no control.</p>' +
-        '<h3>What still gets through</h3>' +
-        '<p>An injection that asks for something inside your policy succeeds, because it is not an attack on the protocol — it is your policy being too loose. If your agent may swap $5,000 into ETH on Uniswap without approval, an attacker who owns your model can make it do that. Tightening that is a policy decision with a real cost, and we would rather show you the cost than hide it.</p>'
+      outline: [
+        'Why hardening the model is worth doing and will never finish, and what that implies for a system that moves money.',
+        'The narrow, answerable question: given a fully compromised model, what can it cause?',
+        'Why there is no “detect injection” feature — a control that changes behaviour without a proportional change in safety is worse than no control.',
+        'What still gets through: an injection that asks for something your policy already permits.'
+      ]
     },
     {
-      id: 't1', d: '2026-06-12', read: 10, tags: ['rwa'], by: 'Daniel Okafor',
+      id: 't1', tags: ['rwa'], st: 'planned',
       t: 'T+1 and the block: reconciling two clocks',
-      x: 'The token settles in twelve seconds. The register settles tomorrow. Pretending otherwise is where tokenized equity products go wrong.',
-      body:
-        '<p>Every tokenized equity product has to answer one question honestly: what happens between the moment the token moves and the moment the register agrees. The onchain leg is atomic and takes a block. The register update is T+1. Those are different clocks, and the gap between them is where the risk lives.</p>' +
-        '<h3>What we do</h3>' +
-        '<p>The custodian holds the underlying and maintains a float. When an agent buys NVDAx during regular hours, the token mints immediately against that float, and the corresponding purchase settles into the register the following business day. The agent sees an instant fill because there genuinely is one — against the custodian, not against the market.</p>' +
-        '<p>That means the custodian carries intraday exposure, which is why the float is capped per symbol and why the cap is published. When the float is exhausted, fills queue instead of minting. A queued fill is visible in the intent status as <code>QUEUED_FLOAT</code> rather than silently becoming a slow fill.</p>' +
-        '<h3>Outside regular hours</h3>' +
-        '<p>Between 20:00 and 04:00 ET, and all weekend, there is no lit market to settle into. Equity legs queue to the next open. The crypto leg of a mixed intent still settles on its own clock, which means a two-legged intent can be half-settled across a weekend. We surface that as an explicit intent state rather than blocking the whole intent, because for most strategies half-settled and visible beats fully-blocked.</p>' +
-        '<h3>Corporate actions</h3>' +
-        '<p>Splits, dividends and mergers all touch the register on a schedule that has nothing to do with block time. Positions are frozen for the duration of a corporate action record date. This is the least elegant part of the product and we have not found a version that is both honest and seamless.</p>'
+      x: 'The token settles in a block. The register settles tomorrow. Pretending otherwise is where tokenized equity products go wrong.',
+      outline: [
+        'The gap between the onchain leg and the register update, and where the risk actually sits in it.',
+        'The float model: instant fills against the custodian rather than against the market, with a published per-symbol cap.',
+        'Outside regular hours — queued equity legs, and why a half-settled two-legged intent beats a blocked one.',
+        'Corporate actions, position freezes, and the part of this product we have not found an elegant version of.'
+      ]
     },
     {
-      id: 'keys', d: '2026-05-26', read: 6, tags: ['security', 'engineering'], by: 'Priya Raghunathan',
+      id: 'keys', tags: ['security', 'engineering'], st: 'planned',
       t: 'Scoping session keys without making them useless',
       x: 'A key scoped to nothing is safe and worthless. The interesting work is the middle.',
-      body:
-        '<p>Session keys are the reason an agent can act without holding your funds. The design question is not whether to scope them — obviously yes — but how to express scope so that it is both tight enough to matter and loose enough that the agent can still work.</p>' +
-        '<p>Our first version scoped by contract address. It was too coarse: a key allowed to call a router could call every function on that router, including the ones that move approvals around. The second version scoped by function selector, which was too fine — every new venue integration required a key schema change, and people stopped rotating keys because rotation had become a deployment.</p>' +
-        '<h3>Where we landed</h3>' +
-        '<p>Keys are scoped by capability: an asset set, a venue set, a notional ceiling and an expiry. Capabilities map to selectors in the account validation logic, maintained by us and versioned. Adding a venue is a capability-map update, not a change to anyone’s key.</p>' +
-        '<p>Expiry is the part people underuse. The default is four hours. A stolen key is a bounded loss chiefly because it dies on its own; revocation is the fast path, not the only path. If you are issuing keys with 30-day expiries because rotation is annoying, the rotation tooling is the bug.</p>'
+      outline: [
+        'Scoping by contract address: too coarse. Scoping by function selector: too fine, and it turns rotation into a deployment.',
+        'Capability-based scope — asset set, venue set, notional ceiling, expiry — and the versioned capability-to-selector map behind it.',
+        'Expiry as the underused control: a stolen key is a bounded loss chiefly because it dies on its own.',
+        'If you are issuing 30-day keys because rotation is annoying, the rotation tooling is the bug.'
+      ]
     },
     {
-      id: 'bestex', d: '2026-05-09', read: 7, tags: ['execution'], by: 'Marco Beltrán',
-      t: 'What we measure when we say best execution',
-      x: 'Headline price is the least interesting number in the fill. Here is the whole set we publish.',
-      body:
-        '<p>“Best execution” is a phrase that survives mostly because it is hard to check. We publish five numbers per fill so that it can be checked.</p>' +
-        '<ul>' +
-        '<li><b>Realised price versus the reference route</b> at the moment the intent was signed, not at the moment it settled.</li>' +
-        '<li><b>Gas paid</b>, including the failed simulation attempts that never reached a mempool.</li>' +
-        '<li><b>Counterfactual MEV loss</b>: what the public-mempool version of this fill would have cost, reconstructed from the block it was excluded from.</li>' +
-        '<li><b>Time to settle</b>, split into auction, inclusion and finality.</li>' +
-        '<li><b>Slippage against the band</b> in your policy, signed, so systematic bias is visible over a sample.</li>' +
-        '</ul>' +
-        '<p>The counterfactual number is the one people push back on, because it is the only one that is reconstructed rather than observed. We compute it from the actual block our bundle was excluded from and publish the methodology; if the reconstruction is wrong, it is wrong in a way you can audit. An unauditable number would be worse than no number, and no number is what the industry standard currently is.</p>'
+      id: 'bestex', tags: ['execution'], st: 'planned',
+      t: 'What we will measure when we say best execution',
+      x: 'Headline price is the least interesting number in a fill. Here is the whole set, defined before there is any data to report.',
+      outline: [
+        'Realised price against the reference route at signing time, not at settlement time.',
+        'Gas paid, including the failed simulation attempts that never reached a mempool.',
+        'Counterfactual MEV loss, reconstructed from the block the bundle was excluded from — and why publishing the methodology matters more than the number.',
+        'Time to settle, split into auction, inclusion and finality; slippage against the policy band, signed, so bias shows over a sample.'
+      ]
     },
     {
-      id: 'metadata', d: '2026-04-21', read: 5, tags: ['protocol'], by: 'Ise Nakamura',
+      id: 'metadata', tags: ['protocol'], st: 'planned',
       t: 'Passport metadata is a liability, and that is the point',
       x: 'Everything written to the passport can be used against the agent later. Nothing else would make it worth reading.',
-      body:
-        '<p>An agent passport records executions, refusals, slashing events and equipped modules. All of it is permanent and all of it travels with the token when it is sold. Operators occasionally ask for a way to prune it. The answer is no, and the reason is structural.</p>' +
-        '<p>A record you can edit is not evidence. If an agent could remove its held actions, the absence of held actions would tell a counterparty nothing, and the record would collapse into a marketing surface. The value of the log is exactly proportional to the operator’s inability to curate it.</p>' +
-        '<h3>What this costs</h3>' +
-        '<p>It means an agent that had a bad month carries that month forever. We think that is correct and we are aware it is harsh. The mitigations are time-weighting in the reputation calculation — recent behaviour counts more — and the fact that refusals are recorded with the reason, so a held action caused by a tightened cap reads differently from one caused by a policy breach.</p>' +
-        '<p>Refusals are as expensive to forge as settlements. That was a deliberate cost in the attestation format, and it is what makes “this agent has never breached a policy” a claim rather than a slogan.</p>'
+      outline: [
+        'Why operators will ask to prune the record, and why the answer is no.',
+        'A record you can edit is not evidence: the value of the log is proportional to the operator’s inability to curate it.',
+        'What that costs — an agent that had a bad month carries it — and the two mitigations: time-weighting, and refusals recorded with their reason.',
+        'Making a refusal as expensive to forge as a settlement, and what that buys in the attestation format.'
+      ]
     }
   ];
 
@@ -2083,28 +1966,40 @@
     var listHost = $('#bl-list'), tagHost = $('#bl-tags'), search = $('#bl-search'), count = $('#bl-count');
     if (!listHost) return;
 
+    function stPill(p) {
+      return p.st === 'drafting'
+        ? '<span class="sx-status sx-status--warn"><i></i>DRAFTING</span>'
+        : '<span class="sx-status sx-status--idle"><i></i>PLANNED</span>';
+    }
+    function outlineHtml(p) {
+      return '<ul class="pg-ul">' + p.outline.map(function (o) { return '<li>' + esc(o) + '</li>'; }).join('') + '</ul>';
+    }
+
     var feature = POSTS.filter(function (p) { return p.feature; })[0] || POSTS[0];
     var rest = POSTS.filter(function (p) { return p !== feature; });
 
-    /* featured article renders in full, inline */
+    /* the lead slot: the piece that is furthest along, with its outline */
     var fh = $('#bl-feature-host');
     if (fh) {
       fh.innerHTML =
         '<div class="bl-feature" data-reveal="0">' +
-        '<div><span class="sx-eyebrow">Featured · ' + esc(feature.tags.join(' · ')) + '</span>' +
+        '<div><span class="sx-eyebrow">First up · ' + esc(feature.tags.join(' · ')) + '</span>' +
         '<h2>' + esc(feature.t) + '</h2>' +
         '<p class="sx-lead">' + esc(feature.x) + '</p>' +
-        '<div class="bl-byline"><span>' + esc(feature.by) + '</span><span>' + esc(feature.d) + '</span><span>' + feature.read + ' min read</span></div>' +
+        '<div class="bl-byline">' + stPill(feature) + '<span>not published</span><span>' +
+        feature.outline.length + '-part outline</span></div>' +
         '<div class="sx-row" style="margin-top:22px;gap:10px">' +
-        '<button class="sx-btn sx-btn--primary" type="button" id="bl-toggle" aria-expanded="false" aria-controls="bl-article">Read the full post</button>' +
-        '<button class="sx-btn sx-btn--ghost" type="button" id="bl-share">Copy link</button>' +
+        '<button class="sx-btn sx-btn--primary" type="button" id="bl-toggle" aria-expanded="false" aria-controls="bl-article">Read the outline</button>' +
+        '<button class="sx-btn sx-btn--ghost" type="button" id="bl-share">Tell me when it lands</button>' +
         '</div></div>' +
         '<div class="bl-feature__viz"><canvas id="bl-viz" aria-hidden="true"></canvas></div>' +
         '</div>' +
         '<div class="bl-article" id="bl-article"><div class="bl-article__inner"><div class="bl-article__pad">' +
-        '<article class="bl-body">' + feature.body +
-        '<p class="sx-mono sx-dim" style="font-size:11.5px;margin-top:28px">Written by ' + esc(feature.by) + ' · ' + esc(feature.d) +
-        ' · filed under ' + esc(feature.tags.join(', ')) + '</p></article>' +
+        '<article class="bl-body"><p>Nothing below is written yet. This is the argument the piece has to make, in ' +
+        'order, published ahead of the piece so the shape is on the record before the prose is.</p>' +
+        outlineHtml(feature) +
+        '<p class="sx-mono sx-dim" style="font-size:11.5px;margin-top:28px">Outline only · no draft · filed under ' +
+        esc(feature.tags.join(', ')) + '</p></article>' +
         '</div></div></div>';
 
       var toggle = $('#bl-toggle'), art = $('#bl-article');
@@ -2112,11 +2007,12 @@
         var open = !art.classList.contains('is-open');
         art.classList.toggle('is-open', open);
         toggle.setAttribute('aria-expanded', String(open));
-        toggle.textContent = open ? 'Collapse post' : 'Read the full post';
+        toggle.textContent = open ? 'Collapse outline' : 'Read the outline';
         if (!open) S.scrollTo('#bl-feature-host', 110);
       });
       $('#bl-share').addEventListener('click', function () {
-        S.copy(location.origin + location.pathname + '#' + feature.id, 'Post link copied');
+        S.scrollTo('#bl-sub', 120);
+        var i = $('#bl-email'); if (i) setTimeout(function () { i.focus(); }, 460);
       });
       var viz = $('#bl-viz');
       if (viz) requestAnimationFrame(function () { postViz(viz, portraitSeed(feature.t)); });
@@ -2145,16 +2041,20 @@
 
     function openPost(p) {
       S.modal({
-        eyebrow: p.tags.join(' · ') + ' · ' + p.read + ' min read',
+        eyebrow: p.tags.join(' · ') + ' · outline only',
         title: p.t, wide: true,
-        subtitle: p.by + ' · ' + p.d,
-        body: '<article class="bl-body">' + p.body + '</article>',
+        subtitle: p.st === 'drafting' ? 'Drafting — no published version' : 'Planned — not written yet',
+        body: '<article class="bl-body"><p class="sx-lead">' + esc(p.x) + '</p>' +
+          '<h3>What it has to cover</h3>' + outlineHtml(p) +
+          '<p>There is no draft to read. Titles and outlines are published here first so that a piece which ' +
+          'quietly changes its argument between plan and publication is visible when it does.</p></article>',
         actions: [
-          { label: 'Copy link', variant: 'ghost', close: false, onClick: function () {
-            S.copy(location.origin + location.pathname + '#' + p.id, 'Post link copied');
+          { label: 'Copy outline', variant: 'ghost', close: false, onClick: function () {
+            S.copy(p.t + '\n\n' + p.outline.map(function (o, i) { return (i + 1) + '. ' + o; }).join('\n'), 'Outline copied');
           } },
-          { label: 'Discuss on X', variant: 'primary', onClick: function () {
-            global.open('https://x.com/strixhood', '_blank', 'noopener,noreferrer');
+          { label: 'Get notified', variant: 'primary', onClick: function () {
+            S.scrollTo('#bl-sub', 120);
+            var i = $('#bl-email'); if (i) setTimeout(function () { i.focus(); }, 460);
           } }
         ]
       });
@@ -2164,29 +2064,29 @@
       var list = rest.filter(function (p) {
         if (state.tag !== 'All' && p.tags.indexOf(state.tag) < 0) return false;
         if (!state.q) return true;
-        return (p.t + ' ' + p.x + ' ' + p.by + ' ' + p.tags.join(' ')).toLowerCase().indexOf(state.q) > -1;
+        return (p.t + ' ' + p.x + ' ' + p.tags.join(' ')).toLowerCase().indexOf(state.q) > -1;
       });
       listHost.innerHTML = '';
       list.forEach(function (p) {
         var b = el('button', { class: 'bl-post', type: 'button', id: p.id }, [
-          el('span', { class: 'bl-post__date', text: p.d }),
+          el('span', { class: 'bl-post__date', text: p.st === 'drafting' ? 'DRAFTING' : 'PLANNED' }),
           el('span', {}, [
             el('h3', { text: p.t }),
             el('p', { text: p.x }),
             el('span', { class: 'bl-post__meta' }, p.tags.map(function (t) {
               return el('span', { class: 'pg-tag', text: t });
-            }).concat([el('span', { class: 'pg-tag pg-tag--teal', text: p.by })]))
+            }))
           ]),
-          el('span', { class: 'bl-post__read', text: p.read + ' min' })
+          el('span', { class: 'bl-post__read', text: p.outline.length + '-pt outline' })
         ]);
         b.addEventListener('click', function () { openPost(p); });
         listHost.appendChild(b);
       });
       var none = $('#bl-empty');
       if (none) none.hidden = list.length > 0;
-      if (count) count.innerHTML = '<b>' + list.length + '</b> post' + (list.length === 1 ? '' : 's') +
+      if (count) count.innerHTML = '<b>' + list.length + '</b> planned piece' + (list.length === 1 ? '' : 's') +
         (state.tag === 'All' ? '' : ' tagged ' + esc(state.tag)) +
-        (state.q ? ' matching “' + esc(state.q) + '”' : '') + ' · plus the featured piece above';
+        (state.q ? ' matching “' + esc(state.q) + '”' : '') + ' · none published';
     }
 
     var clear = $('#bl-clear');
@@ -2211,21 +2111,21 @@
         err.textContent = '';
         S.store.set('blog:sub', v);
         form.innerHTML = '<div class="pg-note" style="margin:0;width:100%"><span class="sx-glyphbox"><span class="sx-glyph sx-glyph--diamond"></span></span>' +
-          '<div><b>Subscribed</b><p>New posts go to ' + esc(v) + '. Roughly two a month; no product announcements. ' +
-          'Stored locally in this browser — the testnet site has no backend.</p></div></div>';
-        S.toast({ title: 'Subscribed', body: v });
+          '<div><b>On the list</b><p>The first post goes to ' + esc(v) + ' when there is one. No product ' +
+          'announcements, and nothing until then. Stored locally in this browser — the testnet site has no backend.</p></div></div>';
+        S.toast({ title: 'On the list', body: v });
       });
       input.addEventListener('input', function () { err.textContent = ''; input.removeAttribute('aria-invalid'); });
     }
 
     paint();
 
-    /* deep link: /blog.html#injection opens that post */
+    /* deep link: /blog.html#injection opens that outline */
     var hash = (location.hash || '').replace('#', '');
     if (hash) {
-      var p = POSTS.filter(function (x) { return x.id === hash; })[0];
-      if (p && p !== feature) setTimeout(function () { openPost(p); }, 320);
-      else if (p === feature) setTimeout(function () { var t = $('#bl-toggle'); if (t) t.click(); }, 320);
+      var hp = POSTS.filter(function (x) { return x.id === hash; })[0];
+      if (hp && hp !== feature) setTimeout(function () { openPost(hp); }, 320);
+      else if (hp === feature) setTimeout(function () { var t = $('#bl-toggle'); if (t) t.click(); }, 320);
     }
   };
 

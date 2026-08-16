@@ -197,7 +197,7 @@
 
           <article class="sx-card d-panel c5">
             <div class="d-panel__head">
-              <div><h2>Treasury holdings</h2><p>Cumulative, net of grants paid.</p></div>
+              <div><h2>Treasury holdings</h2><p>Simulated fee accrual by asset. No treasury exists yet.</p></div>
             </div>
             <div class="d-panel__body">
               <div class="d-alloc">
@@ -299,9 +299,10 @@
 
           <article class="sx-card d-panel c12">
             <div class="d-panel__head">
-              <div><h2>$STRX supply</h2><p>Fixed supply of 1,000,000,000. No mint function exists after deployment.</p></div>
+              <div><h2>$STRX supply</h2><p>Designed at a fixed 1,000,000,000 with no mint function after deployment.
+                Not deployed — there is no token, no TGE and no market.</p></div>
               <div class="d-panel__tools">
-                <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="tk-copy">Copy contract</button>
+                <button class="sx-btn sx-btn--quiet sx-btn--sm" type="button" id="tk-copy">Contract status</button>
               </div>
             </div>
             <div class="d-kpis d-supply" id="tk-kpis"></div>
@@ -309,7 +310,7 @@
 
           <article class="sx-card d-panel c5">
             <div class="d-panel__head">
-              <div><h2>Distribution</h2><p>Allocation at genesis.</p></div>
+              <div><h2>Distribution</h2><p>Allocation at genesis, as designed.</p></div>
             </div>
             <div class="d-panel__body">
               <div class="d-alloc">
@@ -321,8 +322,9 @@
 
           <article class="sx-card d-panel c7">
             <div class="d-panel__head">
-              <div><h2>Unlock curve</h2><p>Circulating supply by month, cliffs included.</p></div>
-              <div class="d-panel__tools"><span class="d-toolbar__count" id="tk-month">month 0</span></div>
+              <div><h2>Unlock curve</h2><p>Unlocked supply by month after a TGE that has not happened, cliffs
+                included. Month 0 is the earliest point on the curve, not today.</p></div>
+              <div class="d-panel__tools"><span class="d-toolbar__count" id="tk-month">M+0 after TGE</span></div>
             </div>
             <div class="d-panel__body">
               <div id="tk-vest"></div>
@@ -345,7 +347,7 @@
                     <th scope="col" class="num">Tokens</th>
                     <th scope="col" class="num">Cliff</th>
                     <th scope="col" class="num">Vesting</th>
-                    <th scope="col" class="num">Unlocked now</th>
+                    <th scope="col" class="num">Unlocked at TGE</th>
                     <th scope="col">Purpose</th>
                   </tr>
                 </thead>
@@ -353,8 +355,9 @@
               </table>
             </div>
             <div class="d-panel__foot">
-              <span class="d-src d-src--sim">testnet parameters</span>
-              <span>Schedule is fixed in the token contract; “unlocked now” is computed from the genesis date below.</span>
+              <span class="d-src d-src--sim">design parameters</span>
+              <span>The schedule will be fixed in the token contract. Nothing is deployed, so every figure here is
+                the design and not a balance.</span>
             </div>
           </article>
 

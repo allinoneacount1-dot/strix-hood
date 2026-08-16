@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Security — threat model, five layers, and what they miss | Strix Hood</title>
-<meta name="description" content="The Strix Hood security model in full: threat model, each of the five enforcement layers with what it catches and what it does not, audit status, bug bounty tiers, disclosure policy and an honest list of what none of it protects against.">
+<meta name="description" content="The Strix Hood security model in full: threat model, each of the five enforcement layers with what it catches and what it does not, the planned audit scope (nothing audited yet), bug bounty severity tiers, disclosure policy and an honest list of what none of it protects against.">
 <link rel="canonical" href="https://strix-hood.vercel.app/security.html">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/icon-32.png" sizes="32x32">
@@ -41,9 +41,9 @@
     </div>
     <div class="ph__meta" data-reveal="200">
       <span>layers <b>5</b></span>
-      <span>audits <b>3 complete</b></span>
-      <span>open criticals <b>0</b></span>
-      <span>max bounty <b>$250,000</b></span>
+      <span>audits <b>none completed</b></span>
+      <span>contracts <b>testnet, unaudited</b></span>
+      <span>bounty <b>rewards TBA</b></span>
       <span>disclosure <b>90 days</b></span>
     </div>
   </div>
@@ -309,67 +309,70 @@
 </section>
 
 <!-- ══ AUDITS ════════════════════════════════════════════════ -->
-<section class="pg-sec pg-sec--dark">
+<section class="pg-sec pg-sec--dark" id="audits">
   <span class="sx-index" aria-hidden="true">04</span>
   <div class="sx-shell">
     <div class="pg-head" data-reveal="0">
       <span class="sx-eyebrow">Audit status</span>
-      <h2>Three audits complete, one in progress, one component unaudited</h2>
-      <p class="sx-lead">Reports are published in full, including findings we disputed and findings we accepted but
-        have not yet fixed.</p>
+      <h2>No audit has been completed. Every contract is unaudited.</h2>
+      <p class="sx-lead">No firm is engaged, no report exists and nothing on any testnet has been reviewed by
+        anyone outside this team. Below is the scope in the order we intend to hand it over, published now so the
+        order is on the record before the engagement is.</p>
     </div>
 
     <div class="sx-tablewrap" data-reveal="50">
-      <table class="sx-table" style="min-width:900px">
-        <caption class="sx-sr">Audit status by component</caption>
+      <table class="sx-table" style="min-width:820px">
+        <caption class="sx-sr">Planned external audit scope by component</caption>
         <thead><tr>
-          <th scope="col">Component</th><th scope="col">Firm</th><th scope="col">Completed</th>
-          <th class="num" scope="col">Crit</th><th class="num" scope="col">High</th>
-          <th class="num" scope="col">Med</th><th class="num" scope="col">Low</th><th scope="col">State</th>
+          <th scope="col">Component</th><th scope="col">Scope</th>
+          <th scope="col">Holds value</th><th scope="col">Status</th>
         </tr></thead>
         <tbody>
-          <tr><td><b>Settlement + registry</b></td><td class="sx-dim">Trail of Bits</td><td class="sx-mono">2026-03-18</td>
-            <td class="num">0</td><td class="num">2</td><td class="num">7</td><td class="num">14</td>
-            <td><span class="pg-tag pg-tag--on">all fixed</span></td></tr>
-          <tr><td><b>Account + session keys</b></td><td class="sx-dim">OpenZeppelin</td><td class="sx-mono">2026-04-29</td>
-            <td class="num">1</td><td class="num">3</td><td class="num">5</td><td class="num">9</td>
-            <td><span class="pg-tag pg-tag--on">all fixed</span></td></tr>
-          <tr><td><b>Bond vault + arbitration</b></td><td class="sx-dim">Spearbit</td><td class="sx-mono">2026-06-11</td>
-            <td class="num">0</td><td class="num">1</td><td class="num">4</td><td class="num">11</td>
-            <td><span class="pg-tag pg-tag--amber">1 medium open</span></td></tr>
-          <tr><td><b>RWA token + allow-list</b></td><td class="sx-dim">Zellic</td><td class="sx-mono">in progress</td>
-            <td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
-            <td><span class="pg-tag pg-tag--amber">draft received</span></td></tr>
-          <tr><td><b>Indexer + API</b></td><td class="sx-dim">—</td><td class="sx-mono">not scheduled</td>
-            <td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td>
-            <td><span class="pg-tag pg-tag--crimson">unaudited</span></td></tr>
+          <tr><td><b>Settlement + registry</b></td>
+            <td class="sx-dim">Settlement path, minimum-output enforcement, fee split, registry writes.</td>
+            <td>Yes</td><td><span class="sx-status sx-status--idle"><i></i>SCHEDULED</span></td></tr>
+          <tr><td><b>Account + session keys</b></td>
+            <td class="sx-dim">ERC-4337 validation, capability-to-selector map, expiry and revocation.</td>
+            <td>Yes</td><td><span class="sx-status sx-status--idle"><i></i>SCHEDULED</span></td></tr>
+          <tr><td><b>Bond vault + arbitration</b></td>
+            <td class="sx-dim">Bond accounting, slashing execution, the seven-day challenge window.</td>
+            <td>Yes</td><td><span class="sx-status sx-status--err"><i></i>NOT STARTED</span></td></tr>
+          <tr><td><b>RWA token + allow-list</b></td>
+            <td class="sx-dim">Permissioned transfer hooks, register reconciliation, corporate-action freeze.</td>
+            <td>Yes</td><td><span class="sx-status sx-status--err"><i></i>NOT STARTED</span></td></tr>
+          <tr><td><b>Indexer + API</b></td>
+            <td class="sx-dim">No funds and no signing authority — but it can still misreport what happened.</td>
+            <td>No</td><td><span class="sx-status sx-status--err"><i></i>NOT STARTED</span></td></tr>
         </tbody>
       </table>
     </div>
 
     <div class="pg-note pg-note--warn" data-reveal="80">
       <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--dash"></span></span>
-      <div><b>The unaudited row is the honest one</b>
-        <p>The indexer and API hold no funds and cannot authorise a transaction, which is why they are last in the
-          queue. They can still lie to you about what happened, which is why they are on this table at all. Scheduled
-          for Q4 2026.</p></div>
+      <div><b>Read this before you send anything to a testnet contract</b>
+        <p>Unaudited means unaudited. The contracts are redeployed without notice, the invariant suite is our own
+          work marking our own homework, and no external reviewer has looked at any of it. Nothing on a Strix Hood
+          testnet should hold value you would miss. Reports will be published in full — including findings we
+          dispute and findings we accept but have not yet fixed — at the same time they are delivered to us.</p></div>
     </div>
 
     <div class="pg-grid pg-grid--3" data-reveal="100" style="margin-top:24px">
       <div class="sx-card pg-card">
         <span class="pg-card__tag">Continuous</span><h3>Invariant suite</h3>
-        <p>412 invariants run against every commit under Foundry fuzzing. A new invariant ships with the feature that
-          needs it; the suite is not allowed to shrink.</p>
+        <p>Runs against every commit under Foundry fuzzing. A new invariant ships with the feature that needs it and
+          the suite is not allowed to shrink. It is our own work marking our own homework — it is not a substitute
+          for the audits above and we are not going to present it as one.</p>
       </div>
       <div class="sx-card pg-card">
         <span class="pg-card__tag">Continuous</span><h3>Attack corpus</h3>
-        <p>1,840 recorded malicious payloads replayed against the simulator nightly. Safety score on the passport is the
-          fraction of this corpus refused.</p>
+        <p>Recorded malicious payloads replayed against the simulator nightly. The safety score on a passport is the
+          fraction of the corpus that agent refused, so the number only means as much as the corpus does.</p>
       </div>
       <div class="sx-card pg-card">
         <span class="pg-card__tag">Quarterly</span><h3>Chaos suite</h3>
-        <p>Reorg replay to depth 32, RPC failover, solver withdrawal mid-auction, certificate rotation. Added to
-          whenever an incident teaches us a new failure.</p>
+        <p>Reorg replay to depth 32, RPC failover, solver withdrawal mid-auction, certificate rotation. It grows
+          whenever something teaches us a new failure — so far only from testing, because nothing has failed in
+          public.</p>
       </div>
     </div>
   </div>
@@ -381,9 +384,12 @@
   <div class="sx-shell">
     <div class="pg-head" data-reveal="0">
       <span class="sx-eyebrow">Bug bounty</span>
-      <h2>Paid in USDC, within 30 days of triage</h2>
-      <p class="sx-lead">Scope is every contract in the registry, the policy engine, the session-key validator and the
-        settlement path. Out of scope: this website, the testnet faucet, and anything requiring the owner’s root key.</p>
+      <h2>Severity and response times are set. Rewards are not funded yet.</h2>
+      <p class="sx-lead">There is no cash bounty today, and we are not going to publish a number we cannot pay.
+        The severity ladder and the response clock below are in force now; the reward column is set when the
+        programme is funded at mainnet. Scope is every contract in the registry, the policy engine, the session-key
+        validator and the settlement path. Out of scope: this website, the testnet faucet, and anything requiring
+        the owner’s root key.</p>
     </div>
 
     <div class="sx-tablewrap se-bounty" data-reveal="50">
@@ -395,17 +401,26 @@
         </tr></thead>
         <tbody>
           <tr><td><b>Critical</b></td><td>Direct theft of user funds or agent bonds, or minting without collateral.</td>
-            <td>Session-key validator accepts a forged scope.</td><td class="num pay">$50,000 – $250,000</td><td class="num">4 hours</td></tr>
+            <td>Session-key validator accepts a forged scope.</td><td class="num pay">TBA</td><td class="num">4 hours</td></tr>
           <tr><td><b>High</b></td><td>Griefing that permanently locks funds, or bypass of a single enforcement layer.</td>
-            <td>Policy hash check bypassed for one intent type.</td><td class="num pay">$15,000 – $50,000</td><td class="num">12 hours</td></tr>
+            <td>Policy hash check bypassed for one intent type.</td><td class="num pay">TBA</td><td class="num">12 hours</td></tr>
           <tr><td><b>Medium</b></td><td>Temporary denial of service, or forcing an incorrect but recoverable state.</td>
-            <td>Auction stalls when a solver disconnects mid-quote.</td><td class="num pay">$4,000 – $15,000</td><td class="num">2 days</td></tr>
+            <td>Auction stalls when a solver disconnects mid-quote.</td><td class="num pay">TBA</td><td class="num">2 days</td></tr>
           <tr><td><b>Low</b></td><td>Information disclosure or an inconsistency with no direct path to loss.</td>
-            <td>Refusal reason leaks an allow-list entry.</td><td class="num pay">$500 – $4,000</td><td class="num">5 days</td></tr>
+            <td>Refusal reason leaks an allow-list entry.</td><td class="num pay">TBA</td><td class="num">5 days</td></tr>
           <tr><td><b>Informational</b></td><td>Hardening suggestions, documentation errors that could mislead.</td>
-            <td>A stated default that does not match the code.</td><td class="num pay">swag + credit</td><td class="num">10 days</td></tr>
+            <td>A stated default that does not match the code.</td><td class="num pay">credit</td><td class="num">10 days</td></tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="pg-note pg-note--warn" data-reveal="60">
+      <span class="sx-glyphbox"><span class="sx-glyph sx-glyph--dash"></span></span>
+      <div><b>What you get instead of money, for now</b>
+        <p>The response clock above is a commitment we can keep today: a human reply inside the stated window, a
+          named fix or a named refusal, and public credit in the disclosure log unless you ask us not to. When the
+          reward schedule is funded it will be published here with the amounts filled in, and it will apply
+          retroactively to anything still unpaid.</p></div>
     </div>
 
     <div class="pg-grid pg-grid--2" data-reveal="80" style="margin-top:24px;align-items:start">
@@ -426,10 +441,10 @@
           of description.</p>
         <div class="sx-row" style="margin-top:18px">
           <a class="sx-btn sx-btn--primary sx-btn--sm" href="mailto:security@strix-hood.xyz?subject=Security%20report">security@strix-hood.xyz</a>
-          <a class="sx-btn sx-btn--ghost sx-btn--sm" href="docs.html#security-model">Security model</a>
+          <a class="sx-btn sx-btn--ghost sx-btn--sm" href="docs.html#security">Security model</a>
         </div>
         <p class="sx-mono sx-dim" style="font-size:11.5px;margin-top:16px">
-          PGP fingerprint · 9C4A 71B0 F2D8 3E55 0A17 · published in the repository root
+          PGP key and fingerprint · published in the repository root and at /.well-known/security.txt
         </p>
       </div>
     </div>
@@ -437,14 +452,15 @@
 </section>
 
 <!-- ══ DISCLOSURE ════════════════════════════════════════════ -->
-<section class="pg-sec pg-sec--dark">
+<section class="pg-sec pg-sec--dark" id="disclosure">
   <span class="sx-index" aria-hidden="true">06</span>
   <div class="sx-shell">
     <div class="pg-head" data-reveal="0">
       <span class="sx-eyebrow">Disclosure policy</span>
       <h2>What we commit to when something goes wrong</h2>
-      <p class="sx-lead">These are commitments, not aspirations. If we miss one, the postmortem on the status page says
-        so explicitly.</p>
+      <p class="sx-lead">These are commitments, not a track record — nothing has gone wrong in public yet because
+        nothing is in public production yet. If we miss one, the postmortem on the status page will say so
+        explicitly.</p>
     </div>
 
     <ol class="pg-ol" data-reveal="50" style="max-width:76ch">
@@ -458,12 +474,13 @@
         the status page and never quietly edited afterwards.</li>
       <li><b>90-day maximum embargo.</b> After 90 days the reporter may publish regardless of our fix status. We will
         not ask for an extension more than once, and we will say publicly that we asked.</li>
-      <li><b>Name the missed commitment.</b> On 9 July we were paged 47 minutes after an outage began, against a
-        45-minute alerting threshold that was itself wrong. That sentence is in the postmortem.</li>
+      <li><b>Name the missed commitment.</b> Where we break one of the five rules above, the postmortem says which
+        one and by how much, in its first paragraph, before the root cause. A commitment that is only quoted when
+        it was met is marketing.</li>
     </ol>
 
     <div class="sx-row" data-reveal="80" style="margin-top:26px">
-      <a class="sx-btn sx-btn--ghost" href="status.html">Read past postmortems</a>
+      <a class="sx-btn sx-btn--ghost" href="status.html">Status and service objectives</a>
       <a class="sx-btn sx-btn--quiet" href="docs.html#disclosure">Disclosure reference</a>
     </div>
   </div>
@@ -530,10 +547,11 @@
   <div class="sx-shell pg-cta__in" data-reveal="0">
     <div>
       <h2 class="sx-h1">Find something we missed.</h2>
-      <p class="sx-lead">The contracts are public, the invariant suite runs on every commit, and the bounty pays up to
-        $250,000 in USDC. If this page is wrong somewhere, that is worth money to us.</p>
+      <p class="sx-lead">The contracts are public and unaudited, the invariant suite runs on every commit, and the
+        reward schedule is not funded yet. Report it anyway — findings are credited, published, and paid
+        retroactively when the programme is funded.</p>
       <div class="pg-cta__links">
-        <a class="sx-btn sx-btn--primary" href="docs.html#networks">Contract addresses</a>
+        <a class="sx-btn sx-btn--primary" href="docs.html#networks">Deployment status</a>
         <a class="sx-btn sx-btn--ghost" href="mailto:security@strix-hood.xyz?subject=Security%20report">Report a finding</a>
         <a class="sx-btn sx-btn--quiet" href="docs.html#security-layers">Layer reference</a>
       </div>
@@ -544,7 +562,7 @@
         <ul class="pg-ul" style="margin-top:12px">
           <li><a href="docs.html#not-protected" style="color:var(--neon-2)">Not-protected reference</a></li>
           <li><a href="docs.html#failure-modes" style="color:var(--neon-2)">Failure-mode catalogue</a></li>
-          <li><a href="status.html" style="color:var(--neon-2)">Incident history</a></li>
+          <li><a href="status.html" style="color:var(--neon-2)">Service objectives</a></li>
           <li><a href="agents.html" style="color:var(--neon-2)">Where the bond fits in</a></li>
         </ul>
       </div>

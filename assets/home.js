@@ -42,6 +42,15 @@
       S.on('scroll', function () { h.setProgress(Math.min(1, S.scrollY() / (global.innerHeight || 1))); });
     });
 
+    var emblem = $('#hero-emblem');
+    if (emblem) Strix3D.emblem(emblem).then(function (h) {
+      if (!h) return;
+      /* only now does the flat <img> under the canvas step aside */
+      document.body.classList.add('has-3d-emblem');
+      global.__sxEmblem = h;
+      S.on('scroll', function () { h.setProgress(Math.min(1, S.scrollY() / ((global.innerHeight || 1) * 1.3))); });
+    });
+
     var core = $('#hero-core');
     if (core) Strix3D.core(core).then(function (h) {
       if (!h) return;
@@ -345,6 +354,7 @@
       var btn = $('.intent__go');
       btn.classList.add('is-busy');
       if (global.__sxCore) global.__sxCore.pulse(1.4);
+      if (global.__sxEmblem) global.__sxEmblem.pulse(1.2);
       S.scrollTo('#pipeline', 96);
       setTimeout(function () {
         runPipeline(intent).then(function (res) {
@@ -359,6 +369,7 @@
       var intent = parseIntent(EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)]);
       run.classList.add('is-busy');
       if (global.__sxCore) global.__sxCore.pulse(1.1);
+      if (global.__sxEmblem) global.__sxEmblem.pulse(0.9);
       runPipeline(intent).then(function (res) {
         run.classList.remove('is-busy');
         reportModal(intent, res);
@@ -372,7 +383,7 @@
   var CAPS = [
     {
       tag: 'AMM · CLOB', size: 'wide', viz: 'depth',
-      h: 'Spot crypto across 7 chains',
+      h: 'Spot crypto, seven chains targeted',
       p: 'Uniswap v4, Curve, Aerodrome and native order books behind one quote. Solvers compete on net-of-gas execution, not headline price.',
       detail: 'Routing runs a sealed-bid auction across registered solvers. Each quote is simulated against a forked state before it can win, so a route that would revert cannot be selected. Settlement is atomic: either the whole intent lands or none of it does.'
     },
@@ -797,12 +808,13 @@
         .then(function (st) {
           b.classList.remove('is-busy');
           S.modal({
-            eyebrow: 'Testnet mint',
-            title: 'Passport ready to mint',
+            eyebrow: 'Not deployed',
+            title: 'Loadout ready, contract is not',
             subtitle: st.walletName + ' · ' + fmt.addr(st.address, 8, 6),
-            body: '<p class="sx-body">On testnet this call would mint an Agent Passport to your address with the ' +
+            body: '<p class="sx-body">Nothing is broadcast. There is no passport contract to mint against yet, on ' +
+              'any network — this is the loadout your passport would carry, with the ' +
               MODULES.filter(function (m) { return m.on; }).length + ' modules you selected. ' +
-              'Mainnet minting opens with the audited registry contract.</p>' +
+              'Minting opens after the registry contract is deployed and audited, in that order.</p>' +
               '<div class="sx-card sx-card--flat" style="margin-top:16px"><span class="sx-label">Selected modules</span>' +
               '<p class="sx-mono" style="margin-top:8px;font-size:13px">' +
               (MODULES.filter(function (m) { return m.on; }).map(function (m) { return m.label; }).join(' · ') || 'none') +
@@ -952,6 +964,7 @@
           body: 'Cap ' + fmt.usd(p.day, 0) + '/day · ' + fmt.usd(p.tx, 0) + '/tx · ' + p.venues.length + ' venues allowed.'
         });
         if (global.__sxCore) global.__sxCore.pulse(0.8);
+        if (global.__sxEmblem) global.__sxEmblem.pulse(0.7);
       }, 900);
     });
 
@@ -978,8 +991,55 @@
       ]));
     });
     var copy = $('#strx-copy');
-    if (copy) copy.addEventListener('click', function () {
-      S.copy($('#strx-addr').textContent.trim(), 'Contract address copied');
+    if (copy) copy.addEventListener('click', contractModal);
+  }
+
+
+  /* ============================================================
+     SMART CONTRACT PANEL
+     Nothing is deployed yet, so this reports deployment state per
+     chain rather than printing an address that does not exist.
+     ============================================================ */
+  var DEPLOYMENTS = [
+    { chain: 'Ethereum',    net: 'Sepolia',        status: 'testnet', explorer: 'https://sepolia.etherscan.io' },
+    { chain: 'Base',        net: 'Base Sepolia',   status: 'testnet', explorer: 'https://sepolia.basescan.org' },
+    { chain: 'Arbitrum',    net: 'Arbitrum Sepolia', status: 'testnet', explorer: 'https://sepolia.arbiscan.io' },
+    { chain: 'OP Mainnet',  net: 'OP Sepolia',     status: 'queued',  explorer: 'https://sepolia-optimism.etherscan.io' },
+    { chain: 'Polygon',     net: 'Amoy',           status: 'queued',  explorer: 'https://amoy.polygonscan.com' },
+    { chain: 'BNB Chain',   net: 'BNB Testnet',    status: 'queued',  explorer: 'https://testnet.bscscan.com' },
+    { chain: 'Solana',      net: 'Devnet',         status: 'queued',  explorer: 'https://solscan.io' }
+  ];
+
+  function contractModal() {
+    var rows = DEPLOYMENTS.map(function (d) {
+      var pill = d.status === 'testnet'
+        ? '<span class="sx-status sx-status--live"><i></i>TESTNET</span>'
+        : '<span class="sx-status sx-status--idle"><i></i>QUEUED</span>';
+      return '<tr><td><b>' + S.esc(d.chain) + '</b><br><span class="sx-dim sx-mono" style="font-size:11px">' +
+        S.esc(d.net) + '</span></td><td>' + pill + '</td>' +
+        '<td class="num"><a class="sx-mono" style="color:var(--neon)" href="' + d.explorer +
+        '" target="_blank" rel="noopener noreferrer">explorer &rarr;</a></td></tr>';
+    }).join('');
+
+    S.modal({
+      eyebrow: 'Contracts',
+      title: 'Not deployed to mainnet yet',
+      subtitle: 'Registry and settlement contracts are running on testnets only.',
+      wide: true,
+      body:
+        '<p class="sx-body">There is no mainnet $STRX token and no mainnet registry address. ' +
+        'Anyone offering you one is not us. Mainnet addresses will be published here, in the docs, ' +
+        'and from <a style="color:var(--neon)" href="https://x.com/strixhood" target="_blank" rel="noopener noreferrer">@strixhood</a> ' +
+        'once an external audit has been completed — none has been, and none is under way.</p>' +
+        '<div class="sx-tablewrap" style="margin-top:18px"><table class="sx-table" style="min-width:0">' +
+        '<thead><tr><th scope="col">Chain</th><th scope="col">Status</th><th scope="col" class="num">Explorer</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div>' +
+        '<p class="sx-body" style="margin-top:16px;font-size:12.5px">Testnet contracts are unaudited and get ' +
+        'redeployed without notice. Do not send anything you are not prepared to lose.</p>',
+      actions: [
+        { label: 'Read the spec', variant: 'ghost', onClick: function () { location.href = 'docs.html#networks'; } },
+        { label: 'Get notified', variant: 'primary', onClick: function () { S.scrollTo('#cta', 90); } }
+      ]
     });
   }
 
@@ -1059,6 +1119,9 @@
     wirePolicy();
     wireMint();
     wireWaitlist();
+    var hc = $('#hero-contract');
+    if (hc) hc.addEventListener('click', contractModal);
+
     startFeed();
     floatParallax();
     mount3D();

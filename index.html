@@ -70,9 +70,16 @@
 
   <div class="sx-shell hero__in">
     <div class="hero__copy">
-      <span class="sx-eyebrow" data-reveal="0">
-        <span class="sx-glyph sx-glyph--dot"></span>Live on 7 chains · testnet
-      </span>
+      <div class="hero__brand" data-reveal="0">
+        <div class="hero__emblem">
+          <canvas id="hero-emblem" aria-hidden="true"></canvas>
+          <img class="hero__emblem-fb" src="assets/mark.svg" width="124" height="124"
+               alt="Strix Hood emblem" decoding="async">
+        </div>
+        <span class="sx-eyebrow">
+          <span class="sx-glyph sx-glyph--dot"></span>3 testnets live · 4 queued · no mainnet
+        </span>
+      </div>
 
       <div class="hero__wordmark" data-reveal="60">
         <canvas id="hero-wordmark" aria-hidden="true"></canvas>
@@ -102,6 +109,17 @@
           Runs a full simulation of the protocol pipeline. Nothing is broadcast; no wallet required.
         </p>
       </form>
+
+      <div class="hero__links" data-reveal="240">
+        <button class="sx-btn sx-btn--ghost" type="button" id="hero-contract">
+          <span class="sx-glyph sx-glyph--sq" aria-hidden="true"></span>Smart contract
+        </button>
+        <a class="sx-btn sx-btn--ghost" href="https://x.com/strixhood" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" class="hero__xi" aria-hidden="true" focusable="false"><path fill="currentColor" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932zM17.61 20.644h2.039L6.486 3.24H4.298z"/></svg>
+          Follow @strixhood
+        </a>
+        <a class="sx-btn sx-btn--quiet" href="docs.html#networks">Networks</a>
+      </div>
 
       <div class="hero__stats" data-reveal="260">
         <div class="sx-stat"><span class="sx-stat__k">Agents registered</span><span class="sx-stat__v" id="s-agents">—</span></div>
@@ -322,11 +340,11 @@
 
     <div class="contract sx-card sx-card--flat" data-reveal="160">
       <div>
-        <span class="sx-label">$STRX contract · Ethereum</span>
-        <div class="sx-mono contract__addr" id="strx-addr">0x5771780000000000000000000000000000000d17</div>
+        <span class="sx-label">$STRX contract</span>
+        <div class="sx-mono contract__addr" id="strx-addr">Not deployed — testnet registry only</div>
       </div>
       <div class="sx-row">
-        <button class="sx-btn sx-btn--ghost sx-btn--sm" type="button" id="strx-copy">Copy address</button>
+        <button class="sx-btn sx-btn--ghost sx-btn--sm" type="button" id="strx-copy">Deployment status</button>
         <a class="sx-btn sx-btn--quiet sx-btn--sm" href="docs.html#tokenomics">Tokenomics</a>
       </div>
     </div>
@@ -394,7 +412,7 @@
       <a class="sx-btn sx-btn--ghost" href="docs.html">Read the docs</a>
       <a class="sx-btn sx-btn--ghost" href="app.html">Launch the app</a>
       <a class="sx-btn sx-btn--quiet" href="https://x.com/strixhood" target="_blank" rel="noopener noreferrer">Follow on X</a>
-      <a class="sx-btn sx-btn--quiet" href="https://opensea.io/" target="_blank" rel="noopener noreferrer">View on OpenSea</a>
+      <a class="sx-btn sx-btn--quiet" href="nft.html">How passports work</a>
     </div>
   </div>
 </section>
