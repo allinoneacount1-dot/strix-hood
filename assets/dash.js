@@ -297,6 +297,7 @@
   /* ============================================================
      4 · CHART PANEL — TradingView widget + native canvas fallback
      ============================================================ */
+  var TV_WARNED = false;
   var TV_SRC = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
   var TV_TIMEOUT = 4500;
   var INTERVALS = [
@@ -481,8 +482,9 @@
          for — flip the toggle to Native. Picking TradingView again retries. */
       st.want = 'native';
       paintCtl();
-      if (!toasted) {
+      if (!toasted && !TV_WARNED) {
         toasted = true;
+        TV_WARNED = true;
         S.toast({
           title: 'TradingView unavailable',
           body: 'Switched to the native renderer — ' + why + '.',

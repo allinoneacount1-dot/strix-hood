@@ -482,7 +482,7 @@
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + iw, y);
       ctx.strokeStyle = 'rgba(255,255,255,.05)'; ctx.lineWidth = 1; ctx.stroke();
       ctx.fillStyle = '#5A5B6E';
-      ctx.fillText(S.fmt.compact(v), padL + iw + 8, y);
+      ctx.fillText(axisLabel(v, rng), padL + iw + 8, y);
     }
     candles.forEach(function (c, i) {
       var x = padL + i * cw + cw / 2;
@@ -506,8 +506,17 @@
     ctx.fillRect(padL + iw + 4, ly - 8, padR - 8, 16);
     ctx.fillStyle = '#12170A';
     ctx.font = '600 10px ui-monospace,monospace';
-    ctx.fillText(S.fmt.compact(lastC.c), padL + iw + 8, ly);
+    ctx.fillText(axisLabel(lastC.c, rng), padL + iw + 8, ly);
   };
+
+  /* Axis ticks must be distinguishable: pick decimals from the visible
+     range, not from the magnitude of the price. */
+  function axisLabel(v, range) {
+    var step = range / 4;
+    var d = step >= 100 ? 0 : step >= 10 ? 1 : step >= 1 ? 2 : step >= 0.1 ? 3 : step >= 0.01 ? 4 : 5;
+    if (Math.abs(v) >= 100000) return S.fmt.compact(v);
+    return v.toFixed(d);
+  }
 
   /* Donut — SVG string, crisp at any size */
   S.donutSVG = function (segments, opts) {
