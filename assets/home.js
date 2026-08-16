@@ -1119,8 +1119,6 @@
     wirePolicy();
     wireMint();
     wireWaitlist();
-    var hc = $('#hero-contract');
-    if (hc) hc.addEventListener('click', contractModal);
 
     startFeed();
     floatParallax();

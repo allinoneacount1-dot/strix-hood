@@ -451,9 +451,14 @@ body{background:transparent}
   .hire__search{max-width:none;width:100%}
 }
 
-/* hero secondary actions */
-.hero__links{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px}
-.hero__xi{width:14px;height:14px;flex:none}
+/* hero secondary action — one button, aligned to the intent console above */
+.hero__links{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin-top:22px}
+.hero__ca{padding-inline:22px}
+.hero__xi{width:13px;height:13px;flex:none;opacity:.75;margin-left:1px}
+.hero__ca:hover .hero__xi{opacity:1}
+.hero__ca-note{font-size:11.5px;color:var(--gray-dim);letter-spacing:.02em}
 @media (max-width:620px){
-  .hero__links .sx-btn{flex:1 1 auto;justify-content:center}
+  .hero__links{gap:10px}
+  .hero__ca{width:100%;justify-content:center}
+  .hero__ca-note{font-size:11px}
 }
