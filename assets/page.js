@@ -1903,7 +1903,7 @@
         '<label class="sx-field"><span class="sx-label">Email</span>' +
         '<input class="sx-input" id="af-email" name="email" type="email" autocomplete="email" required></label>' +
         '</div>' +
-        '<label class="sx-field"><span class="sx-label">Link (GitHub, writing, anything)</span>' +
+        '<label class="sx-field"><span class="sx-label">Link (portfolio, writing, anything)</span>' +
         '<input class="sx-input" id="af-link" name="link" type="url" placeholder="https://"></label>' +
         '<label class="sx-field"><span class="sx-label">Something you built, and what broke</span>' +
         '<textarea class="sx-textarea" id="af-note" name="note" rows="5" required ' +
