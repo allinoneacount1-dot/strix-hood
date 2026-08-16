@@ -331,7 +331,7 @@
           '</div></div>';
       }).join('') + '</nav>' +
       '<div class="dx-rail__foot">' +
-      '<a href="' + S.site.github + '" target="_blank" rel="noopener noreferrer">GitHub repository</a>' +
+      '<a href="api.html">API reference</a>' +
       '<a href="status.html">Protocol status</a>' +
       '<a href="app.html">Open the console</a>' +
       '</div>';

@@ -35,7 +35,6 @@
   /* shell.js owns the sitemap; the widget must still work without it. */
   var FALLBACK_SITE = {
     x: 'https://x.com/strixhood',
-    github: 'https://github.com/allinoneacount1-dot/strix-hood',
     opensea: 'https://opensea.io/',
     product: [
       { label: 'Agents', href: 'agents.html' },
@@ -976,7 +975,6 @@
     var extra = [];
     if (n.key === 'api') extra.push({ label: 'Open dashboard', href: P('app'), variant: 'quiet' });
     if (n.key === 'nft') extra.push({ label: 'OpenSea', href: s.opensea, ext: true, variant: 'quiet' });
-    if (n.key === 'sdk' || n.key === 'docs') extra.push({ label: 'GitHub', href: s.github, ext: true, variant: 'quiet' });
     return {
       blocks: [
         p(n.line),
